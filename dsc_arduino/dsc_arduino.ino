@@ -1,3 +1,4 @@
+#include <Adafruit_NeoPixel.h>
 #include <AutoPID.h>
 
 // Feather M0 Express board pinouts
@@ -8,18 +9,44 @@
 #define Ref_Heater_PIN 11
 #define Samp_Heater_PIN 10
 
+// NeoPixel parameters
+#define LED_PIN 8
+#define LED_COUNT 1
+Adafruit_NeoPixel neopixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+// Predefined colors for NeoPixel
+uint32_t black = neopixel.Color(0, 0, 0);
+uint32_t white = neopixel.Color(255, 255, 255);
+uint32_t magenta = neopixel.Color(255, 0, 255);
+uint32_t red = neopixel.Color(255, 0, 0);
+uint32_t yellow = neopixel.Color(255, 255, 0);
+uint32_t green = neopixel.Color(0, 255, 0);
+uint32_t cyan = neopixel.Color(0, 255, 255);
+uint32_t blue = neopixel.Color(0, 0, 255);
+
 // PID settings and gains
 #define PULSE_WIDTH 100
 #define KP 0.02
 #define KI 0.0001
 #define KD 0.002
+#define PID_THRESHOLD 4
+#define PID_UPDATE_INTERVAL 1000
 
-// Analog signal to voltage conversion factor
-#define SENSOR_VOLTAGE 5
+// The source voltage supplied to the sensor boards
+#define SENSOR_VOLTAGE 5.0
+// The sample resolution of the analogRead() output
 #define PWM_RESOLUTION 255.0
+// Analog signal to voltage conversion factor
 double byte2volts = (SENSOR_VOLTAGE / PWM_RESOLUTION);
 
-// The constant voltage supplied by the output of the transformers
+// Thermocouple amplifier conversion constants
+#define AMPLIFIER_VOLTAGE_OFFSET -1.25
+#define AMPLIFIER_CONVERSION_FACTOR 0.005 // 5 mV/C = 0.005 V/C
+
+// Current sensor conversion constant
+#define CURRENT_SENSOR_SENS 0.1 // Sensitivity (Sens) 100 mV/A = 0.1 V/A
+
+// The constant voltage supplied to the heating coils
 #define HEATING_COIL_VOLTAGE 24
 
 // Max allowable temperature
@@ -28,11 +55,11 @@ double byte2volts = (SENSOR_VOLTAGE / PWM_RESOLUTION);
 #define MAX_TEMPERATURE 300
 
 // target temperature and temp control parameters
-double targetTemp = 25;
-double startTemp = 25;
-double endTemp = 30;
-double rampUpRate = 5;
-double holdTime = 0;
+double targetTemp;
+double startTemp;
+double endTemp;
+double rampUpRate;
+double holdTime;
 
 unsigned long startTime, latestTime, elapsedTime; // tracks clock time
 unsigned long rampUpStartTime;
@@ -55,6 +82,18 @@ double refMass = 1, sampMass = 1;
 
 int matlabData;
 
+void sendControlParameters()
+{
+  // Send the char 'c' to indicate the start of config data set
+  Serial.println('c');
+
+  // Send each value in the expected order, separated by newlines
+  Serial.println(startTemp);
+  Serial.println(endTemp);
+  Serial.println(rampUpRate);
+  Serial.println(holdTime);
+}
+
 /*
  * Reads the values from each of the sensor pins and converts them to the
  * appropriate units, storing the result in the global variables
@@ -74,10 +113,10 @@ void readSensors(double *refTemperature, double *sampTemperature, double *refCur
   double sampCurrentVoltage = sampCurrentSignal * byte2volts;
 
   // Convert the voltage reading into appropriate units
-  *refTemperature = 0; //TODO: Put in the conversion equations
-  *sampTemperature = 0;
-  *refCurrent = 0;
-  *sampCurrent = 0;
+  *refTemperature = (refTempVoltage + AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
+  *sampTemperature = (sampTempVoltage + AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
+  *refCurrent = refCurrentVoltage / CURRENT_SENSOR_SENS;
+  *sampCurrent = sampCurrentVoltage / CURRENT_SENSOR_SENS;
 }
 
 ////void calculateDutyCycle(double* refPWMDutyCycle, double* sampPWMDutyCycle, )
@@ -109,49 +148,52 @@ void updateTargetTemperature(double *targetTemp, double startTemp, double endTem
 
 void sendData()
 {
-  Serial.print("Elapsed time (ms): ");
+  // Send the char 's' to indicate the start of data set
+  Serial.println('s');
+
+  // Send each value in the expected order, separated by newlines
   Serial.println(elapsedTime);
-
-  Serial.print("Target Temperature (C): ");
   Serial.println(targetTemp);
-
-  Serial.print("Ref Temperature (C): ");
+  
   Serial.println(refTemperature);
-
-  Serial.print("Samp Temperature (C): ");
   Serial.println(sampTemperature);
-
-  Serial.print("Ref Current (A): ");
+  
   Serial.println(refCurrent);
-
-  Serial.print("Ref Current (A): ");
   Serial.println(sampCurrent);
-
-  Serial.print("Ref PWM Duty Cycle: ");
-  Serial.println(refPID.getPulseValue() / PULSE_WIDTH);
-
-  Serial.print("Samp PWM Duty Cycle: ");
-  Serial.println(sampPID.getPulseValue() / PULSE_WIDTH);
+  
+  Serial.println(refHeatFlow);
+  Serial.println(sampHeatFlow);
+  
+  Serial.println(refPID.getPulseValue());
+  Serial.println(sampPID.getPulseValue());
 }
 
 void controlLoop()
 {
-  digitalWrite(13, HIGH);
   startTime = millis();
   while (true)
   {
-    digitalWrite(13, HIGH);
+    neopixel.fill(green);
+    neopixel.show();
+
     // Check for interupts from the UI
     if (Serial.available())
     {
+      digitalWrite(13, HIGH);
+
       // read the incoming data as a string
       matlabData = Serial.read();
-      Serial.print("Recieved data: ");
-      Serial.println(matlabData);
 
       switch (matlabData)
       {
-      case 5:
+      case 'p':
+        neopixel.fill(yellow);
+        neopixel.show();
+        break;
+      case 'x':
+        neopixel.fill(red);
+        neopixel.show();
+        Serial.println('x');
         return;
         break;
       default:
@@ -192,6 +234,15 @@ void controlLoop()
 
     //TODO
     // Check loop exit conditions
+    if (elapsedTime > 10000)
+    {
+      neopixel.fill(magenta);
+      neopixel.show();
+      Serial.println("x");
+      break;
+    }
+    else
+      delay(1);
   }
 }
 
@@ -212,11 +263,21 @@ void setup()
   pinMode(Samp_Heater_PIN, OUTPUT);
 
   //if temperature is more than 4 degrees below or above setpoint, OUTPUT will be set to min or max respectively
-  refPID.setBangBang(4);
-  sampPID.setBangBang(4);
-  //set PID update interval to 1000ms
-  refPID.setTimeStep(1000);
-  sampPID.setTimeStep(1000);
+  refPID.setBangBang(PID_THRESHOLD);
+  sampPID.setBangBang(PID_THRESHOLD);
+  //set PID update interval
+  refPID.setTimeStep(PID_UPDATE_INTERVAL);
+  sampPID.setTimeStep(PID_UPDATE_INTERVAL);
+
+  // NeoPixel initialization
+  neopixel.begin();
+  neopixel.show(); // Initialize all pixels to 'off'
+
+  targetTemp = 25;
+  startTemp = 25;
+  endTemp = 30;
+  rampUpRate = 5;
+  holdTime = 0;
 }
 
 void loop()
@@ -226,19 +287,39 @@ void loop()
   digitalWrite(13, LOW);  // turn the LED off by making the voltage LOW
   delay(500);             // wait for a second
 
+  neopixel.clear();
+  neopixel.show();
+
   if (Serial.available())
   {
     digitalWrite(13, HIGH);
-    
+
     // read the incoming data as a string
     matlabData = Serial.read();
-    Serial.print("Recieved data: ");
-    Serial.println(matlabData);
 
     switch (matlabData)
     {
-    case 3:
-      //controlLoop;
+    case 'i':
+      neopixel.fill(cyan);
+      neopixel.show();
+      sendControlParameters();
+    case 'l':
+      neopixel.fill(cyan);
+      neopixel.show();
+      startTemp = Serial.parseFloat();
+      endTemp = Serial.parseFloat();
+      rampUpRate = Serial.parseFloat();
+      holdTime = Serial.parseFloat();
+      sendControlParameters();
+      break;
+    case 's':
+      neopixel.fill(green);
+      neopixel.show();
+      controlLoop();
+      break;
+    case 10:
+      neopixel.fill(blue);
+      neopixel.show();
       break;
     default:
       break;
