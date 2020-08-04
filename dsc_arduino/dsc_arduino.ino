@@ -54,7 +54,7 @@ uint32_t blue = neopixel.Color(0, 0, 255);
 // The source voltage supplied to the sensor boards
 #define SENSOR_VOLTAGE 5.0
 // The sample resolution of the analogRead() output
-#define PWM_RESOLUTION 255.0
+#define PWM_RESOLUTION 1024.0
 // Analog signal to voltage conversion factor
 double byte2volts = (SENSOR_VOLTAGE / PWM_RESOLUTION);
 
@@ -92,7 +92,7 @@ double rampUpRate;
 double holdTime;
 
 unsigned long startTime, latestTime, elapsedTime; // tracks clock time
-unsigned long rampUpStartTime;
+unsigned long rampUpStartTime, holdStartTime;
 
 // global variables for holding temperature and current sensor readings
 double refTemperature, sampTemperature;
@@ -110,10 +110,38 @@ AutoPIDRelay sampPID(&sampTemperature, &targetTemp, &sampRelayState, PULSE_WIDTH
 // The mass (in grams) of each of the material samples
 double refMass = 1, sampMass = 1;
 
-int matlabData;
+// Counter used to hold samples at start temperature before beginning to ramp up
+// the target temperature
+int startCounter;
 
+// Debug variables used to override the control loop end conditions
 bool debugMode = true;
+#define DEBUG_TIME_LIMIT 10000
 
+/*
+ * Send the PID gain constants via the serial bus
+ */
+void sendPIDGains()
+{
+  // Send the char 'k' to indicate the start of the PID data set
+  Serial.println('k');
+
+  // Send each value in the expected order, separated by newlines
+  Serial.println(KP);
+  Serial.println(KI);
+  Serial.println(KD);
+}
+
+/*
+ * Receive the PID gain constants via the serial bus
+ */
+void receivePIDGains()
+{
+}
+
+/*
+ * Send the temperature control parameters via the serial bus
+ */
 void sendControlParameters()
 {
   // Send the char 'c' to indicate the start of config data set
@@ -127,48 +155,91 @@ void sendControlParameters()
 }
 
 /*
+ * Receive the temperature control parameters via the serial bus
+ */
+void receiveControlParameters()
+{
+  // Read the incoming data as a float
+  startTemp = Serial.parseFloat();
+  endTemp = Serial.parseFloat();
+  rampUpRate = Serial.parseFloat();
+  holdTime = Serial.parseFloat();
+}
+
+/*
  * Reads the values from each of the sensor pins and converts them to the
  * appropriate units, storing the result in the global variables
  */
 void readSensors(double *refTemperature, double *sampTemperature, double *refCurrent, double *sampCurrent)
 {
-  // Read the encoded voltage signals from the sensors
-  int refTempSignal = analogRead(REF_TEMP_PROBE_PIN);
-  int sampTempSignal = analogRead(SAMP_TEMP_PROBE_PIN);
-  int refCurrentSignal = analogRead(REF_CURRENT_SENS_PIN);
-  int sampCurrentSignal = analogRead(SAMP_CURRENT_SENS_PIN);
+  int numSamples = 100;
+
+  // Initialize counters to hold the sum of several samples of analog signals
+  int refTempSignalSum = 0;
+  int sampTempSignalSum = 0;
+  int refCurrentSignalSum = 0;
+  int sampCurrentSignalSum = 0;
+
+  // Read the analog signals from the sensors
+  for (int i = 0; i < numSamples; i++)
+  {
+    refTempSignalSum += analogRead(REF_TEMP_PROBE_PIN);
+    sampTempSignalSum += analogRead(SAMP_TEMP_PROBE_PIN);
+    refCurrentSignalSum += analogRead(REF_CURRENT_SENS_PIN);
+    sampCurrentSignalSum += analogRead(SAMP_CURRENT_SENS_PIN);
+  }
+
+  // Calculate the average of the samples
+  double refTempSignalAverage = refTempSignalSum / numSamples;
+  double sampTempSignalAverage = sampTempSignalSum / numSamples;
+  double refCurrentSignalAverage = refCurrentSignalSum / numSamples;
+  double sampCurrentSignalAverage = sampCurrentSignalSum / numSamples;
 
   // Convert the analog values into voltages
-  double refTempVoltage = refTempSignal * byte2volts;
-  double sampTempVoltage = sampTempSignal * byte2volts;
-  double refCurrentVoltage = refCurrentSignal * byte2volts;
-  double sampCurrentVoltage = sampCurrentSignal * byte2volts;
+  double refTempVoltage = refTempSignalAverage * byte2volts;
+  double sampTempVoltage = sampTempSignalAverage * byte2volts;
+  double refCurrentVoltage = refCurrentSignalAverage * byte2volts;
+  double sampCurrentVoltage = sampCurrentSignalAverage * byte2volts;
 
-  // Convert the voltage reading into appropriate units
+  // Convert the voltage readings into appropriate units
   *refTemperature = (refTempVoltage + AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
   *sampTemperature = (sampTempVoltage + AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
   *refCurrent = refCurrentVoltage / CURRENT_SENSOR_SENS;
   *sampCurrent = sampCurrentVoltage / CURRENT_SENSOR_SENS;
 }
 
+/*
+ * Calcutate the heat flow
+ */
 void calculateHeatFlow(double *refHeatFlow, double *sampHeatFlow, double refCurrent, double sampCurrent)
 {
   *refHeatFlow = refCurrent * HEATING_COIL_VOLTAGE / refMass;
   *sampHeatFlow = sampCurrent * HEATING_COIL_VOLTAGE / sampMass;
 }
 
+/*
+ * Calcutate the target temperature
+ */
 void updateTargetTemperature(double *targetTemp, double startTemp, double endTemp, double rampUpRate, double latestTime)
 {
-  if (((*targetTemp < startTemp) && (startTemp < endTemp)) ||
-      ((*targetTemp > startTemp) && (startTemp > endTemp)))
+  if (startCounter < TARGET_COUNTER_THRESHOLD)
   {
     *targetTemp = startTemp;
+    if ((abs(*targetTemp - refTemperature) < MINIMUM_ACCEPTABLE_ERROR) &&
+        (abs(*targetTemp - sampTemperature) < MINIMUM_ACCEPTABLE_ERROR))
+    {
+      startCounter++;
+    }
+    else
+    {
+      startCounter = 0;
+    }
     rampUpStartTime = millis();
   }
   else if (((*targetTemp < endTemp) && (endTemp > startTemp)) ||
            ((*targetTemp > endTemp) && (endTemp < startTemp)))
   {
-    *targetTemp = startTemp + (rampUpRate / 60) * (latestTime - rampUpStartTime);
+    *targetTemp = startTemp + (rampUpRate / (60 * 1000)) * (latestTime - rampUpStartTime);
   }
   else
   {
@@ -176,12 +247,17 @@ void updateTargetTemperature(double *targetTemp, double startTemp, double endTem
   }
 }
 
+/*
+ * Send the latest measurement data via the serial bus
+ */
 void sendData()
 {
-  // Send the char 's' to indicate the start of data set
-  Serial.println('s');
+  // Send the char 'd' to indicate the start of data set
+  Serial.println('d');
 
   // Send each value in the expected order, separated by newlines
+  Serial.println(startTime);
+  Serial.println(latestTime);
   Serial.println(elapsedTime);
   Serial.println(targetTemp);
 
@@ -198,41 +274,54 @@ void sendData()
   Serial.println(sampPID.getPulseValue());
 }
 
+/*
+ * Temperature control loop
+ */
 void controlLoop()
 {
-  startTime = millis();
-  targetCounter = 0;
-  while (targetCounter < TARGET_COUNTER_THRESHOLD)
-  {
-    neopixel.fill(green);
-    neopixel.show();
+  // Send the char 's' to indicate the start of control loop
+  Serial.println('s');
 
+  startTime = millis();
+  startCounter = 0;
+  int targetCounter = 0;
+  bool controlLoopState = true;
+  while (controlLoopState)
+  {
     // Check for interupts from the UI
     if (Serial.available())
     {
       digitalWrite(13, HIGH);
 
-      // read the incoming data as a string
-      matlabData = Serial.read();
+      // Read the incoming data as a char
+      int inByte = Serial.read();
 
-      switch (matlabData)
+      switch (inByte)
       {
       case 'p':
+        // Received pause command
         neopixel.fill(yellow);
         neopixel.show();
+        // Confirm by sending the same command back
+        Serial.println('p');
         break;
       case 'x':
+        // Received stop commmand
         neopixel.fill(red);
         neopixel.show();
+        // Confirm by sending the same command back
         Serial.println('x');
         return;
         break;
       default:
         break;
       }
-
-      digitalWrite(13, LOW);
     }
+
+    digitalWrite(13, LOW);
+
+    neopixel.fill(green);
+    neopixel.show();
 
     // Record the time
     latestTime = millis();
@@ -266,24 +355,36 @@ void controlLoop()
     sendData();
 
     // Check loop exit conditions
-    if ((targetTemp == endTemp) &&
-        (abs(targetTemp - refTemperature) < MINIMUM_ACCEPTABLE_ERROR) &&
-        (abs(targetTemp - sampTemperature) < MINIMUM_ACCEPTABLE_ERROR))
+    if (targetCounter < TARGET_COUNTER_THRESHOLD)
     {
-      targetCounter++;
+      if ((targetTemp == endTemp) &&
+          (abs(targetTemp - refTemperature) < MINIMUM_ACCEPTABLE_ERROR) &&
+          (abs(targetTemp - sampTemperature) < MINIMUM_ACCEPTABLE_ERROR))
+      {
+        targetCounter++;
+      }
+      else
+      {
+        targetCounter = 0;
+      }
+      holdStartTime = millis();
     }
-    else
+    else if ((latestTime - holdStartTime) > (holdTime / 1000))
     {
-      targetCounter = 0;
-      delay(1);
+      controlLoopState = false;
     }
 
-    if (debugMode && (elapsedTime > 100000))
-      targetCounter = TARGET_COUNTER_THRESHOLD;
+    if (debugMode && (elapsedTime > DEBUG_TIME_LIMIT))
+    {
+      controlLoopState = false;
+    }
+
+    delay(1);
   }
 
   neopixel.fill(magenta);
   neopixel.show();
+  // Send the char 'x' to indicate the end of the control loop
   Serial.println("x");
 }
 
@@ -317,7 +418,7 @@ void setup()
   targetTemp = 25;
   startTemp = 25;
   endTemp = 30;
-  rampUpRate = 5;
+  rampUpRate = 1;
   holdTime = 0;
 }
 
@@ -335,30 +436,37 @@ void loop()
   {
     digitalWrite(13, HIGH);
 
-    // read the incoming data as a string
-    matlabData = Serial.read();
+    // Read the incoming data as a char
+    int inByte = Serial.read();
 
-    switch (matlabData)
+    switch (inByte)
     {
     case 'i':
+      // Received initialization command
       neopixel.fill(cyan);
       neopixel.show();
+      // Send the temperature control parameters via the serial bus
       sendControlParameters();
+      break;
     case 'l':
+      // Received load control parameters commmand
       neopixel.fill(cyan);
       neopixel.show();
-      startTemp = Serial.parseFloat();
-      endTemp = Serial.parseFloat();
-      rampUpRate = Serial.parseFloat();
-      holdTime = Serial.parseFloat();
+      // Receive the temperature control parameters via the serial bus
+      receiveControlParameters();
+      // Send the temperature control parameters to confirm that the values
+      // were received properly
       sendControlParameters();
       break;
     case 's':
+      // Received start commmand
       neopixel.fill(green);
       neopixel.show();
+      // Run the temperature control loop
       controlLoop();
       break;
     case 10:
+      // Received newline char
       neopixel.fill(blue);
       neopixel.show();
       break;
