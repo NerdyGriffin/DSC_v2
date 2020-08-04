@@ -1,3 +1,22 @@
+/*  DSC_v2: UI and control systems for prototype DSC system
+ *      Copyright (C) 2019  Christian Kunis
+ *
+ *      This program is free software: you can redistribute it and/or modify
+ *      it under the terms of the GNU General Public License as published by
+ *      the Free Software Foundation, either version 3 of the License, or
+ *      (at your option) any later version.
+ *
+ *      This program is distributed in the hope that it will be useful,
+ *      but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *      GNU General Public License for more details.
+ *
+ *      You should have received a copy of the GNU General Public License
+ *      along with this program. If not, see <https://www.gnu.org/licenses/>
+ *
+ *      You may contact the author at ckunis.contact@gmail.com
+ */
+
 #include <Adafruit_NeoPixel.h>
 #include <AutoPID.h>
 
@@ -54,6 +73,17 @@ double byte2volts = (SENSOR_VOLTAGE / PWM_RESOLUTION);
 // set to zero
 #define MAX_TEMPERATURE 300
 
+// The minimum acceptable error between the sample temperatures and
+// the target temperature. The error for both samples must be less
+// than this value before the stage controller will continue to the
+// next stage. Units: [\Delta degrees C]
+#define MINIMUM_ACCEPTABLE_ERROR 1.5
+
+// The number of the consecutive samples within the
+// MINIMUM_ACCEPTABLE_ERROR that are required before the program
+// considers the target to be satisfied
+#define TARGET_COUNTER_THRESHOLD 1000
+
 // target temperature and temp control parameters
 double targetTemp;
 double startTemp;
@@ -81,6 +111,8 @@ AutoPIDRelay sampPID(&sampTemperature, &targetTemp, &sampRelayState, PULSE_WIDTH
 double refMass = 1, sampMass = 1;
 
 int matlabData;
+
+bool debugMode = true;
 
 void sendControlParameters()
 {
@@ -119,8 +151,6 @@ void readSensors(double *refTemperature, double *sampTemperature, double *refCur
   *sampCurrent = sampCurrentVoltage / CURRENT_SENSOR_SENS;
 }
 
-////void calculateDutyCycle(double* refPWMDutyCycle, double* sampPWMDutyCycle, )
-
 void calculateHeatFlow(double *refHeatFlow, double *sampHeatFlow, double refCurrent, double sampCurrent)
 {
   *refHeatFlow = refCurrent * HEATING_COIL_VOLTAGE / refMass;
@@ -154,16 +184,16 @@ void sendData()
   // Send each value in the expected order, separated by newlines
   Serial.println(elapsedTime);
   Serial.println(targetTemp);
-  
+
   Serial.println(refTemperature);
   Serial.println(sampTemperature);
-  
+
   Serial.println(refCurrent);
   Serial.println(sampCurrent);
-  
+
   Serial.println(refHeatFlow);
   Serial.println(sampHeatFlow);
-  
+
   Serial.println(refPID.getPulseValue());
   Serial.println(sampPID.getPulseValue());
 }
@@ -171,7 +201,8 @@ void sendData()
 void controlLoop()
 {
   startTime = millis();
-  while (true)
+  targetCounter = 0;
+  while (targetCounter < TARGET_COUNTER_THRESHOLD)
   {
     neopixel.fill(green);
     neopixel.show();
@@ -199,6 +230,8 @@ void controlLoop()
       default:
         break;
       }
+
+      digitalWrite(13, LOW);
     }
 
     // Record the time
@@ -232,18 +265,26 @@ void controlLoop()
     // Send data out via Serial bus
     sendData();
 
-    //TODO
     // Check loop exit conditions
-    if (elapsedTime > 10000)
+    if ((targetTemp == endTemp) &&
+        (abs(targetTemp - refTemperature) < MINIMUM_ACCEPTABLE_ERROR) &&
+        (abs(targetTemp - sampTemperature) < MINIMUM_ACCEPTABLE_ERROR))
     {
-      neopixel.fill(magenta);
-      neopixel.show();
-      Serial.println("x");
-      break;
+      targetCounter++;
     }
     else
+    {
+      targetCounter = 0;
       delay(1);
+    }
+
+    if (debugMode && (elapsedTime > 100000))
+      targetCounter = TARGET_COUNTER_THRESHOLD;
   }
+
+  neopixel.fill(magenta);
+  neopixel.show();
+  Serial.println("x");
 }
 
 void setup()
