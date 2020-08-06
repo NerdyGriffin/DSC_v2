@@ -56,17 +56,19 @@ double Kd = 0;
 // The sample resolution of the analogRead() output
 #define ANALOG_RESOLUTION 1024.0
 // Analog signal to voltage conversion factor
-double byte2volts = (SENSOR_VOLTAGE / ANALOG_RESOLUTION);
+double byteToVolts = (SENSOR_VOLTAGE / ANALOG_RESOLUTION);
+double byteToMillivolts = 1000.0 * byteToVolts;
 
 // Thermocouple amplifier conversion constants
-#define AMPLIFIER_VOLTAGE_OFFSET -1.25
+#define AMPLIFIER_VOLTAGE_OFFSET 1.25
 #define AMPLIFIER_CONVERSION_FACTOR 0.005 // 5 mV/C = 0.005 V/C
 
-// Current sensor conversion constant
-#define CURRENT_SENSOR_SENS 0.1 // Sensitivity (Sens) 100 mV/A = 0.1 V/A
+// Current sensor conversion constants
+#define CURRENT_SENSOR_SENS 0.4 // Sensitivity (Sens) 100mA per 250mV = 0.4
+#define CURRENT_SENSOR_VREF 2500.0 // Output voltage with no current: ~ 2500mV or 2.5V
 
 // The constant voltage supplied to the heating coils
-#define HEATING_COIL_VOLTAGE 24
+#define HEATING_COIL_VOLTAGE 24.0
 
 // Max allowable temperature.
 // If the either temperature exceeds this value, the PWM duty cycle will be set
@@ -178,13 +180,13 @@ void receiveControlParameters()
  */
 void readSensors(double *refTemperature, double *sampTemperature, double *refCurrent, double *sampCurrent)
 {
-    unsigned long numSamples = 100;
+    const unsigned long numSamples = 10;
 
     // Initialize counters to hold the sum of several samples of analog signals
-    unsigned long refTempSignalSum = 0;
-    unsigned long sampTempSignalSum = 0;
-    unsigned long refCurrentSignalSum = 0;
-    unsigned long sampCurrentSignalSum = 0;
+    unsigned long refTempSensorValue = 0;
+    unsigned long sampTempSensorValue = 0;
+    unsigned long refCurrentSensorValue = 0;
+    unsigned long sampCurrentSensorValue = 0;
 
     unsigned long latestSampleTime = 0;
 
@@ -192,31 +194,35 @@ void readSensors(double *refTemperature, double *sampTemperature, double *refCur
     for (unsigned long i = 0; i < numSamples; i++)
     {
         latestSampleTime = millis();
-        refTempSignalSum += analogRead(REF_TEMP_PROBE_PIN);
-        sampTempSignalSum += analogRead(SAMP_TEMP_PROBE_PIN);
-        refCurrentSignalSum += analogRead(REF_CURRENT_SENS_PIN);
-        sampCurrentSignalSum += analogRead(SAMP_CURRENT_SENS_PIN);
-        // Wait so that samples are 1 millisecond apart
-        while ((millis() - latestSampleTime) < 1);
+        refTempSensorValue += analogRead(REF_TEMP_PROBE_PIN);
+        sampTempSensorValue += analogRead(SAMP_TEMP_PROBE_PIN);
+        refCurrentSensorValue += analogRead(REF_CURRENT_SENS_PIN);
+        sampCurrentSensorValue += analogRead(SAMP_CURRENT_SENS_PIN);
+        // Wait 2 milliseconds before the next loop for the analog-to-digital
+        // converter to settle after the last reading
+        while ((millis() - latestSampleTime) < 2);
     }
 
     // Calculate the average of the samples
-    double refTempSignalAverage = refTempSignalSum / numSamples;
-    double sampTempSignalAverage = sampTempSignalSum / numSamples;
-    double refCurrentSignalAverage = refCurrentSignalSum / numSamples;
-    double sampCurrentSignalAverage = sampCurrentSignalSum / numSamples;
+    refTempSensorValue = refTempSensorValue / numSamples;
+    sampTempSensorValue = sampTempSensorValue / numSamples;
+    refCurrentSensorValue = refCurrentSensorValue / numSamples;
+    sampCurrentSensorValue = sampCurrentSensorValue / numSamples;
 
     // Convert the analog values into voltages
-    double refTempVoltage = refTempSignalAverage * byte2volts;
-    double sampTempVoltage = sampTempSignalAverage * byte2volts;
-    double refCurrentVoltage = refCurrentSignalAverage * byte2volts;
-    double sampCurrentVoltage = sampCurrentSignalAverage * byte2volts;
+    double refTempVoltage = refTempSensorValue * byteToVolts;
+    double sampTempVoltage = sampTempSensorValue * byteToVolts;
+    // The current sensor voltage is in millivolts
+    double refCurrentVoltage = refCurrentSensorValue * byteToMillivolts;
+    double sampCurrentVoltage = sampCurrentSensorValue * byteToMillivolts;
 
     // Convert the voltage readings into appropriate units
-    *refTemperature = (refTempVoltage + AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
-    *sampTemperature = (sampTempVoltage + AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
-    *refCurrent = refCurrentVoltage / CURRENT_SENSOR_SENS;
-    *sampCurrent = sampCurrentVoltage / CURRENT_SENSOR_SENS;
+    *refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
+    *sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
+    // This will calculate the actual current (in mA)
+    // Using the Vref and sensitivity settings you configure
+    *refCurrent = (refCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
+    *sampCurrent = (sampCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
 }
 
 /*
@@ -224,8 +230,12 @@ void readSensors(double *refTemperature, double *sampTemperature, double *refCur
  */
 void calculateHeatFlow(double *refHeatFlow, double *sampHeatFlow, double refCurrent, double sampCurrent)
 {
-    *refHeatFlow = refCurrent * HEATING_COIL_VOLTAGE / refMass;
-    *sampHeatFlow = sampCurrent * HEATING_COIL_VOLTAGE / sampMass;
+    // Convert current from milliAmps to Amps
+    double refCurrentAmps = refCurrent / 1000.0;
+    double sampCurrentAmps = sampCurrent / 1000.0;
+    // Calculate the heat flow as Watts per gram
+    *refHeatFlow = refCurrentAmps * HEATING_COIL_VOLTAGE / refMass;
+    *sampHeatFlow = sampCurrentAmps * HEATING_COIL_VOLTAGE / sampMass;
 }
 
 /*
@@ -445,6 +455,10 @@ void setup()
     endTemp = 30;
     rampUpRate = 1;
     holdTime = 0;
+    
+    // Set the sample masses to default values
+    refMass = 1.0;
+    sampMass = 1.0;
 }
 
 void loop()
