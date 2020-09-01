@@ -36,3 +36,14 @@ Run the `DSC_Experiment_UI.mlapp` in MATLAB 2020a or later
 ## Analysis Instructions
 
 Run the `DSC_Data_Analysis_UI.mlapp` in MATLAB 2020a or later
+
+
+## Previous version
+
+The old version of this project was created to use a NI USB-6211 DAQ Box.
+
+Please note that the pervious version is deprecated and is no longer being support.
+
+The link is provided here for reference purposes only.
+
+The previous version can be found here: https://github.com/NerdyGriffin/DSC_UI
