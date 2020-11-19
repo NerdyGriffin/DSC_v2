@@ -20,7 +20,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <AutoPID.h>
 
- // Feather M0 Express board pinouts
+// Feather M0 Express board pinouts
 #define REF_TEMP_PROBE_PIN A1
 #define REF_CURRENT_SENS_PIN A2
 #define SAMP_CURRENT_SENS_PIN A3
@@ -44,7 +44,7 @@ uint32_t cyan = neopixel.Color(0, 255, 255);
 uint32_t blue = neopixel.Color(0, 0, 255);
 
 // PID settings and gains
-#define PULSE_WIDTH 100
+#define PULSE_WIDTH 100 // Pulse width in milliseconds
 double Kp = 0.01;
 double Ki = 0;
 double Kd = 0;
@@ -64,7 +64,7 @@ double byteToMillivolts = 1000.0 * byteToVolts;
 #define AMPLIFIER_CONVERSION_FACTOR 0.005 // 5 mV/C = 0.005 V/C
 
 // Current sensor conversion constants
-#define CURRENT_SENSOR_SENS 0.4 // Sensitivity (Sens) 100mA per 250mV = 0.4
+#define CURRENT_SENSOR_SENS 0.4    // Sensitivity (Sens) 100mA per 250mV = 0.4
 #define CURRENT_SENSOR_VREF 2500.0 // Output voltage with no current: ~ 2500mV or 2.5V
 
 // The constant voltage supplied to the heating coils
@@ -200,7 +200,8 @@ void readSensors(double *refTemperature, double *sampTemperature, double *refCur
         sampCurrentSensorValue += analogRead(SAMP_CURRENT_SENS_PIN);
         // Wait 2 milliseconds before the next loop for the analog-to-digital
         // converter to settle after the last reading
-        while ((millis() - latestSampleTime) < 2);
+        while ((millis() - latestSampleTime) < 2)
+            ;
     }
 
     // Calculate the average of the samples
@@ -455,7 +456,7 @@ void setup()
     endTemp = 30;
     rampUpRate = 1;
     holdTime = 0;
-    
+
     // Set the sample masses to default values
     refMass = 1.0;
     sampMass = 1.0;

@@ -31,12 +31,13 @@ NOTE: This project is currently a work-in-progress. Not all features have been i
 
 ## Experiment Instructions
 
-Run the `DSC_Experiment_UI.mlapp` in MATLAB 2020a or later
+Run the `DSC_Experiment_UI.mlapp` in MATLAB 2020b or later
+(More detailed instructions coming in the future)
 
 ## Analysis Instructions
 
-Run the `DSC_Data_Analysis_UI.mlapp` in MATLAB 2020a or later
-
+Run the `DSC_Data_Analysis_UI.mlapp` in MATLAB 2020b or later
+(More detailed instructions coming in the future)
 
 ## Previous version
 
