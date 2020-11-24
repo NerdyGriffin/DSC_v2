@@ -1,8 +1,35 @@
 # DSC_v2
-UI and real-time equipment control software for a Differential Scanning Calorimetry Prototype System, as part of my undergraduate physics research.
-Version 2 is remade for use with a Feather M0 Express
 
-### DSC_v2: UI and control systems for DSC prototype system
+UI and real-time equipment control software for a Differential Scanning Calorimetry Prototype System, as part of my undergraduate physics research
+
+This project version of the project is built for use with a Feather M0 Express.
+
+[The retired version](https://github.com/NerdyGriffin/DSC_UI) was built for use with a NI USB-6211 DAQ Box, but was deemed incompatible with our intended use case due to the limitations of the USB-6211 DAQ Box hardware and the limitations of the features available in the [Data Acquisition Toolbox](https://www.mathworks.com/help/daq/) at the time. For more details, see [Previous Version](#previous-version)
+
+NOTE: This project is currently a work-in-progress. Not all features have been implemented and all code may be subject to change.
+
+## Contents
+
+- [DSC_v2](#dsc_v2)
+  - [Contents](#contents)
+  - [Copyright Notice](#copyright-notice)
+  - [Getting Started](#getting-started)
+    - [Front End Development (MATLAB)](#front-end-development-matlab)
+    - [Back End Development (Arduino)](#back-end-development-arduino)
+    - [Editor Requirement & Recommendations](#editor-requirement--recommendations)
+    - [Libraries](#libraries)
+      - [MATLAB Libraries](#matlab-libraries)
+      - [Arduino Libraries](#arduino-libraries)
+  - [Usage Instructions](#usage-instructions)
+    - [First-Time Arduino Setup Instructions](#first-time-arduino-setup-instructions)
+    - [Experiment Instructions](#experiment-instructions)
+    - [Data Analysis Instructions](#data-analysis-instructions)
+    - [PID Tuning Instructions](#pid-tuning-instructions)
+  - [Previous version](#previous-version)
+
+## Copyright Notice
+
+DSC_v2: UI and control systems for DSC prototype system
 
 Copyright (C) 2020 Christian Kunis
 
@@ -21,30 +48,78 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You may contact the author at ckunis.contact@gmail.com
 
-NOTE: This project is currently a work-in-progress. Not all features have been implemented and all code may be subject to change.
+## Getting Started
 
-## Setup Instructions
+### Front End Development (MATLAB)
+
+- Documentation Coming soon
+
+### Back End Development (Arduino)
+
+- Documentation Coming soon
+  - TODO: Include instructions about what Arduino libraries are needed to run the program and how to install those libraries (either through the Arduino IDE or install manually)
+
+### Editor Requirement & Recommendations
+
+- Documentation Coming soon
+
+### Libraries
+
+#### MATLAB Libraries
+
+- Evgeny Pr (2020). INI Config (https://www.mathworks.com/matlabcentral/fileexchange/24992-ini-config), MATLAB Central File Exchange. Retrieved August 4, 2020.
+
+  IniConfig is a MATLAB class for working with configurations of settings and INI-files.
+
+  This class allows you to create configurations of settings, and to manage them.
+  The structure of the storage settings is similar to the structure of the storage the settings in the INI-file format.
+  The class allows you to import settings from the INI-file and to export the settings in INI-file.
+  Can be used for reading/writing data in the INI-file and managing settings of application.
+
+  The necessary file `IniConfig.m` and the corresponding license file are including in the DSC project's root directory, and is automatically imported by the MATLAB App programs. No further installation is needed.
+
+#### Arduino Libraries
+
+- [Adafruit NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel)
+
+  Arduino library for controlling single-wire-based LED pixels and strip such as the [Adafruit 60 LED/meter Digital LED strip][strip], the [Adafruit FLORA RGB Smart Pixel][flora], the [Adafruit Breadboard-friendly RGB Smart Pixel][pixel], the [Adafruit NeoPixel Stick][stick], and the [Adafruit NeoPixel Shield][shield].
+
+  See also: [Adafruit NeoPixel Überguide](https://learn.adafruit.com/adafruit-neopixel-uberguide)
+
+[flora]: http://adafruit.com/products/1060
+[strip]: http://adafruit.com/products/1138
+[pixel]: http://adafruit.com/products/1312
+[stick]: http://adafruit.com/products/1426
+[shield]: http://adafruit.com/products/1430
+
+- [AutoPID](https://r-downing.github.io/AutoPID/)
+
+  AutoPID is an Arduino library that lets you easily setup PID controllers on the Arduino that run in the background. My DSC project relies heavily on all of the main features of this library, including "Time-scaling and Automatic Value Updating", "Bang-Bang Control", and "PWM (Relay) Control". See [here](https://r-downing.github.io/AutoPID/#about) for more details.
+
+  Most importantly to this project, the "PWM (Relay) Control" feature allows the PID controller to automatically imitate a PWM output with a customizable _pulse width_ given in milliseconds. This is necessary for using the PWM output to control the Solid State Relays in our DSC circuit because the relays we use have a response time of 10ms, so we must use a PWM signal with a pulse width that is at least 10 times larger than this 10ms response time.
+
+## Usage Instructions
+
+### First-Time Arduino Setup Instructions
 
 1. Plug in the Feather M0 Express to the computer via a USB cable.
 2. If you have not done so already, open the `dsc_arduino` sketch in the Arduino IDE and upload it to the Adafruit Feather M0 Express.
 3. Make a note of which serial port the arduino board is connected to (Example: "COM3"), as you will need to set the same port in the experiment UI
 
-## Experiment Instructions
+### Experiment Instructions
 
 Run the `DSC_Experiment_UI.mlapp` in MATLAB 2020b or later
 (More detailed instructions coming in the future)
 
-## Analysis Instructions
+### Data Analysis Instructions
 
 Run the `DSC_Data_Analysis_UI.mlapp` in MATLAB 2020b or later
 (More detailed instructions coming in the future)
 
+### PID Tuning Instructions
+
+Please note: The instructions for manually tuning the PID controller gains will assume that you already know and understand the principles behind how PID control works, and an understanding of the each of the PID gains do. In the future, I hope to implement an algorithm for tuning the PID gains automatically, but this feature has been put on hold until the primary functionality of the hardware and software has been completed
+
 ## Previous version
 
-The old version of this project was created to use a NI USB-6211 DAQ Box.
-
-Please note that the pervious version is deprecated and is no longer being support.
-
-The link is provided here for reference purposes only.
-
-The previous version can be found here: https://github.com/NerdyGriffin/DSC_UI
+[The retired version](https://github.com/NerdyGriffin/DSC_UI) was built for use with a NI USB-6211 DAQ Box, but was deemed incompatible with our intended use case due to the limitations of the USB-6211 DAQ Box hardware and the limitations of the features available in the [Data Acquisition Toolbox](https://www.mathworks.com/help/daq/) at the time. Specifically, the system could not support the ability to update the duty cycle of PWM output in realtime without stopping and restarting the PWM output and attempted workarounds for this issue were unstable and would interfering with the real-time input measurement and/or time (internal clock) measurement.
