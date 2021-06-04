@@ -71,6 +71,12 @@ double byteToMillivolts = 1000.0 * byteToVolts;
 // The constant voltage supplied to the heating coils
 #define HEATING_COIL_VOLTAGE 24.0
 
+// The resistance of the heating coil circuit (Ohms, not kilo-Ohms)
+#define HEATING_COIL_RESISTANCE 49.0
+// For best accuracy during sensor calibration, this value should be measured as the
+// total resistance around the heating coil circuit, not just the resistance of the
+// heating components alone.
+
 // Max allowable temperature.
 // If the either temperature exceeds this value, the PWM duty cycle will be set
 // set to zero
@@ -176,18 +182,12 @@ void receiveControlParameters()
 }
 
 /*
- * Reads the values from each of the sensor pins and converts them to the
- * appropriate units, storing the result in the global variables
+ * Reads the values from each of the sensor pins and computes to average of multiple measurements for each pin
  */
-void readSensors(double *refTemperature, double *sampTemperature, double *refCurrent, double *sampCurrent)
+void getSensorValues(unsigned long numSamples, unsigned long sensorValues[4])
 {
-    const unsigned long numSamples = 10;
-
     // Initialize counters to hold the sum of several samples of analog signals
-    unsigned long refTempSensorValue = 0;
-    unsigned long sampTempSensorValue = 0;
-    unsigned long refCurrentSensorValue = 0;
-    unsigned long sampCurrentSensorValue = 0;
+    unsigned long newSensorValues[4] = {0};
 
     unsigned long latestSampleTime = 0;
 
@@ -195,10 +195,10 @@ void readSensors(double *refTemperature, double *sampTemperature, double *refCur
     for (unsigned long i = 0; i < numSamples; i++)
     {
         latestSampleTime = millis();
-        refTempSensorValue += analogRead(REF_TEMP_PROBE_PIN);
-        sampTempSensorValue += analogRead(SAMP_TEMP_PROBE_PIN);
-        refCurrentSensorValue += analogRead(REF_CURRENT_SENS_PIN);
-        sampCurrentSensorValue += analogRead(SAMP_CURRENT_SENS_PIN);
+        newSensorValues[0] += analogRead(REF_TEMP_PROBE_PIN);
+        newSensorValues[1] += analogRead(SAMP_TEMP_PROBE_PIN);
+        newSensorValues[2] += analogRead(REF_CURRENT_SENS_PIN);
+        newSensorValues[3] += analogRead(SAMP_CURRENT_SENS_PIN);
         // Wait 2 milliseconds before the next loop for the analog-to-digital
         // converter to settle after the last reading
         while ((millis() - latestSampleTime) < 2)
@@ -206,17 +206,82 @@ void readSensors(double *refTemperature, double *sampTemperature, double *refCur
     }
 
     // Calculate the average of the samples
-    refTempSensorValue = refTempSensorValue / numSamples;
-    sampTempSensorValue = sampTempSensorValue / numSamples;
-    refCurrentSensorValue = refCurrentSensorValue / numSamples;
-    sampCurrentSensorValue = sampCurrentSensorValue / numSamples;
+    for (int i = 0; i < 4; i++)
+    {
+        sensorValues[i] = newSensorValues[i] / numSamples;
+    }
+}
+
+/*
+ * ! -- Experimental Feature -- !
+ *
+ * Calculate the current sensor offset and sensitivity values
+ *
+ * (This function is not yet completed/functional)
+ */
+void calibrateCurrentSensors(double *refCurrentSensorVref, double *sampCurrentSensorVref, double *refCurrentSensorSens, double *sampCurrentSensorSens)
+{
+    const unsigned long numSamples = 10;
+
+    // Initialize array to hold the raw analog sensor values
+    unsigned long sensorValues[4];
+
+    // Set the heater circuit to OFF to measure the baseline (current sensors measure 0 mA)
+    digitalWrite(Ref_Heater_PIN, LOW);
+    digitalWrite(Samp_Heater_PIN, LOW);
+
+    // Take a measurement of the sensor with expected current reading 0 mA
+    getSensorValues(numSamples, sensorValues);
+
+    // The current sensor voltage is in millivolts
+    double ref_VREF = sensorValues[2] * byteToMillivolts;
+    double samp_VREF = sensorValues[3] * byteToMillivolts;
+    // Calculate the ideal VREF using the zero current measurement
+    *refCurrentSensorVref = ref_VREF;
+    *sampCurrentSensorVref = samp_VREF;
+
+    // Set the heater circuit to ON to measure the sensitivity (current sensors measure V_AC / R_heater)
+    digitalWrite(Ref_Heater_PIN, HIGH);
+    digitalWrite(Samp_Heater_PIN, HIGH);
+
+    // Take a measurement of the sensor with expected maximum current
+    getSensorValues(numSamples, sensorValues);
+
+    // The current sensor voltage is in millivolts
+    double refCurrentVoltage = sensorValues[2] * byteToMillivolts;
+    double sampCurrentVoltage = sensorValues[3] * byteToMillivolts;
+
+    // Calculate the expected current through the heating coils (in mA)
+    double idealHeatingCoilCurrent = (HEATING_COIL_VOLTAGE / HEATING_COIL_RESISTANCE) * 1000;
+
+    // Calculate the ideal SENS using the max current measurement
+    *refCurrentSensorSens = idealHeatingCoilCurrent / (refCurrentVoltage - ref_VREF);
+    *sampCurrentSensorSens = idealHeatingCoilCurrent / (sampCurrentVoltage - samp_VREF);
+
+    // Reset the heater circuit to OFF to at the end of calibration
+    digitalWrite(Ref_Heater_PIN, LOW);
+    digitalWrite(Samp_Heater_PIN, LOW);
+}
+
+/*
+ * Reads the values from each of the sensor pins and converts them to the
+ * appropriate units, storing the result in the global variables
+ */
+void readSensors(double *refTemperature, double *sampTemperature, double *refCurrent, double *sampCurrent)
+{
+    const unsigned long numSamples = 10;
+
+    // Initialize array to hold the raw analog sensor values
+    unsigned long sensorValues[4];
+
+    getSensorValues(numSamples, sensorValues);
 
     // Convert the analog values into voltages
-    double refTempVoltage = refTempSensorValue * byteToVolts;
-    double sampTempVoltage = sampTempSensorValue * byteToVolts;
+    double refTempVoltage = sensorValues[0] * byteToVolts;
+    double sampTempVoltage = sensorValues[1] * byteToVolts;
     // The current sensor voltage is in millivolts
-    double refCurrentVoltage = refCurrentSensorValue * byteToMillivolts;
-    double sampCurrentVoltage = sampCurrentSensorValue * byteToMillivolts;
+    double refCurrentVoltage = sensorValues[2] * byteToMillivolts;
+    double sampCurrentVoltage = sensorValues[3] * byteToMillivolts;
 
     // Convert the voltage readings into appropriate units
     *refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
