@@ -1,4 +1,6 @@
 {
-    "configuration": "opt=small,usbstack=arduino,debug=off",
-    "board": "adafruit:samd:adafruit_feather_m0_express"
+    "configuration": "opt=faster,usbstack=arduino,debug=on",
+    "board": "adafruit:samd:adafruit_feather_m0_express",
+    "port": "COM1",
+    "sketch": "dsc_arduino\\dsc_arduino.ino"
 }

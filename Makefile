@@ -1,10 +1,10 @@
 # Arduino Library base folder and example structure
 DSC_ARDUINO_BASE = dsc_arduino
-DSC_ARDUINO ?= Example1_BasicReadings
+# DSC_ARDUINO ?= dsc_arduino
 
 # Arduino CLI executable name and directory location
 ARDUINO_CLI = arduino-cli
-ARDUINO_CLI_DIR = .
+# ARDUINO_CLI_DIR = .
 
 # Arduino CLI Board type
 BOARD_TYPE ?= adafruit:samd:adafruit_feather_m0_express
@@ -18,23 +18,23 @@ VERBOSE=
 
 # Build path -- used to store built binary and object files
 BUILD_DIR=_build
-BUILD_PATH=$(PWD)/$(DSC_ARDUINO_BASE)/$(DSC_ARDUINO)/$(BUILD_DIR)
+BUILD_PATH=$(PWD)/$(DSC_ARDUINO_BASE)/$(BUILD_DIR)
 
 ifneq ($(V), 0)
-    VERBOSE=-v
+	VERBOSE=-v
 endif
 
-.PHONY: all example program clean
+.PHONY: all dsc_arduino program clean
 
-all: example
+all: dsc_arduino
 
-example:
-    $(ARDUINO_CLI_DIR)/$(ARDUINO_CLI) compile $(VERBOSE) --build-path=$(BUILD_PATH) --build-cache-path=$(BUILD_PATH) -b $(BOARD_TYPE) $(DSC_ARDUINO_BASE)/$(DSC_ARDUINO)
+dsc_arduino:
+	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) $(DSC_ARDUINO_BASE)
 
 program:
-    $(ARDUINO_CLI_DIR)/$(ARDUINO_CLI) upload $(VERBOSE) -p $(SERIAL_PORT) --fqbn $(BOARD_TYPE) $(DSC_ARDUINO_BASE)/$(DSC_ARDUINO)
+	arduino-cli upload $(VERBOSE) -p $(SERIAL_PORT) --fqbn $(BOARD_TYPE) $(DSC_ARDUINO_BASE)
 
 clean:
-    @rm -rf $(BUILD_PATH)
-    @rm $(DSC_ARDUINO_BASE)/$(DSC_ARDUINO)/*.elf
-    @rm $(DSC_ARDUINO_BASE)/$(DSC_ARDUINO)/*.hex
+	@rm -rf $(BUILD_PATH)
+	@rm $(DSC_ARDUINO_BASE)/*.elf
+	@rm $(DSC_ARDUINO_BASE)/*.hex
