@@ -22,10 +22,10 @@
 #include <AutoPID.h>
 
 // Feather M0 Express board pinouts
-#define REF_TEMP_PROBE_PIN A1
-#define REF_CURRENT_SENS_PIN A2
-#define SAMP_CURRENT_SENS_PIN A3
-#define SAMP_TEMP_PROBE_PIN A4
+#define REF_TEMP_PROBE_PIN A2
+#define REF_CURRENT_SENS_PIN A1
+#define SAMP_CURRENT_SENS_PIN A4
+#define SAMP_TEMP_PROBE_PIN A3
 #define Ref_Heater_PIN 11
 #define Samp_Heater_PIN 10
 
@@ -484,6 +484,10 @@ void setup()
     Serial.begin(9600);
 
     pinMode(13, OUTPUT);
+
+    // Use the following line if you are connecting a 5V reference to the ARef pin
+    // instead of using line-level converters for the sensor inputs.
+    analogReference(AR_EXTERNAL);
 
     // Set the temperature and current sensor pins
     pinMode(REF_TEMP_PROBE_PIN, INPUT);
