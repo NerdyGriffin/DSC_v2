@@ -1,33 +1,25 @@
 /*
- * DSC_v2: UI and control systems for prototype DSC system
- * Copyright (C) 2020  Christian Kunis
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>
- *
- * You may contact the author at ckunis.contact@gmail.com
- */
+   DSC_v2: UI and control systems for prototype DSC system
+   Copyright (C) 2020  Christian Kunis
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program. If not, see <https://www.gnu.org/licenses/>
+
+   You may contact the author at ckunis.contact@gmail.com
+*/
 
 #include <Adafruit_NeoPixel.h>
 #include <AutoPID.h>
-
-// Feather M0 Express board pinouts
-#define REF_TEMP_PROBE_PIN A2
-#define REF_CURRENT_SENS_PIN A1
-#define SAMP_CURRENT_SENS_PIN A4
-#define SAMP_TEMP_PROBE_PIN A3
-#define Ref_Heater_PIN 11
-#define Samp_Heater_PIN 10
 
 // NeoPixel parameters
 #define LED_PIN 8
@@ -44,6 +36,21 @@ uint32_t green = neopixel.Color(0, 255, 0);
 uint32_t cyan = neopixel.Color(0, 255, 255);
 uint32_t blue = neopixel.Color(0, 0, 255);
 
+// Feather M0 Express board pinouts
+#define REF_TEMP_PROBE_PIN A2
+#define REF_CURRENT_SENS_PIN A1
+#define SAMP_CURRENT_SENS_PIN A4
+#define SAMP_TEMP_PROBE_PIN A3
+#define Ref_Heater_PIN 11
+#define Samp_Heater_PIN 10
+
+// Number of samples to average the reading over
+// Change this to make the reading smoother... but beware of buffer overflows!
+const int avgSamples = 100;
+
+// global variable for holding the raw analog sensor values
+unsigned long sensorValues[4];
+
 // PID settings and gains
 #define PULSE_WIDTH 100 // Pulse width in milliseconds
 double Kp = 0.01;
@@ -52,17 +59,17 @@ double Kd = 0;
 #define BANG_RANGE 4
 #define PID_UPDATE_INTERVAL PULSE_WIDTH
 
-// The source voltage supplied to the sensor boards
-#define SENSOR_VOLTAGE 5.0
+// The max voltage of analog input readings
+#define ANALOG_REF_VOLTAGE 3.3
 // The sample resolution of the analogRead() output
-#define ANALOG_RESOLUTION 1024.0
+#define ANALOG_RESOLUTION 12
 // Analog signal to voltage conversion factor
-double byteToVolts = (SENSOR_VOLTAGE / ANALOG_RESOLUTION);
+double byteToVolts = (ANALOG_REF_VOLTAGE / pow(2, ANALOG_RESOLUTION));
 double byteToMillivolts = 1000.0 * byteToVolts;
 
 // Thermocouple amplifier conversion constants
-#define AMPLIFIER_VOLTAGE_OFFSET 1.25
-#define AMPLIFIER_CONVERSION_FACTOR 0.005 // 5 mV/C = 0.005 V/C
+#define AMPLIFIER_VOLTAGE_OFFSET 1250.0 // 1250 mV = 1.25 V
+#define AMPLIFIER_CONVERSION_FACTOR 5.0 // 5 mV/C = 0.005 V/C
 
 // Current sensor conversion constants
 #define CURRENT_SENSOR_SENS 0.4    // Sensitivity (Sens) 100mA per 250mV = 0.4
@@ -85,7 +92,7 @@ double byteToMillivolts = 1000.0 * byteToVolts;
 // The minimum acceptable error between the sample temperatures and the target
 // temperature. The error for both samples must be less than this value before
 // the stage controller will continue to the next stage. Units: [degrees C]
-#define MINIMUM_ACCEPTABLE_ERROR 1.5
+#define MINIMUM_ACCEPTABLE_ERROR 5
 
 // The number of the consecutive samples within the
 // MINIMUM_ACCEPTABLE_ERROR that are required before the program
@@ -126,474 +133,466 @@ bool debugMode = true;
 #define DEBUG_TIME_LIMIT 100000
 
 /*
- * Send the PID gain constants via the serial bus
- */
+   Send the PID gain constants via the serial bus
+*/
 void sendPIDGains()
 {
-    // Send the char 'k' to indicate the start of the PID data set
-    Serial.println('k');
+  // Send the char 'k' to indicate the start of the PID data set
+  Serial.println('k');
 
-    // Send each value in the expected order, separated by newlines
-    Serial.println(Kp);
-    Serial.println(Ki);
-    Serial.println(Kd);
+  // Send each value in the expected order, separated by newlines
+  Serial.println(Kp);
+  Serial.println(Ki);
+  Serial.println(Kd);
 }
 
 /*
- * Receive the PID gain constants via the serial bus
- */
+   Receive the PID gain constants via the serial bus
+*/
 void receivePIDGains()
 {
-    // Read the incoming data as a float
-    Kp = Serial.parseFloat();
-    Ki = Serial.parseFloat();
-    Kd = Serial.parseFloat();
+  // Read the incoming data as a float
+  Kp = Serial.parseFloat();
+  Ki = Serial.parseFloat();
+  Kd = Serial.parseFloat();
 
-    // Update the PID gains
-    refPID.setGains(Kp, Ki, Kd);
-    sampPID.setGains(Kp, Ki, Kd);
+  // Update the PID gains
+  refPID.setGains(Kp, Ki, Kd);
+  sampPID.setGains(Kp, Ki, Kd);
 }
 
 /*
- * Send the temperature control parameters via the serial bus
- */
+   Send the temperature control parameters via the serial bus
+*/
 void sendControlParameters()
 {
-    // Send the char 'c' to indicate the start of config data set
-    Serial.println('c');
+  // Send the char 'c' to indicate the start of config data set
+  Serial.println('c');
 
-    // Send each value in the expected order, separated by newlines
-    Serial.println(startTemp);
-    Serial.println(endTemp);
-    Serial.println(rampUpRate);
-    Serial.println(holdTime);
+  // Send each value in the expected order, separated by newlines
+  Serial.println(startTemp);
+  Serial.println(endTemp);
+  Serial.println(rampUpRate);
+  Serial.println(holdTime);
 }
 
 /*
- * Receive the temperature control parameters via the serial bus
- */
+   Receive the temperature control parameters via the serial bus
+*/
 void receiveControlParameters()
 {
-    // Read the incoming data as a float
-    startTemp = Serial.parseFloat();
-    endTemp = Serial.parseFloat();
-    rampUpRate = Serial.parseFloat();
-    holdTime = Serial.parseFloat();
+  // Read the incoming data as a float
+  startTemp = Serial.parseFloat();
+  endTemp = Serial.parseFloat();
+  rampUpRate = Serial.parseFloat();
+  holdTime = Serial.parseFloat();
 }
 
 /*
- * Reads the values from each of the sensor pins and computes to average of multiple measurements for each pin
- */
-void getSensorValues(unsigned long numSamples, unsigned long sensorValues[4])
+   Reads the values from each of the sensor pins and computes to average of multiple measurements for each pin
+*/
+void getSensorValues()
 {
-    // Initialize counters to hold the sum of several samples of analog signals
-    unsigned long newSensorValues[4] = {0};
+  // Read the analog signals from the sensors
+  for (int i = 0; i < avgSamples; i++)
+  {
+    sensorValues[0] += analogRead(REF_TEMP_PROBE_PIN);
+    sensorValues[1] += analogRead(SAMP_TEMP_PROBE_PIN);
+    sensorValues[2] += analogRead(REF_CURRENT_SENS_PIN);
+    sensorValues[3] += analogRead(SAMP_CURRENT_SENS_PIN);
 
-    unsigned long latestSampleTime = 0;
+    // Wait 2 milliseconds before the next loop for the analog-to-digital
+    // converter to settle after the last reading
+    delay(2);
+  }
 
-    // Read the analog signals from the sensors
-    for (unsigned long i = 0; i < numSamples; i++)
-    {
-        latestSampleTime = millis();
-        newSensorValues[0] += analogRead(REF_TEMP_PROBE_PIN);
-        newSensorValues[1] += analogRead(SAMP_TEMP_PROBE_PIN);
-        newSensorValues[2] += analogRead(REF_CURRENT_SENS_PIN);
-        newSensorValues[3] += analogRead(SAMP_CURRENT_SENS_PIN);
-        // Wait 2 milliseconds before the next loop for the analog-to-digital
-        // converter to settle after the last reading
-        while ((millis() - latestSampleTime) < 2)
-            ;
-    }
-
-    // Calculate the average of the samples
-    for (int i = 0; i < 4; i++)
-    {
-        sensorValues[i] = newSensorValues[i] / numSamples;
-    }
+  // Calculate the average of the samples
+  for (int i = 0; i < 4; i++)
+  {
+    sensorValues[i] = sensorValues[i] / avgSamples;
+  }
 }
 
 /*
- * ! -- Experimental Feature -- !
- *
- * Calculate the current sensor offset and sensitivity values
- *
- * (This function is not yet completed/functional)
- */
+   ! -- Experimental Feature -- !
+
+   Calculate the current sensor offset and sensitivity values
+
+   (This function is not yet completed/functional)
+*/
 void calibrateCurrentSensors(double *refCurrentSensorVref, double *sampCurrentSensorVref, double *refCurrentSensorSens, double *sampCurrentSensorSens)
 {
-    const unsigned long numSamples = 10;
+  // Set the heater circuit to OFF to measure the baseline (current sensors measure 0 mA)
+  digitalWrite(Ref_Heater_PIN, LOW);
+  digitalWrite(Samp_Heater_PIN, LOW);
 
-    // Initialize array to hold the raw analog sensor values
-    unsigned long sensorValues[4];
+  // Take a measurement of the sensor with expected current reading 0 mA
+  getSensorValues();
 
-    // Set the heater circuit to OFF to measure the baseline (current sensors measure 0 mA)
-    digitalWrite(Ref_Heater_PIN, LOW);
-    digitalWrite(Samp_Heater_PIN, LOW);
+  // The current sensor voltage is in millivolts
+  double ref_VREF = sensorValues[2] * byteToMillivolts;
+  double samp_VREF = sensorValues[3] * byteToMillivolts;
+  // Calculate the ideal VREF using the zero current measurement
+  *refCurrentSensorVref = ref_VREF;
+  *sampCurrentSensorVref = samp_VREF;
 
-    // Take a measurement of the sensor with expected current reading 0 mA
-    getSensorValues(numSamples, sensorValues);
+  // Set the heater circuit to ON to measure the sensitivity (current sensors measure V_AC / R_heater)
+  digitalWrite(Ref_Heater_PIN, HIGH);
+  digitalWrite(Samp_Heater_PIN, HIGH);
 
-    // The current sensor voltage is in millivolts
-    double ref_VREF = sensorValues[2] * byteToMillivolts;
-    double samp_VREF = sensorValues[3] * byteToMillivolts;
-    // Calculate the ideal VREF using the zero current measurement
-    *refCurrentSensorVref = ref_VREF;
-    *sampCurrentSensorVref = samp_VREF;
+  // Take a measurement of the sensor with expected maximum current
+  getSensorValues();
 
-    // Set the heater circuit to ON to measure the sensitivity (current sensors measure V_AC / R_heater)
-    digitalWrite(Ref_Heater_PIN, HIGH);
-    digitalWrite(Samp_Heater_PIN, HIGH);
+  // The current sensor voltage is in millivolts
+  double refCurrentVoltage = sensorValues[2] * byteToMillivolts;
+  double sampCurrentVoltage = sensorValues[3] * byteToMillivolts;
 
-    // Take a measurement of the sensor with expected maximum current
-    getSensorValues(numSamples, sensorValues);
+  // Calculate the expected current through the heating coils (in mA)
+  double idealHeatingCoilCurrent = (HEATING_COIL_VOLTAGE / HEATING_COIL_RESISTANCE) * 1000;
 
-    // The current sensor voltage is in millivolts
-    double refCurrentVoltage = sensorValues[2] * byteToMillivolts;
-    double sampCurrentVoltage = sensorValues[3] * byteToMillivolts;
+  // Calculate the ideal SENS using the max current measurement
+  *refCurrentSensorSens = idealHeatingCoilCurrent / (refCurrentVoltage - ref_VREF);
+  *sampCurrentSensorSens = idealHeatingCoilCurrent / (sampCurrentVoltage - samp_VREF);
 
-    // Calculate the expected current through the heating coils (in mA)
-    double idealHeatingCoilCurrent = (HEATING_COIL_VOLTAGE / HEATING_COIL_RESISTANCE) * 1000;
-
-    // Calculate the ideal SENS using the max current measurement
-    *refCurrentSensorSens = idealHeatingCoilCurrent / (refCurrentVoltage - ref_VREF);
-    *sampCurrentSensorSens = idealHeatingCoilCurrent / (sampCurrentVoltage - samp_VREF);
-
-    // Reset the heater circuit to OFF to at the end of calibration
-    digitalWrite(Ref_Heater_PIN, LOW);
-    digitalWrite(Samp_Heater_PIN, LOW);
+  // Reset the heater circuit to OFF to at the end of calibration
+  digitalWrite(Ref_Heater_PIN, LOW);
+  digitalWrite(Samp_Heater_PIN, LOW);
 }
 
 /*
- * Reads the values from each of the sensor pins and converts them to the
- * appropriate units, storing the result in the global variables
- */
+   Reads the values from each of the sensor pins and converts them to the
+   appropriate units, storing the result in the global variables
+*/
 void readSensors(double *refTemperature, double *sampTemperature, double *refCurrent, double *sampCurrent)
 {
-    const unsigned long numSamples = 10;
+  getSensorValues();
 
-    // Initialize array to hold the raw analog sensor values
-    unsigned long sensorValues[4];
+  // The voltage is in millivolts
+  double refTempVoltage = sensorValues[0] * byteToMillivolts;
+  double sampTempVoltage = sensorValues[1] * byteToMillivolts;
+  double refCurrentVoltage = sensorValues[2] * byteToMillivolts;
+  double sampCurrentVoltage = sensorValues[3] * byteToMillivolts;
 
-    getSensorValues(numSamples, sensorValues);
-
-    // Convert the analog values into voltages
-    double refTempVoltage = sensorValues[0] * byteToVolts;
-    double sampTempVoltage = sensorValues[1] * byteToVolts;
-    // The current sensor voltage is in millivolts
-    double refCurrentVoltage = sensorValues[2] * byteToMillivolts;
-    double sampCurrentVoltage = sensorValues[3] * byteToMillivolts;
-
-    // Convert the voltage readings into appropriate units
-    *refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
-    *sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
-    // This will calculate the actual current (in mA)
-    // Using the Vref and sensitivity settings you configure
-    *refCurrent = (refCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
-    *sampCurrent = (sampCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
+  // Convert the voltage readings into appropriate units.
+  // This will calculate the temperature (in Celcius)
+  *refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
+  *sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
+  // This will calculate the actual current (in mA)
+  // Using the Vref and sensitivity settings you configure
+  *refCurrent = (refCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
+  *sampCurrent = (sampCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
 }
 
 /*
- * Calcutate the heat flow
- */
+   Calcutate the heat flow
+*/
 void calculateHeatFlow(double *refHeatFlow, double *sampHeatFlow, double refCurrent, double sampCurrent)
 {
-    // Convert current from milliAmps to Amps
-    double refCurrentAmps = refCurrent / 1000.0;
-    double sampCurrentAmps = sampCurrent / 1000.0;
-    // Calculate the heat flow as Watts per gram
-    *refHeatFlow = refCurrentAmps * HEATING_COIL_VOLTAGE / refMass;
-    *sampHeatFlow = sampCurrentAmps * HEATING_COIL_VOLTAGE / sampMass;
+  // Convert current from milliAmps to Amps
+  double refCurrentAmps = refCurrent / 1000.0;
+  double sampCurrentAmps = sampCurrent / 1000.0;
+  // Calculate the heat flow as Watts per gram
+  *refHeatFlow = refCurrentAmps * HEATING_COIL_VOLTAGE / refMass;
+  *sampHeatFlow = sampCurrentAmps * HEATING_COIL_VOLTAGE / sampMass;
 }
 
 /*
- * Calcutate the target temperature
- */
+   Calcutate the target temperature
+*/
 void updateTargetTemperature(double *targetTemp, double startTemp, double endTemp, double rampUpRate, double latestTime)
 {
-    if (startCounter < TARGET_COUNTER_THRESHOLD)
+  if (startCounter < TARGET_COUNTER_THRESHOLD)
+  {
+    *targetTemp = startTemp;
+    if ((refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
+        (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
     {
-        *targetTemp = startTemp;
-        if ((refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
-            (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
-        {
-            startCounter++;
-        }
-        else
-        {
-            startCounter = 0;
-        }
-        rampUpStartTime = millis();
-    }
-    else if ((*targetTemp < endTemp) && (endTemp > startTemp))
-    {
-        *targetTemp = startTemp + (rampUpRate / (60 * 1000)) * (latestTime - rampUpStartTime);
-    }
-    else if ((*targetTemp > endTemp) && (endTemp < startTemp))
-    {
-        *targetTemp = startTemp - (rampUpRate / (60 * 1000)) * (latestTime - rampUpStartTime);
+      startCounter++;
     }
     else
     {
-        *targetTemp = endTemp;
+      startCounter = 0;
     }
+    rampUpStartTime = millis();
+  }
+  else if ((*targetTemp < endTemp) && (endTemp > startTemp))
+  {
+    *targetTemp = startTemp + (rampUpRate / (60 * 1000)) * (latestTime - rampUpStartTime);
+  }
+  else if ((*targetTemp > endTemp) && (endTemp < startTemp))
+  {
+    *targetTemp = startTemp - (rampUpRate / (60 * 1000)) * (latestTime - rampUpStartTime);
+  }
+  else
+  {
+    *targetTemp = endTemp;
+  }
 }
 
 /*
- * Send the latest measurement data via the serial bus
- */
+   Send the latest measurement data via the serial bus
+*/
 void sendData()
 {
-    // Send the char 'd' to indicate the start of data set
-    Serial.println('d');
+  // Send the char 'd' to indicate the start of data set
+  Serial.println('d');
 
-    // Send each value in the expected order, separated by newlines
-    Serial.println(elapsedTime);
-    Serial.println(targetTemp);
+  // Send each value in the expected order, separated by newlines
+  Serial.println(elapsedTime);
+  Serial.println(targetTemp);
 
-    Serial.println(refTemperature);
-    Serial.println(sampTemperature);
+  Serial.println(refTemperature);
+  Serial.println(sampTemperature);
 
-    Serial.println(refCurrent);
-    Serial.println(sampCurrent);
+  Serial.println(refCurrent);
+  Serial.println(sampCurrent);
 
-    Serial.println(refHeatFlow);
-    Serial.println(sampHeatFlow);
+  Serial.println(refHeatFlow);
+  Serial.println(sampHeatFlow);
 
-    Serial.println(refPID.getPulseValue());
-    Serial.println(sampPID.getPulseValue());
+  Serial.println(refPID.getPulseValue());
+  Serial.println(sampPID.getPulseValue());
 }
 
 /*
- * Temperature control loop
- */
+   Temperature control loop
+*/
 void controlLoop()
 {
-    // Send the char 's' to indicate the start of control loop
-    Serial.println('s');
+  // Send the char 's' to indicate the start of control loop
+  Serial.println('s');
 
-    unsigned long startTime = millis();
-    unsigned long holdStartTime = millis();
-    startCounter = 0;
-    unsigned long targetCounter = 0;
-    bool controlLoopState = true;
-    while (controlLoopState)
+  unsigned long startTime = millis();
+  unsigned long holdStartTime = millis();
+  startCounter = 0;
+  unsigned long targetCounter = 0;
+  bool controlLoopState = true;
+  while (controlLoopState)
+  {
+    // Check for interupts from the UI
+    if (Serial.available())
     {
-        // Check for interupts from the UI
-        if (Serial.available())
-        {
-            digitalWrite(13, HIGH);
+      digitalWrite(13, HIGH);
 
-            // Read the incoming data as a char
-            int inByte = Serial.read();
+      // Read the incoming data as a char
+      int inByte = Serial.read();
 
-            switch (inByte)
-            {
-            case 'x':
-                // Received stop commmand
-                neopixel.fill(red);
-                neopixel.show();
-                // Confirm by sending the same command back
-                Serial.println('x');
-                return;
-                break;
-            default:
-                break;
-            }
-        }
+      switch (inByte)
+      {
+        case 'x':
+          // Received stop commmand
 
-        digitalWrite(13, LOW);
+          // Stop PID calculations and reset internal PID calculation values
+          refPID.stop();
+          sampPID.stop();
 
-        neopixel.fill(green);
-        neopixel.show();
+          // Turn off the PWM Relay output
+          digitalWrite(Ref_Heater_PIN, LOW);
+          digitalWrite(Samp_Heater_PIN, LOW);
 
-        // Record the time
-        latestTime = millis();
-        elapsedTime = latestTime - startTime;
-
-        // Read the measurements from the sensors
-        readSensors(&refTemperature, &sampTemperature, &refCurrent, &sampCurrent);
-
-        // Calcutate the heat flow
-        calculateHeatFlow(&refHeatFlow, &sampHeatFlow, refCurrent, sampCurrent);
-
-        // Calculate the new target temperature
-        updateTargetTemperature(&targetTemp, startTemp, endTemp, rampUpRate, latestTime);
-
-        // Run the PID algorithm
-        refPID.run();
-        sampPID.run();
-
-        // Update the PWM Relay output
-        if (refTemperature < MAX_TEMPERATURE)
-            digitalWrite(Ref_Heater_PIN, refRelayState);
-        else
-            digitalWrite(Ref_Heater_PIN, LOW);
-
-        if (sampTemperature < MAX_TEMPERATURE)
-            digitalWrite(Samp_Heater_PIN, sampRelayState);
-        else
-            digitalWrite(Samp_Heater_PIN, LOW);
-
-        // Send data out via Serial bus
-        sendData();
-
-        // Check loop exit conditions
-        if (targetCounter < TARGET_COUNTER_THRESHOLD)
-        {
-            if ((targetTemp == endTemp) &&
-                (refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
-                (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
-            {
-                targetCounter++;
-            }
-            else
-            {
-                targetCounter = 0;
-            }
-            holdStartTime = millis();
-        }
-        else if ((latestTime - holdStartTime) > (holdTime / 1000))
-        {
-            controlLoopState = false;
-        }
-
-        if (debugMode && (elapsedTime > DEBUG_TIME_LIMIT))
-        {
-            controlLoopState = false;
-        }
-
-        //delay(1);
+          neopixel.fill(red);
+          neopixel.show();
+          // Confirm by sending the same command back
+          Serial.println('x');
+          return;
+          break;
+        default:
+          break;
+      }
     }
 
-    // Stop PID calculations and reset internal PID calculation values
-    refPID.stop();
-    sampPID.stop();
+    digitalWrite(13, LOW);
 
-    // Turn off the PWM Relay output
-    digitalWrite(Ref_Heater_PIN, LOW);
-    digitalWrite(Samp_Heater_PIN, LOW);
-
-    neopixel.fill(magenta);
+    neopixel.fill(green);
     neopixel.show();
-    // Send the char 'x' to indicate the end of the control loop
-    Serial.println("x");
+
+    // Record the time
+    latestTime = millis();
+    elapsedTime = latestTime - startTime;
+
+    // Read the measurements from the sensors
+    readSensors(&refTemperature, &sampTemperature, &refCurrent, &sampCurrent);
+
+    // Calcutate the heat flow
+    calculateHeatFlow(&refHeatFlow, &sampHeatFlow, refCurrent, sampCurrent);
+
+    // Calculate the new target temperature
+    updateTargetTemperature(&targetTemp, startTemp, endTemp, rampUpRate, latestTime);
+
+    // Run the PID algorithm
+    refPID.run();
+    sampPID.run();
+
+    // Update the PWM Relay output
+    if (refTemperature < MAX_TEMPERATURE)
+      digitalWrite(Ref_Heater_PIN, refRelayState);
+    else
+      digitalWrite(Ref_Heater_PIN, LOW);
+
+    if (sampTemperature < MAX_TEMPERATURE)
+      digitalWrite(Samp_Heater_PIN, sampRelayState);
+    else
+      digitalWrite(Samp_Heater_PIN, LOW);
+
+    // Send data out via Serial bus
+    sendData();
+
+    // Check loop exit conditions
+    if (targetCounter < TARGET_COUNTER_THRESHOLD)
+    {
+      if ((targetTemp == endTemp) &&
+          (refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
+          (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
+      {
+        targetCounter++;
+      }
+      else
+      {
+        targetCounter = 0;
+      }
+      holdStartTime = millis();
+    }
+    else if ((latestTime - holdStartTime) > (holdTime / 1000))
+    {
+      controlLoopState = false;
+    }
+
+    if (debugMode && (elapsedTime > DEBUG_TIME_LIMIT))
+    {
+      controlLoopState = false;
+    }
+
+    //delay(1);
+  }
+
+  // Stop PID calculations and reset internal PID calculation values
+  refPID.stop();
+  sampPID.stop();
+
+  // Turn off the PWM Relay output
+  digitalWrite(Ref_Heater_PIN, LOW);
+  digitalWrite(Samp_Heater_PIN, LOW);
+
+  neopixel.fill(magenta);
+  neopixel.show();
+  // Send the char 'x' to indicate the end of the control loop
+  Serial.println("x");
 }
 
 void setup()
 {
-    Serial.begin(9600);
+  Serial.begin(9600);
 
-    pinMode(13, OUTPUT);
+  pinMode(13, OUTPUT);
 
-    // Use the following line if you are connecting a 5V reference to the ARef pin
-    // instead of using line-level converters for the sensor inputs.
-    analogReference(AR_EXTERNAL);
+  analogReadResolution(ANALOG_RESOLUTION);
+  //  analogReference(AR_EXTERNAL);
 
-    // Set the temperature and current sensor pins
-    pinMode(REF_TEMP_PROBE_PIN, INPUT);
-    pinMode(SAMP_TEMP_PROBE_PIN, INPUT);
-    pinMode(REF_CURRENT_SENS_PIN, INPUT);
-    pinMode(SAMP_CURRENT_SENS_PIN, INPUT);
+  // Set the temperature and current sensor pins
+  pinMode(REF_TEMP_PROBE_PIN, INPUT);
+  pinMode(SAMP_TEMP_PROBE_PIN, INPUT);
+  pinMode(REF_CURRENT_SENS_PIN, INPUT);
+  pinMode(SAMP_CURRENT_SENS_PIN, INPUT);
 
-    // Set the relay output pins
-    pinMode(Ref_Heater_PIN, OUTPUT);
-    pinMode(Samp_Heater_PIN, OUTPUT);
+  // Set the relay output pins
+  pinMode(Ref_Heater_PIN, OUTPUT);
+  pinMode(Samp_Heater_PIN, OUTPUT);
 
-    // if temperature is more than 4 degrees below or above setpoint, OUTPUT
-    // will be set to min or max respectively
-    refPID.setBangBang(BANG_RANGE);
-    sampPID.setBangBang(BANG_RANGE);
-    //set PID update interval
-    refPID.setTimeStep(PID_UPDATE_INTERVAL);
-    sampPID.setTimeStep(PID_UPDATE_INTERVAL);
+  // if temperature is more than 4 degrees below or above setpoint, OUTPUT
+  // will be set to min or max respectively
+  refPID.setBangBang(BANG_RANGE);
+  sampPID.setBangBang(BANG_RANGE);
+  //set PID update interval
+  refPID.setTimeStep(PID_UPDATE_INTERVAL);
+  sampPID.setTimeStep(PID_UPDATE_INTERVAL);
 
-    // NeoPixel initialization
-    neopixel.begin();
-    neopixel.show(); // Initialize all pixels to 'off'
+  // NeoPixel initialization
+  neopixel.begin();
+  neopixel.show(); // Initialize all pixels to 'off'
 
-    // Set PID gain constants to default values
-    Kp = 0.01;
-    Ki = 0;
-    Kd = 0;
+  // Set PID gain constants to default values
+  Kp = 0.01;
+  Ki = 0;
+  Kd = 0;
 
-    // Update the PID gains
-    refPID.setGains(Kp, Ki, Kd);
-    sampPID.setGains(Kp, Ki, Kd);
+  // Update the PID gains
+  refPID.setGains(Kp, Ki, Kd);
+  sampPID.setGains(Kp, Ki, Kd);
 
-    // Set temperature control parameters to default values
-    targetTemp = 25;
-    startTemp = 25;
-    endTemp = 30;
-    rampUpRate = 1;
-    holdTime = 0;
+  // Set temperature control parameters to default values
+  targetTemp = 25;
+  startTemp = 25;
+  endTemp = 30;
+  rampUpRate = 1;
+  holdTime = 0;
 
-    // Set the sample masses to default values
-    refMass = 1.0;
-    sampMass = 1.0;
+  // Set the sample masses to default values
+  refMass = 1.0;
+  sampMass = 1.0;
 }
 
 void loop()
 {
-    digitalWrite(13, HIGH); // turn the LED on (HIGH is the voltage level)
-    delay(500);             // wait for a second
-    digitalWrite(13, LOW);  // turn the LED off by making the voltage LOW
-    delay(500);             // wait for a second
+  digitalWrite(13, LOW); // turn the LED on (HIGH is the voltage level)
+  delay(500);             // wait for a second
+  digitalWrite(13, HIGH);  // turn the LED off by making the voltage LOW
+  delay(500);             // wait for a second
 
-    neopixel.clear();
-    neopixel.show();
+  neopixel.clear();
+  neopixel.show();
 
-    if (Serial.available())
+  if (Serial.available())
+  {
+    digitalWrite(13, HIGH);
+
+    // Read the incoming data as a char
+    int inByte = Serial.read();
+
+    switch (inByte)
     {
-        digitalWrite(13, HIGH);
-
-        // Read the incoming data as a char
-        int inByte = Serial.read();
-
-        switch (inByte)
-        {
-        case 'i':
-            // Received initialization command
-            neopixel.fill(cyan);
-            neopixel.show();
-            // Send the PID gain constants via the serial bus
-            sendPIDGains();
-            // Send the temperature control parameters via the serial bus
-            sendControlParameters();
-            break;
-        case 'l':
-            // Received load control parameters commmand
-            neopixel.fill(cyan);
-            neopixel.show();
-            // Receive the temperature control parameters via the serial bus
-            receiveControlParameters();
-            // Send the temperature control parameters to confirm that the
-            // values were received properly
-            sendControlParameters();
-            break;
-        case 'p':
-            // Received load PID gains commmand
-            neopixel.fill(cyan);
-            neopixel.show();
-            // Receive the PID gain constants via the serial bus
-            receivePIDGains();
-            // Send the PID gain constants to confirm that the values were
-            // received properly
-            sendPIDGains();
-            break;
-        case 's':
-            // Received start commmand
-            neopixel.fill(green);
-            neopixel.show();
-            // Run the temperature control loop
-            controlLoop();
-            break;
-        case 10:
-            // Received newline char
-            neopixel.fill(blue);
-            neopixel.show();
-            break;
-        default:
-            break;
-        }
+      case 'i':
+        // Received initialization command
+        neopixel.fill(cyan);
+        neopixel.show();
+        // Send the PID gain constants via the serial bus
+        sendPIDGains();
+        // Send the temperature control parameters via the serial bus
+        sendControlParameters();
+        break;
+      case 'l':
+        // Received load control parameters commmand
+        neopixel.fill(cyan);
+        neopixel.show();
+        // Receive the temperature control parameters via the serial bus
+        receiveControlParameters();
+        // Send the temperature control parameters to confirm that the
+        // values were received properly
+        sendControlParameters();
+        break;
+      case 'p':
+        // Received load PID gains commmand
+        neopixel.fill(cyan);
+        neopixel.show();
+        // Receive the PID gain constants via the serial bus
+        receivePIDGains();
+        // Send the PID gain constants to confirm that the values were
+        // received properly
+        sendPIDGains();
+        break;
+      case 's':
+        // Received start commmand
+        neopixel.fill(green);
+        neopixel.show();
+        // Run the temperature control loop
+        controlLoop();
+        break;
+      case 10:
+        // Received newline char
+        neopixel.fill(blue);
+        neopixel.show();
+        break;
+      default:
+        break;
     }
+  }
 }
