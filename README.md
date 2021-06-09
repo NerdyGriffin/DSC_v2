@@ -24,6 +24,7 @@ NOTE: This project is currently a work-in-progress. Not all features have been i
     - [Experiment Instructions](#experiment-instructions)
     - [Data Analysis Instructions](#data-analysis-instructions)
     - [PID Tuning Instructions](#pid-tuning-instructions)
+    - [Arduino NeoPixel Color Codes](#arduino-neopixel-color-codes)
   - [Hardware & Apparatus](#hardware--apparatus)
     - [Bill of Materials](#bill-of-materials)
     - [Circuit Diagram](#circuit-diagram)
@@ -132,6 +133,17 @@ Run the `DSC_Data_Analysis_UI.mlapp` in MATLAB 2020b or later
 ### PID Tuning Instructions
 
 Please note: The instructions for manually tuning the PID controller gains will assume that you already know and understand the principles behind how PID control works, and an understanding of what each of the PID gains do. In the future, I hope to implement an algorithm for tuning the PID gains automatically, but this feature has been put on hold until the primary functionality of the hardware and software has been completed.
+
+### Arduino NeoPixel Color Codes
+
+For this program, I have taken advantage of the built-in NeoPixel LED on the Feather M0 Express to show the current status of the Arduino script. The color of this LED will indicate the current status or action being performed by the Arduino:
+
+- **NeoPixel off, with pin 13 LED flashing**: Standby mode; the Arduino is awaiting instructions from the UI to be received via the serial bus.
+- **Cyan**: Received a command to send/receive configuration parameters to/from the UI. These "configuration parameters" include the PID gain constants and/or temperature control parameters.
+- **Green**: Currently running the temperature control loop (i.e., the experiment procedure is in progress).
+- **Magenta**: The temperature control loop has been completed successfully. This means the experiment procedure was successful,
+- **Red**: Received a "stop" command from the UI and successfully interrupted and aborted the temperature control loop.
+- **Blue**: Received a newline char via the serial bus (meaningless command, no special action performed in response).
 
 ## Hardware & Apparatus
 
