@@ -27,20 +27,20 @@
 Adafruit_NeoPixel neopixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // Predefined colors for NeoPixel
-uint32_t black = neopixel.Color(0, 0, 0);
-uint32_t white = neopixel.Color(255, 255, 255);
-uint32_t magenta = neopixel.Color(255, 0, 255);
-uint32_t red = neopixel.Color(255, 0, 0);
-uint32_t yellow = neopixel.Color(255, 255, 0);
-uint32_t green = neopixel.Color(0, 255, 0);
-uint32_t cyan = neopixel.Color(0, 255, 255);
-uint32_t blue = neopixel.Color(0, 0, 255);
+const uint32_t black = neopixel.Color(0, 0, 0);
+const uint32_t white = neopixel.Color(255, 255, 255);
+const uint32_t magenta = neopixel.Color(255, 0, 255);
+const uint32_t red = neopixel.Color(255, 0, 0);
+const uint32_t yellow = neopixel.Color(255, 255, 0);
+const uint32_t green = neopixel.Color(0, 255, 0);
+const uint32_t cyan = neopixel.Color(0, 255, 255);
+const uint32_t blue = neopixel.Color(0, 0, 255);
 
 // Feather M0 Express board pinouts
-#define REF_TEMP_PROBE_PIN A2
-#define REF_CURRENT_SENS_PIN A1
-#define SAMP_CURRENT_SENS_PIN A4
-#define SAMP_TEMP_PROBE_PIN A3
+#define REF_TEMP_PROBE_PIN A1
+#define REF_CURRENT_SENS_PIN A2
+#define SAMP_CURRENT_SENS_PIN A3
+#define SAMP_TEMP_PROBE_PIN A4
 #define Ref_Heater_PIN 11
 #define Samp_Heater_PIN 10
 
@@ -64,8 +64,8 @@ double Kd = 0;
 // The sample resolution of the analogRead() output
 #define ANALOG_RESOLUTION 12
 // Analog signal to voltage conversion factor
-double byteToVolts = (ANALOG_REF_VOLTAGE / pow(2, ANALOG_RESOLUTION));
-double byteToMillivolts = 1000.0 * byteToVolts;
+const double byteToVolts = (ANALOG_REF_VOLTAGE / pow(2, ANALOG_RESOLUTION));
+const double byteToMillivolts = 1000.0 * byteToVolts;
 
 // Thermocouple amplifier conversion constants
 #define AMPLIFIER_VOLTAGE_OFFSET 1250.0 // 1250 mV = 1.25 V
