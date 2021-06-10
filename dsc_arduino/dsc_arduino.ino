@@ -73,7 +73,7 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 
 // Current sensor conversion constants
 #define CURRENT_SENSOR_SENS 0.4    // Sensitivity (Sens) 100mA per 250mV = 0.4
-#define CURRENT_SENSOR_VREF 2500.0 // Output voltage with no current: ~ 2500mV or 2.5V
+#define CURRENT_SENSOR_VREF 1650.0 // Output voltage with no current: ~ 1650mV or 1.65V
 
 // The constant voltage supplied to the heating coils
 #define HEATING_COIL_VOLTAGE 24.0
