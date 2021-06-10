@@ -46,7 +46,7 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
 
 // Number of samples to average the reading over
 // Change this to make the reading smoother... but beware of buffer overflows!
-const int avgSamples = 100;
+const int avgSamples = 10;
 
 // global variable for holding the raw analog sensor values
 unsigned long sensorValues[4];
@@ -76,7 +76,7 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 #define CURRENT_SENSOR_VREF 1650.0 // Output voltage with no current: ~ 1650mV or 1.65V
 
 // The constant voltage supplied to the heating coils
-#define HEATING_COIL_VOLTAGE 24.0
+#define HEATING_COIL_VOLTAGE 24.0 // Theoretical 24 VAC
 
 // The resistance of the heating coil circuit (Ohms, not kilo-Ohms)
 #define HEATING_COIL_RESISTANCE 49.0
