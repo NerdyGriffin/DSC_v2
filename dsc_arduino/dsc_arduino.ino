@@ -193,6 +193,9 @@ void receiveControlParameters()
 */
 void getSensorValues()
 {
+  // Zero the array before taking samples
+  memset(sensorValues, 0, sizeof(sensorValues));
+  
   // Read the analog signals from the sensors
   for (int i = 0; i < avgSamples; i++)
   {
