@@ -104,7 +104,7 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 // The number of the consecutive samples within the
 // MINIMUM_ACCEPTABLE_ERROR that are required before the program
 // considers the target to be satisfied
-#define TARGET_COUNTER_THRESHOLD 1000
+#define TARGET_COUNTER_THRESHOLD 100
 
 // target temperature and temp control parameters
 double targetTemp;
@@ -137,7 +137,7 @@ AutoPIDRelay sampPID(&sampTemperature, &targetTemp, &sampRelayState, PULSE_WIDTH
 double refMass = 1, sampMass = 1;
 
 // Debug variables used to override the control loop end conditions
-bool debugMode = true;
+bool debugMode = false;
 #define DEBUG_TIME_LIMIT 100000
 
 /*
@@ -558,10 +558,10 @@ void setup()
 
 void loop()
 {
-  digitalWrite(13, LOW);  // turn the LED on (HIGH is the voltage level)
-  delay(500);             // wait for a second
-  digitalWrite(13, HIGH); // turn the LED off by making the voltage LOW
-  delay(500);             // wait for a second
+  digitalWrite(13, LOW); // Blink the LED
+  delay(500);
+  digitalWrite(13, HIGH);
+  delay(500);
 
   neopixel.clear();
   neopixel.show();
