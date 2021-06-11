@@ -76,8 +76,9 @@ You may contact the author at ckunis.contact@gmail.com
   IniConfig is a MATLAB class for working with configurations of settings and INI-files.
 
   The necessary file `IniConfig.m` and the corresponding license file are including in the DSC project's root directory, and is automatically imported by the MATLAB App programs. **No further installation is needed**.
-  
+
   > Evgeny Pr (2020). INI Config (<https://www.mathworks.com/matlabcentral/fileexchange/24992-ini-config>), MATLAB Central File Exchange. Retrieved August 4, 2020.
+  >
   > > This class allows you to create configurations of settings, and to manage them.
   > > The structure of the storage settings is similar to the structure of the storage the settings in the INI-file format.
   > > The class allows you to import settings from the INI-file and to export the settings in INI-file.
