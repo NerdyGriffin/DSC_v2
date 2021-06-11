@@ -49,6 +49,8 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
 const int avgSamples = 200;
 //! Must NOT exceed 2^(32 - 2*ANALOG_RESOLUTION)
 //! to prevent overflow error during summation
+// For 10-bit analog res, this max is 4096 samples
+// For 12-bit analog res, this max is 256 samples
 
 // global variable for holding the raw analog sensor values
 unsigned long sensorValues[4];
