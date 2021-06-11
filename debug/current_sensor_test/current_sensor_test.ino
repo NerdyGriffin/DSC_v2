@@ -8,7 +8,7 @@
 
 // Number of samples to average the reading over
 // Change this to make the reading smoother... but beware of buffer overflows!
-const int avgSamples = 10;
+const int avgSamples = 100;
 
 // global variable for holding the raw analog sensor values
 unsigned long sensorValues[4];
@@ -28,6 +28,11 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 // Current sensor conversion constants
 #define CURRENT_SENSOR_SENS 0.4    // Sensitivity (Sens) 100mA per 250mV = 0.4
 #define CURRENT_SENSOR_VREF 1650.0 // Output voltage with no current: ~ 1650mV or 1.65V
+
+// Max allowable temperature.
+// If the either temperature exceeds this value, the PWM duty cycle will be set
+// set to zero
+#define MAX_TEMPERATURE 300
 
 // global variables for holding temperature and current sensor readings
 double refTemperature, sampTemperature;
@@ -88,8 +93,6 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   digitalWrite(13, HIGH); // turn the LED on (HIGH is the voltage level)
-  digitalWrite(Ref_Heater_PIN, HIGH);
-  digitalWrite(Samp_Heater_PIN, HIGH);
   //  delay(500);             // wait for a second
 
   // Take a measurement of the sensor with expected current reading 0 mA
@@ -111,7 +114,7 @@ void loop() {
   sampCurrent = (sampCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
 
   //  Serial.println("RefTemp(V),RefTemp(C),SampTemp(V),SampTemp(C),RefCurrent(mV),RefCurrent(mA),SampCurrent(mV),SampCurrent(mA)");
-  Serial.println("RefTemp(C),SampTemp(C),RefCurrent(mA),SampCurrent(mA)");
+  Serial.println("RefTemp(C),SampTemp(C),RefCurrent(mA),SampCurrent(mA),MaxTemp(C)");
 
   //  Serial.print(refTempVoltage);
   //  Serial.print(",");
@@ -127,10 +130,19 @@ void loop() {
   Serial.print(",");
   //  Serial.print(sampCurrentVoltage*0.001);
   //  Serial.print(",");
-  Serial.println(sampCurrent);
+  Serial.print(sampCurrent);
+  Serial.print(",");
+  Serial.println(300);
 
   digitalWrite(13, LOW);  // turn the LED off by making the voltage LOW
-  digitalWrite(Ref_Heater_PIN, LOW);
-  digitalWrite(Samp_Heater_PIN, LOW);
+  if (refTemperature < MAX_TEMPERATURE)
+    digitalWrite(Ref_Heater_PIN, HIGH);
+  else
+    digitalWrite(Ref_Heater_PIN, LOW);
+
+  if (sampTemperature < MAX_TEMPERATURE)
+    digitalWrite(Samp_Heater_PIN, HIGH);
+  else
+    digitalWrite(Samp_Heater_PIN, LOW);
   //  delay(500);             // wait for a second
 }
