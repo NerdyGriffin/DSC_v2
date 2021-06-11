@@ -10,7 +10,7 @@ ARDUINO_CLI = arduino-cli
 BOARD_TYPE ?= adafruit:samd:adafruit_feather_m0_express
 
 # Default port to upload to
-SERIAL_PORT ?= COM1
+SERIAL_PORT ?= COM3
 
 # Optional verbose compile/upload trigger
 V ?= 0

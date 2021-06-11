@@ -77,7 +77,7 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 #define AMPLIFIER_CONVERSION_FACTOR 5.0 // 5 mV/C = 0.005 V/C
 
 // Current sensor conversion constants
-#define CURRENT_SENSOR_SENS 0.4    // Sensitivity (Sens) 100mA per 250mV = 0.4
+#define CURRENT_SENSOR_SENS 0.4 // Sensitivity (Sens) 100mA per 250mV = 0.4
 //#define CURRENT_SENSOR_VREF 1650.0 // Output voltage with no current: ~ 1650mV or 1.65V
 //#define CURRENT_SENSOR_VREF 2500.0 // Output voltage with no current: ~ 2500mV or 2.5V
 
@@ -304,8 +304,8 @@ void readSensors(double *refTemperature, double *sampTemperature, double *refCur
   // This will calculate the actual current (in mA)
   // Using the ~~Vref~~ and sensitivity settings you configure
   //? (Vref is automatically accounted for during RMS calculation)
-  *refCurrent = (refCurrentVoltage) * CURRENT_SENSOR_SENS;
-  *sampCurrent = (sampCurrentVoltage) * CURRENT_SENSOR_SENS;
+  *refCurrent = (refCurrentVoltage)*CURRENT_SENSOR_SENS;
+  *sampCurrent = (sampCurrentVoltage)*CURRENT_SENSOR_SENS;
 }
 
 /*
@@ -404,25 +404,25 @@ void controlLoop()
 
       switch (inByte)
       {
-        case 'x':
-          // Received stop commmand
+      case 'x':
+        // Received stop commmand
 
-          // Stop PID calculations and reset internal PID calculation values
-          refPID.stop();
-          sampPID.stop();
+        // Stop PID calculations and reset internal PID calculation values
+        refPID.stop();
+        sampPID.stop();
 
-          // Turn off the PWM Relay output
-          digitalWrite(Ref_Heater_PIN, LOW);
-          digitalWrite(Samp_Heater_PIN, LOW);
+        // Turn off the PWM Relay output
+        digitalWrite(Ref_Heater_PIN, LOW);
+        digitalWrite(Samp_Heater_PIN, LOW);
 
-          neopixel.fill(red);
-          neopixel.show();
-          // Confirm by sending the same command back
-          Serial.println('x');
-          return;
-          break;
-        default:
-          break;
+        neopixel.fill(red);
+        neopixel.show();
+        // Confirm by sending the same command back
+        Serial.println('x');
+        return;
+        break;
+      default:
+        break;
       }
     }
 
@@ -545,9 +545,9 @@ void setup()
   sampPID.setGains(Kp, Ki, Kd);
 
   // Set temperature control parameters to default values
-  targetTemp = 25;
-  startTemp = 25;
-  endTemp = 30;
+  startTemp = 30;
+  targetTemp = startTemp;
+  endTemp = 120;
   rampUpRate = 1;
   holdTime = 0;
 
@@ -558,9 +558,9 @@ void setup()
 
 void loop()
 {
-  digitalWrite(13, LOW); // turn the LED on (HIGH is the voltage level)
+  digitalWrite(13, LOW);  // turn the LED on (HIGH is the voltage level)
   delay(500);             // wait for a second
-  digitalWrite(13, HIGH);  // turn the LED off by making the voltage LOW
+  digitalWrite(13, HIGH); // turn the LED off by making the voltage LOW
   delay(500);             // wait for a second
 
   neopixel.clear();
@@ -575,49 +575,49 @@ void loop()
 
     switch (inByte)
     {
-      case 'i':
-        // Received initialization command
-        neopixel.fill(cyan);
-        neopixel.show();
-        // Send the PID gain constants via the serial bus
-        sendPIDGains();
-        // Send the temperature control parameters via the serial bus
-        sendControlParameters();
-        break;
-      case 'l':
-        // Received load control parameters commmand
-        neopixel.fill(cyan);
-        neopixel.show();
-        // Receive the temperature control parameters via the serial bus
-        receiveControlParameters();
-        // Send the temperature control parameters to confirm that the
-        // values were received properly
-        sendControlParameters();
-        break;
-      case 'p':
-        // Received load PID gains commmand
-        neopixel.fill(cyan);
-        neopixel.show();
-        // Receive the PID gain constants via the serial bus
-        receivePIDGains();
-        // Send the PID gain constants to confirm that the values were
-        // received properly
-        sendPIDGains();
-        break;
-      case 's':
-        // Received start commmand
-        neopixel.fill(green);
-        neopixel.show();
-        // Run the temperature control loop
-        controlLoop();
-        break;
-      case 10:
-        // Received newline char
-        neopixel.fill(blue);
-        neopixel.show();
-        break;
-      default:
-        break;
+    case 'i':
+      // Received initialization command
+      neopixel.fill(cyan);
+      neopixel.show();
+      // Send the PID gain constants via the serial bus
+      sendPIDGains();
+      // Send the temperature control parameters via the serial bus
+      sendControlParameters();
+      break;
+    case 'l':
+      // Received load control parameters commmand
+      neopixel.fill(cyan);
+      neopixel.show();
+      // Receive the temperature control parameters via the serial bus
+      receiveControlParameters();
+      // Send the temperature control parameters to confirm that the
+      // values were received properly
+      sendControlParameters();
+      break;
+    case 'p':
+      // Received load PID gains commmand
+      neopixel.fill(cyan);
+      neopixel.show();
+      // Receive the PID gain constants via the serial bus
+      receivePIDGains();
+      // Send the PID gain constants to confirm that the values were
+      // received properly
+      sendPIDGains();
+      break;
+    case 's':
+      // Received start commmand
+      neopixel.fill(green);
+      neopixel.show();
+      // Run the temperature control loop
+      controlLoop();
+      break;
+    case 10:
+      // Received newline char
+      neopixel.fill(blue);
+      neopixel.show();
+      break;
+    default:
+      break;
     }
   }
 }

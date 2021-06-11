@@ -134,7 +134,7 @@ void loop() {
   sampCurrent = (sampCurrentVoltage) * CURRENT_SENSOR_SENS;
 
   //  Serial.println("RefTemp(V),RefTemp(C),SampTemp(V),SampTemp(C),RefCurrent(mV),RefCurrent(mA),SampCurrent(mV),SampCurrent(mA)");
-  Serial.println("RefTemp(C),SampTemp(C),RefCurrent(mA),SampCurrent(mA),MaxTemp(C)");
+  Serial.println("RefTemp(C),SampTemp(C),RefCurrent(mA),SampCurrent(mA),MaxTemp(C),MaxCurrent(mA)");
 
   //  Serial.print(refTempVoltage);
   //  Serial.print(",");
@@ -153,6 +153,8 @@ void loop() {
   Serial.print(sampCurrent);
   Serial.print(",");
   Serial.println(300);
+  Serial.print(",");
+  Serial.println(470);
 
   digitalWrite(13, LOW);  // turn the LED off by making the voltage LOW
   if (refTemperature < MAX_TEMPERATURE)
