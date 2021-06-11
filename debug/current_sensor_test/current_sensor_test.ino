@@ -8,7 +8,7 @@
 
 // Number of samples to average the reading over
 // Change this to make the reading smoother... but beware of buffer overflows!
-const int avgSamples = 100;
+const int avgSamples = 200;
 //! Must NOT exceed 2^(32 - 2*ANALOG_RESOLUTION)
 //! to prevent overflow error during summation
 
@@ -38,6 +38,8 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 // set to zero
 #define MAX_TEMPERATURE 300
 
+unsigned long latestSampleTime;
+
 // global variables for holding temperature and current sensor readings
 double refTemperature, sampTemperature;
 double refCurrent, sampCurrent;
@@ -54,15 +56,19 @@ void getSensorValues()
   // Read the analog signals from the sensors
   for (int i = 0; i < avgSamples; i++)
   {
+    latestSampleTime = millis();
+
     sensorValues[0] += analogRead(REF_TEMP_PROBE_PIN);
     sensorValues[1] += analogRead(SAMP_TEMP_PROBE_PIN);
+
     // Current sensor values are squared for RMS calculation
     sensorValues[2] += sq(analogRead(REF_CURRENT_SENS_PIN) - analogMidpoint);
     sensorValues[3] += sq(analogRead(SAMP_CURRENT_SENS_PIN) - analogMidpoint);
 
     // Wait 2 milliseconds before the next loop for the analog-to-digital
     // converter to settle after the last reading
-    delay(2);
+    while ((millis() - latestSampleTime) < 2)
+      ;
   }
 
   // Calculate the average of the samples
@@ -120,7 +126,8 @@ void loop() {
   refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
   sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
   // This will calculate the actual current (in mA)
-  // Using the Vref and sensitivity settings you configure
+  // Using the ~~Vref~~ and sensitivity settings you configure
+  //? (Vref is automatically accounted for during RMS calculation)
   refCurrent = (refCurrentVoltage) * CURRENT_SENSOR_SENS;
   sampCurrent = (sampCurrentVoltage) * CURRENT_SENSOR_SENS;
 
