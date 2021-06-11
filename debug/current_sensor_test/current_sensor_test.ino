@@ -9,6 +9,8 @@
 // Number of samples to average the reading over
 // Change this to make the reading smoother... but beware of buffer overflows!
 const int avgSamples = 100;
+//! Must NOT exceed 2^(32 - 2*ANALOG_RESOLUTION)
+//! to prevent overflow error during summation
 
 // global variable for holding the raw analog sensor values
 unsigned long sensorValues[4];
@@ -17,6 +19,7 @@ unsigned long sensorValues[4];
 #define ANALOG_REF_VOLTAGE 3.3
 // The sample resolution of the analogRead() output
 #define ANALOG_RESOLUTION 12
+const unsigned long analogMidpoint = pow(2, ANALOG_RESOLUTION - 1);
 // Analog signal to voltage conversion factor
 const double byteToVolts = (ANALOG_REF_VOLTAGE / pow(2, ANALOG_RESOLUTION));
 const double byteToMillivolts = 1000.0 * byteToVolts;
@@ -27,7 +30,8 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 
 // Current sensor conversion constants
 #define CURRENT_SENSOR_SENS 0.4    // Sensitivity (Sens) 100mA per 250mV = 0.4
-#define CURRENT_SENSOR_VREF 1650.0 // Output voltage with no current: ~ 1650mV or 1.65V
+//#define CURRENT_SENSOR_VREF 1650.0 // Output voltage with no current: ~ 1650mV or 1.65V
+//#define CURRENT_SENSOR_VREF 2500.0 // Output voltage with no current: ~ 2500mV or 2.5V
 
 // Max allowable temperature.
 // If the either temperature exceeds this value, the PWM duty cycle will be set
@@ -52,8 +56,9 @@ void getSensorValues()
   {
     sensorValues[0] += analogRead(REF_TEMP_PROBE_PIN);
     sensorValues[1] += analogRead(SAMP_TEMP_PROBE_PIN);
-    sensorValues[2] += analogRead(REF_CURRENT_SENS_PIN);
-    sensorValues[3] += analogRead(SAMP_CURRENT_SENS_PIN);
+    // Current sensor values are squared for RMS calculation
+    sensorValues[2] += sq(analogRead(REF_CURRENT_SENS_PIN) - analogMidpoint);
+    sensorValues[3] += sq(analogRead(SAMP_CURRENT_SENS_PIN) - analogMidpoint);
 
     // Wait 2 milliseconds before the next loop for the analog-to-digital
     // converter to settle after the last reading
@@ -64,6 +69,12 @@ void getSensorValues()
   for (int i = 0; i < 4; i++)
   {
     sensorValues[i] = sensorValues[i] / avgSamples;
+  }
+
+  // Calculate the RMS for current sensors
+  for (int i = 2; i < 4; i++)
+  {
+    sensorValues[i] = sqrt(sensorValues[i]);
   }
 }
 
@@ -110,8 +121,8 @@ void loop() {
   sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
   // This will calculate the actual current (in mA)
   // Using the Vref and sensitivity settings you configure
-  refCurrent = (refCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
-  sampCurrent = (sampCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
+  refCurrent = (refCurrentVoltage) * CURRENT_SENSOR_SENS;
+  sampCurrent = (sampCurrentVoltage) * CURRENT_SENSOR_SENS;
 
   //  Serial.println("RefTemp(V),RefTemp(C),SampTemp(V),SampTemp(C),RefCurrent(mV),RefCurrent(mA),SampCurrent(mV),SampCurrent(mA)");
   Serial.println("RefTemp(C),SampTemp(C),RefCurrent(mA),SampCurrent(mA),MaxTemp(C)");
