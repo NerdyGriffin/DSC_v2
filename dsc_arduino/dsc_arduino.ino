@@ -46,7 +46,9 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
 
 // Number of samples to average the reading over
 // Change this to make the reading smoother... but beware of buffer overflows!
-const int avgSamples = 10;
+const int avgSamples = 200;
+//! Must NOT exceed 2^(32 - 2*ANALOG_RESOLUTION)
+//! to prevent overflow error during summation
 
 // global variable for holding the raw analog sensor values
 unsigned long sensorValues[4];
@@ -63,6 +65,7 @@ double Kd = 0;
 #define ANALOG_REF_VOLTAGE 3.3
 // The sample resolution of the analogRead() output
 #define ANALOG_RESOLUTION 12
+const unsigned long analogMidpoint = pow(2, ANALOG_RESOLUTION - 1);
 // Analog signal to voltage conversion factor
 const double byteToVolts = (ANALOG_REF_VOLTAGE / pow(2, ANALOG_RESOLUTION));
 const double byteToMillivolts = 1000.0 * byteToVolts;
@@ -73,10 +76,12 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 
 // Current sensor conversion constants
 #define CURRENT_SENSOR_SENS 0.4    // Sensitivity (Sens) 100mA per 250mV = 0.4
-#define CURRENT_SENSOR_VREF 1650.0 // Output voltage with no current: ~ 1650mV or 1.65V
+//#define CURRENT_SENSOR_VREF 1650.0 // Output voltage with no current: ~ 1650mV or 1.65V
+//#define CURRENT_SENSOR_VREF 2500.0 // Output voltage with no current: ~ 2500mV or 2.5V
 
 // The constant voltage supplied to the heating coils
-#define HEATING_COIL_VOLTAGE 24.0 // Theoretical 24 VAC
+#define HEATING_COIL_VOLTAGE 23.0 // Theoretical 24 VAC
+// I recommend measuring the real-world voltage across the resistor and adjusting this value accordingly
 
 // The resistance of the heating coil circuit (Ohms, not kilo-Ohms)
 #define HEATING_COIL_RESISTANCE 49.0
@@ -106,6 +111,7 @@ double endTemp;
 double rampUpRate;
 double holdTime;
 
+unsigned long latestSampleTime;
 unsigned long latestTime, elapsedTime; // tracks clock time
 unsigned long rampUpStartTime;
 
@@ -195,24 +201,35 @@ void getSensorValues()
 {
   // Zero the array before taking samples
   memset(sensorValues, 0, sizeof(sensorValues));
-  
+
   // Read the analog signals from the sensors
   for (int i = 0; i < avgSamples; i++)
   {
+    latestSampleTime = millis();
+
     sensorValues[0] += analogRead(REF_TEMP_PROBE_PIN);
     sensorValues[1] += analogRead(SAMP_TEMP_PROBE_PIN);
-    sensorValues[2] += analogRead(REF_CURRENT_SENS_PIN);
-    sensorValues[3] += analogRead(SAMP_CURRENT_SENS_PIN);
+
+    // Current sensor values are squared for RMS calculation
+    sensorValues[2] += sq(analogRead(REF_CURRENT_SENS_PIN) - analogMidpoint);
+    sensorValues[3] += sq(analogRead(SAMP_CURRENT_SENS_PIN) - analogMidpoint);
 
     // Wait 2 milliseconds before the next loop for the analog-to-digital
     // converter to settle after the last reading
-    delay(2);
+    while ((millis() - latestSampleTime) < 2)
+      ;
   }
 
   // Calculate the average of the samples
   for (int i = 0; i < 4; i++)
   {
     sensorValues[i] = sensorValues[i] / avgSamples;
+  }
+
+  // Calculate the RMS for current sensors
+  for (int i = 2; i < 4; i++)
+  {
+    sensorValues[i] = sqrt(sensorValues[i]);
   }
 }
 
@@ -223,8 +240,9 @@ void getSensorValues()
 
    (This function is not yet completed/functional)
 */
-void calibrateCurrentSensors(double *refCurrentSensorVref, double *sampCurrentSensorVref, double *refCurrentSensorSens, double *sampCurrentSensorSens)
-{
+/*
+  void calibrateCurrentSensors(double *refCurrentSensorVref, double *sampCurrentSensorVref, double *refCurrentSensorSens, double *sampCurrentSensorSens)
+  {
   // Set the heater circuit to OFF to measure the baseline (current sensors measure 0 mA)
   digitalWrite(Ref_Heater_PIN, LOW);
   digitalWrite(Samp_Heater_PIN, LOW);
@@ -236,8 +254,8 @@ void calibrateCurrentSensors(double *refCurrentSensorVref, double *sampCurrentSe
   double ref_VREF = sensorValues[2] * byteToMillivolts;
   double samp_VREF = sensorValues[3] * byteToMillivolts;
   // Calculate the ideal VREF using the zero current measurement
-  *refCurrentSensorVref = ref_VREF;
-  *sampCurrentSensorVref = samp_VREF;
+  refCurrentSensorVref = ref_VREF;
+  sampCurrentSensorVref = samp_VREF;
 
   // Set the heater circuit to ON to measure the sensitivity (current sensors measure V_AC / R_heater)
   digitalWrite(Ref_Heater_PIN, HIGH);
@@ -254,13 +272,14 @@ void calibrateCurrentSensors(double *refCurrentSensorVref, double *sampCurrentSe
   double idealHeatingCoilCurrent = (HEATING_COIL_VOLTAGE / HEATING_COIL_RESISTANCE) * 1000;
 
   // Calculate the ideal SENS using the max current measurement
-  *refCurrentSensorSens = idealHeatingCoilCurrent / (refCurrentVoltage - ref_VREF);
-  *sampCurrentSensorSens = idealHeatingCoilCurrent / (sampCurrentVoltage - samp_VREF);
+  refCurrentSensorSens = idealHeatingCoilCurrent / (refCurrentVoltage - ref_VREF);
+  sampCurrentSensorSens = idealHeatingCoilCurrent / (sampCurrentVoltage - samp_VREF);
 
   // Reset the heater circuit to OFF to at the end of calibration
   digitalWrite(Ref_Heater_PIN, LOW);
   digitalWrite(Samp_Heater_PIN, LOW);
-}
+  }
+*/
 
 /*
    Reads the values from each of the sensor pins and converts them to the
@@ -281,9 +300,10 @@ void readSensors(double *refTemperature, double *sampTemperature, double *refCur
   *refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
   *sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
   // This will calculate the actual current (in mA)
-  // Using the Vref and sensitivity settings you configure
-  *refCurrent = (refCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
-  *sampCurrent = (sampCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
+  // Using the ~~Vref~~ and sensitivity settings you configure
+  //? (Vref is automatically accounted for during RMS calculation)
+  *refCurrent = (refCurrentVoltage) * CURRENT_SENSOR_SENS;
+  *sampCurrent = (sampCurrentVoltage) * CURRENT_SENSOR_SENS;
 }
 
 /*
