@@ -348,11 +348,11 @@ void updateTargetTemperature(double latestTime)
   }
   else if ((endTemp > startTemp) && (targetTemp < endTemp))
   {
-    targetTemp = endTemp; // startTemp + (rampUpRate * (latestTime - rampUpStartTime) / 60000);
+    targetTemp = endTemp; // startTemp + (latestTime - rampUpStartTime) * rampUpRate / 60000;
   }
   else if ((endTemp < startTemp) && (targetTemp > endTemp))
   {
-    targetTemp = endTemp; // startTemp - (rampUpRate * (latestTime - rampUpStartTime) / 60000);
+    targetTemp = endTemp; // startTemp - (latestTime - rampUpStartTime) * rampUpRate / 60000;
   }
   else
   {
