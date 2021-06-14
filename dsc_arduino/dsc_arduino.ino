@@ -566,11 +566,6 @@ void loop()
 {
   digitalWrite(13, LOW); // Blink the LED
   delay(500);
-
-  // Run the PID algorithm
-  refPID.run();
-  sampPID.run();
-
   digitalWrite(13, HIGH); // Blink the LED
   delay(500);
 
