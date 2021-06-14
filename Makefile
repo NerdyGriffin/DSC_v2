@@ -24,11 +24,11 @@ ifneq ($(V), 0)
 	VERBOSE=-v
 endif
 
-.PHONY: all dsc_arduino program clean
+.PHONY: all build program clean
 
-all: dsc_arduino
+all: build program
 
-dsc_arduino:
+build:
 	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) $(DSC_ARDUINO_BASE)
 
 program:

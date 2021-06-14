@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "make dsc_arduino",
+            "label": "compile dsc_arduino",
             "type": "shell",
             "command": "make DSC_ARDUINO=${fileBasenameNoExtension}",
             "group": "build",
