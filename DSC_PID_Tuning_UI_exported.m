@@ -54,7 +54,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         twoPanelWidth = 768;
     end
 
-    
+
     %   DSC_v2: UI and control systems for prototype DSC system
     %       Copyright (C) 2020  Christian Kunis
     %
@@ -72,12 +72,12 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
     %       along with this program. If not, see <https://www.gnu.org/licenses/>.
     %
     %       You may contact the author at ckunis.contact@gmail.com
-    
+
     properties (Access = private)
         Arduino % The serialport object used for communications
         SerialPort % The name of the serial port to be used
         SerialPortList % The list of available serial ports
-        
+
         TargetMaxLine
         BangOffLine
         TargetLine % Animate line object for the target temperature
@@ -85,62 +85,62 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         TargetMinLine
         RefSampleLine % Animated line object for the reference sample
         TestSampleLine % Animated line object for the test sample
-        
+
         % The number of new samples to wait before attempting to update
         % the numeric fields
         DataRefreshDelay = 1;
-        
+
         % The number of new samples to wait before attempting to refresh
         % the plots
         PlotRefreshDelay = 20;
-        
+
         StartTemp
         EndTemp
         RampUpRate
         HoldTime
     end
-    
+
     methods (Access = private)
-        
+
         function configLoadStatus = loadConfigFile(app)
             %   Load control parameters from a .ini file
-            
+
             ini = IniConfig();
-            
+
             % Prompt the user to select a file
             [configFileName, configFilePath] = uigetfile('*.ini');
-            
+
             switch configFileName
                 case 0
                     % Cancel the read operation and return an empty array
                     % if the user closes the file selection window
                     configLoadStatus = false;
                     return
-                    
+
                 otherwise
                     % Create fully-formed filename as a string
                     configFullPath = fullfile(configFilePath, configFileName);
-                    
+
                     % Read the .ini file
                     ini.ReadFile(configFullPath)
-                    
+
                     PIDSection = 'PID Settings';
                     if ini.IsSections(PIDSection)
                         if ini.IsKeys(PIDSection,'Kp')
                             app.KpEditField.Value = ...
                                 ini.GetValues('PID Constants','Kp');
                         end
-                        
+
                         if ini.IsKeys(PIDSection,'Ki')
                             app.KiEditField.Value = ...
                                 ini.GetValues('PID Constants','Ki');
                         end
-                        
+
                         if ini.IsKeys(PIDSection,'Kd')
                             app.KdEditField.Value = ...
                                 ini.GetValues('PID Constants','Kd');
                         end
-                        
+
                     else
                         warningMessage = sprintf("The seleced .ini file does not contain a [%s] section", PIDSection);
                         warndlg(warningMessage)
@@ -148,29 +148,29 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         configLoadStatus = false;
                         return
                     end
-                    
+
                     TempControlSection = 'Temperature Control';
                     if ini.IsSections(TempControlSection)
                         if ini.IsKeys(TempControlSection,'startTemp')
                             app.StartTemp = ...
                                 ini.GetValues(TempControlSection,'startTemp');
                         end
-                        
+
                         if ini.IsKeys(TempControlSection,'endTemp')
                             app.EndTemp = ...
                                 ini.GetValues(TempControlSection,'endTemp');
                         end
-                        
+
                         if ini.IsKeys(TempControlSection,'rampUpRate')
                             app.RampUpRate = ...
                                 ini.GetValues(TempControlSection,'rampUpRate');
                         end
-                        
+
                         if ini.IsKeys(TempControlSection,'holdTime')
                             app.HoldTime = ...
                                 ini.GetValues(TempControlSection,'holdTime');
                         end
-                        
+
                     else
                         warningMessage = sprintf("The seleced .ini file does not contain a [%s] section", TempControlSection);
                         warndlg(warningMessage)
@@ -180,18 +180,18 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     end
             end
         end
-        
+
         function sendPIDGains(app)
             % Send the PID gain constants via the serial bus
             write(app.Arduino, 'p', 'char');
-            
+
             write(app.Arduino, string(app.KpEditField.Value), 'string');
             write(app.Arduino, ' ', 'char');
             write(app.Arduino, string(app.KiEditField.Value), 'string');
             write(app.Arduino, ' ', 'char');
             write(app.Arduino, string(app.KdEditField.Value), 'string');
         end
-        
+
         function receivePIDGains(app)
             % Receive the PID gain constants via the serial bus
             serialData = read(app.Arduino, 1, 'char');
@@ -207,10 +207,10 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     disp(readline(app.Arduino))
             end
         end
-        
+
         function sendControlParameters(app)
             write(app.Arduino, 'l', 'char');
-            
+
             write(app.Arduino, string(app.StartTemp), 'string');
             write(app.Arduino, ' ', 'char');
             write(app.Arduino, string(app.EndTemp), 'string');
@@ -219,7 +219,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             write(app.Arduino, ' ', 'char');
             write(app.Arduino, string(app.HoldTime), 'string');
         end
-        
+
         function receiveControlParameters(app)
             serialData = read(app.Arduino, 1, 'char');
             switch serialData
@@ -235,12 +235,12 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     disp(readline(app.Arduino))
             end
         end
-        
+
         function receiveSerialData(app)
             startDateTime = datetime;
             mkdir('autosave');
             matfileName = ['autosave/autoSaveData-',datestr(startDateTime, 'yyyy-mm-dd-HHMM'),'.mat'];
-            
+
             elapsedTime = zeros(1,app.PlotRefreshDelay);
             targetTemp = zeros(1,app.PlotRefreshDelay);
             refTemp = zeros(1,app.PlotRefreshDelay);
@@ -251,13 +251,13 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             sampHeatFlow = zeros(1,app.PlotRefreshDelay);
             refDutyCycle = zeros(1,app.PlotRefreshDelay);
             sampDutyCycle = zeros(1,app.PlotRefreshDelay);
-            
+
             dataLength = 0;
-            
+
             experimentIsRunning = true;
             while experimentIsRunning
                 serialData = read(app.Arduino, 1, 'char');
-                
+
                 switch serialData
                     case 'd'
                         readline(app.Arduino);
@@ -272,7 +272,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         sampHeatFlow(dataLength) = double(readline(app.Arduino));
                         refDutyCycle(dataLength) = double(readline(app.Arduino));
                         sampDutyCycle(dataLength) = double(readline(app.Arduino));
-                        
+
                         if ~mod(dataLength, app.DataRefreshDelay)
                             updateLiveData(app, ...
                                 elapsedTime(dataLength), ...
@@ -284,7 +284,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                                 refDutyCycle(dataLength), ...
                                 sampDutyCycle(dataLength));
                         end
-                        
+
                         if ~mod(dataLength, app.PlotRefreshDelay)
                             refreshLivePlot(app, elapsedTime,...
                                 targetTemp, refTemp, sampTemp);
@@ -298,13 +298,13 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         disp(readline(app.Arduino))
                 end
             end
-            
+
             save(matfileName, 'startDateTime', 'elapsedTime', 'targetTemp', ...
                 'refTemp', 'sampTemp', ...
                 'refCurrent', 'sampCurrent', ...
                 'refHeatFlow', 'sampHeatFlow', ...
                 'refDutyCycle', 'sampDutyCycle', 'dataLength')
-            
+
             updateLiveData(app, ...
                 elapsedTime(dataLength), ...
                 targetTemp(dataLength), ...
@@ -314,12 +314,12 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 sampCurrent(dataLength), ...
                 refDutyCycle(dataLength), ...
                 sampDutyCycle(dataLength));
-            
+
             refreshLivePlot(app, elapsedTime, targetTemp, refTemp, sampTemp);
-            
+
             setIdleUI(app);
         end
-        
+
         function setRunningUI(app)
             app.StartExperimentButton.Enable = 'off';
             app.StopExperimentButton.Enable = 'on';
@@ -331,7 +331,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.SetSerialPortButton.Enable = 'off';
             app.SerialPortEditField.Editable = 'off';
         end
-        
+
         function setIdleUI(app)
             app.StartExperimentButton.Enable = 'on';
             app.StopExperimentButton.Enable = 'off';
@@ -343,43 +343,43 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.SetSerialPortButton.Enable = 'on';
             app.SerialPortEditField.Editable = 'on';
         end
-        
+
         function updateLiveData(app, elapsedTime, targetTemp, ...
                 refTemp, sampTemp, refCurrent, sampCurrent, ...
                 refDutyCycle, sampDutyCycle)
             drawnow limitrate nocallbacks
-            
+
             % Convert from milliseconds to seconds
             app.ElapsedTimesecEditField.Value = elapsedTime / 1000;
-            
+
             app.TargetTempCEditField.Value = targetTemp;
-            
+
             app.TemperatureCEditField.Value = refTemp;
             app.CurrentmAEditField.Value = refCurrent;
             app.PWMDutyCycleEditField.Value = refDutyCycle;
-            
+
             app.TemperatureCEditField_2.Value = sampTemp;
             app.CurrentmAEditField_2.Value = sampCurrent;
             app.PWMDutyCycleEditField_2.Value = sampDutyCycle;
-            
+
             drawnow limitrate
         end
-        
+
         function refreshLivePlot(app, elapsedTimeArray,...
                 targetTempArray, refTempArray, sampTempArray)
-            
+
             % Convert from milliseconds to seconds
             timeInSeconds = elapsedTimeArray ./ 1000;
-            
+
             drawnow limitrate nocallbacks
-            
+
             clearpoints(app.TargetLine)
             clearpoints(app.RefSampleLine)
             clearpoints(app.TestSampleLine)
-            
+
             BANG_RANGE = 4;
             MINIMUM_ACCEPTABLE_ERROR = 5;
-            
+
             % Update the plots
             addpoints(app.TargetMaxLine, timeInSeconds, targetTempArray + MINIMUM_ACCEPTABLE_ERROR)
             addpoints(app.BangOffLine, timeInSeconds, targetTempArray + BANG_RANGE)
@@ -388,13 +388,13 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             addpoints(app.TargetMinLine, timeInSeconds, targetTempArray - MINIMUM_ACCEPTABLE_ERROR)
             addpoints(app.RefSampleLine, timeInSeconds, refTempArray)
             addpoints(app.TestSampleLine, timeInSeconds, sampTempArray)
-            
+
             legend(app.UIAxes, 'Location', 'best')
-            
+
             drawnow limitrate
         end
     end
-    
+
 
     % Callbacks that handle component events
     methods (Access = private)
@@ -403,49 +403,49 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         function startupFcn(app)
             % Get the list of available serial ports
             app.SerialPortList = serialportlist("available");
-            
+
             if (isempty(app.SerialPortList))
                 % Display a warning if no serial ports found
                 warndlg('No available serial ports were found. Make sure the arduino device is plugged into this computer via USB')
             else
                 % Set the default serial port to the last port in the list
                 app.SerialPort = app.SerialPortList(end);
-                
+
                 % Update the serial port edit field
                 app.SerialPortEditField.Value = app.SerialPort;
-                
+
                 % Create an serial port object where you specify the USB port
                 % (look in Arduino->tools -> port and the baud rate (9600)
                 app.Arduino = serialport(app.SerialPort, 9600);
-                
+
                 % Request the temperature control parameters from the arduino
                 write(app.Arduino, 'i', 'char');
                 receivePIDGains(app);
                 receiveControlParameters(app);
             end
-            
+
             % Create the animatedline objects
-            app.TargetMaxLine = animatedline(app.UIAxes, 'Color', 'green', ...
+            app.TargetMaxLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
                 'LineStyle', ':');
-            app.BangOffLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
+            app.BangOffLine = animatedline(app.UIAxes, 'Color', 'green', ...
                 'LineStyle', ':');
             app.TargetLine = animatedline(app.UIAxes, 'Color', 'black', ...
                 'LineStyle', ':');
-            app.BangOnLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
+            app.BangOnLine = animatedline(app.UIAxes, 'Color', 'green', ...
                 'LineStyle', ':');
-            app.TargetMinLine = animatedline(app.UIAxes, 'Color', 'green', ...
+            app.TargetMinLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
                 'LineStyle', ':');
             app.RefSampleLine = animatedline(app.UIAxes, 'Color', 'blue', ...
                 'LineStyle', '--');
             app.TestSampleLine = animatedline(app.UIAxes, 'Color', 'red', ...
                 'LineStyle', '-.');
-            
+
             % Create a legend for the temperature plot
             legend(app.UIAxes, 'PID Upper Bound', 'Target Upper Bound', ...
                 'Target Temperature', 'Target Lower Bound', ...
                 'PID Lower Bound', 'Reference Sample', 'Test Sample', ...
                 'Location', 'best')
-            
+
             setIdleUI(app);
         end
 
@@ -487,8 +487,10 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         % Button pushed function: StartExperimentButton
         function StartExperimentButtonPushed(app, event)
-            write(app.Arduino, 's', 'char');
+            app.StartExperimentButton.Enable = 'off';
             
+            write(app.Arduino, 's', 'char');
+
             serialData = read(app.Arduino, 1, 'char');
             switch serialData
                 case 's'
@@ -500,43 +502,55 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         % Button pushed function: StopExperimentButton
         function StopExperimentButtonPushed(app, event)
+            app.StopExperimentButton.Enable = 'off';
+
             write(app.Arduino, 'x', 'char');
         end
 
         % Button pushed function: LoadConfigFileButton
         function LoadConfigFileButtonPushed(app, event)
-            loadConfigFile(app);
+            app.LoadConfigFileButton.Enable = 'off';
             
+            loadConfigFile(app);
+
             sendPIDGains(app);
             receivePIDGains(app);
-            
+
             sendControlParameters(app);
             receiveControlParameters(app);
+            
+            app.LoadConfigFileButton.Enable = 'on';
         end
 
         % Button pushed function: ApplyPIDParametersButton
         function ApplyPIDParametersButtonPushed(app, event)
+            app.ApplyPIDParametersButton.Enable = 'off';
+            
             sendPIDGains(app);
             receivePIDGains(app);
-            
+
             sendControlParameters(app);
             receiveControlParameters(app);
+            
+            app.ApplyPIDParametersButton.Enable = 'on';
         end
 
         % Button pushed function: SetSerialPortButton
         function SetSerialPortButtonPushed(app, event)
-            delete(app.Arduino);
+            app.SetSerialPortButton.Enable = 'off';
             
+            delete(app.Arduino);
+
             % Get the list of available serial ports
             app.SerialPortList = serialportlist("available");
-            
+
             if any(contains(app.SerialPortList, app.SerialPortEditField.Value))
                 app.SerialPort = app.SerialPortEditField.Value;
-                
+
                 % Create an serial port object where you specify the USB port
                 % (look in Arduino->tools -> port and the baud rate (9600)
                 app.Arduino = serialport(app.SerialPort, 9600);
-                
+
                 % Request the temperature control parameters from the arduino
                 write(app.Arduino, 'i', 'char');
                 receivePIDGains(app);
@@ -546,6 +560,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 disp(app.SerialPortList)
                 disp(app.SerialPortEditField.Value)
             end
+            
+            app.SetSerialPortButton.Enable = 'on';
         end
 
         % Close request function: UIFigure
