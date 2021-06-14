@@ -96,7 +96,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         % The number of new samples to wait before attempting to refresh
         % the plots
-        PlotRefreshDelay = 20;
+        PlotRefreshDelay = 10;
 
         StartTemp
         EndTemp
