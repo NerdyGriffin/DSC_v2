@@ -483,7 +483,7 @@ void controlLoop()
       }
       holdStartTime = millis();
     }
-    else if ((latestTime - holdStartTime) > (holdTime / 1000))
+    else if ((latestTime - holdStartTime) > (holdTime * 1000))
     {
       controlLoopState = false;
     }
