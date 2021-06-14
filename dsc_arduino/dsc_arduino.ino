@@ -538,7 +538,7 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.01;
+  Kp = 1;
   Ki = 0;
   Kd = 0;
 
