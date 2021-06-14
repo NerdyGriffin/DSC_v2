@@ -78,11 +78,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         SerialPort % The name of the serial port to be used
         SerialPortList % The list of available serial ports
 
-        TargetMaxLine
         BangOffLine
+        TargetMaxLine
         TargetLine % Animate line object for the target temperature
-        BangOnLine
         TargetMinLine
+        BangOnLine
         RefSampleLine % Animated line object for the reference sample
         TestSampleLine % Animated line object for the test sample
 
@@ -373,19 +373,25 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             drawnow limitrate nocallbacks
 
+            clearpoints(app.BangOffLine)
+            clearpoints(app.TargetMaxLine)
             clearpoints(app.TargetLine)
+            clearpoints(app.TargetMinLine)
+            clearpoints(app.BangOnLine)
             clearpoints(app.RefSampleLine)
             clearpoints(app.TestSampleLine)
 
-            BANG_RANGE = 4;
+            % When the temperature is less than {TargetTemp - BANG_RANGE},
+            % the PID control is deactivated, and the output is set to max
+            BANG_RANGE = 10;
             MINIMUM_ACCEPTABLE_ERROR = 5;
 
             % Update the plots
-            addpoints(app.TargetMaxLine, timeInSeconds, targetTempArray + MINIMUM_ACCEPTABLE_ERROR)
             addpoints(app.BangOffLine, timeInSeconds, targetTempArray + BANG_RANGE)
+            addpoints(app.TargetMaxLine, timeInSeconds, targetTempArray + MINIMUM_ACCEPTABLE_ERROR)
             addpoints(app.TargetLine, timeInSeconds, targetTempArray)
-            addpoints(app.BangOnLine, timeInSeconds, targetTempArray - BANG_RANGE)
             addpoints(app.TargetMinLine, timeInSeconds, targetTempArray - MINIMUM_ACCEPTABLE_ERROR)
+            addpoints(app.BangOnLine, timeInSeconds, targetTempArray - BANG_RANGE)
             addpoints(app.RefSampleLine, timeInSeconds, refTempArray)
             addpoints(app.TestSampleLine, timeInSeconds, sampTempArray)
 
@@ -425,15 +431,15 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             end
 
             % Create the animatedline objects
-            app.TargetMaxLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
+            app.BangOffLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
                 'LineStyle', ':');
-            app.BangOffLine = animatedline(app.UIAxes, 'Color', 'green', ...
+            app.TargetMaxLine = animatedline(app.UIAxes, 'Color', 'green', ...
                 'LineStyle', ':');
             app.TargetLine = animatedline(app.UIAxes, 'Color', 'black', ...
                 'LineStyle', ':');
-            app.BangOnLine = animatedline(app.UIAxes, 'Color', 'green', ...
+            app.TargetMinLine = animatedline(app.UIAxes, 'Color', 'green', ...
                 'LineStyle', ':');
-            app.TargetMinLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
+            app.BangOnLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
                 'LineStyle', ':');
             app.RefSampleLine = animatedline(app.UIAxes, 'Color', 'blue', ...
                 'LineStyle', '--');
@@ -488,7 +494,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         % Button pushed function: StartExperimentButton
         function StartExperimentButtonPushed(app, event)
             app.StartExperimentButton.Enable = 'off';
-            
+
             write(app.Arduino, 's', 'char');
 
             serialData = read(app.Arduino, 1, 'char');
@@ -510,7 +516,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         % Button pushed function: LoadConfigFileButton
         function LoadConfigFileButtonPushed(app, event)
             app.LoadConfigFileButton.Enable = 'off';
-            
+
             loadConfigFile(app);
 
             sendPIDGains(app);
@@ -518,27 +524,27 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             sendControlParameters(app);
             receiveControlParameters(app);
-            
+
             app.LoadConfigFileButton.Enable = 'on';
         end
 
         % Button pushed function: ApplyPIDParametersButton
         function ApplyPIDParametersButtonPushed(app, event)
             app.ApplyPIDParametersButton.Enable = 'off';
-            
+
             sendPIDGains(app);
             receivePIDGains(app);
 
             sendControlParameters(app);
             receiveControlParameters(app);
-            
+
             app.ApplyPIDParametersButton.Enable = 'on';
         end
 
         % Button pushed function: SetSerialPortButton
         function SetSerialPortButtonPushed(app, event)
             app.SetSerialPortButton.Enable = 'off';
-            
+
             delete(app.Arduino);
 
             % Get the list of available serial ports
@@ -560,7 +566,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 disp(app.SerialPortList)
                 disp(app.SerialPortEditField.Value)
             end
-            
+
             app.SetSerialPortButton.Enable = 'on';
         end
 

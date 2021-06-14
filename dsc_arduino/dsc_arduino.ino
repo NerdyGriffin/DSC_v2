@@ -60,7 +60,9 @@ unsigned long sensorValues[4];
 double Kp = 0.01;
 double Ki = 0;
 double Kd = 0;
-#define BANG_RANGE 4
+#define BANG_RANGE 10
+// When the temperature is less than {TargetTemp - BANG_RANGE},
+// the PID control is deactivated, and the output is set to max
 #define PID_UPDATE_INTERVAL PULSE_WIDTH
 
 // The max voltage of analog input readings
