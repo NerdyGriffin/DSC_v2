@@ -106,7 +106,7 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 // The number of the consecutive samples within the
 // MINIMUM_ACCEPTABLE_ERROR that are required before the program
 // considers the target to be satisfied
-#define TARGET_COUNTER_THRESHOLD 100
+#define TARGET_COUNTER_THRESHOLD 10
 
 // target temperature and temp control parameters
 double targetTemp;
@@ -330,11 +330,11 @@ void calculateHeatFlow(double *refHeatFlow, double *sampHeatFlow, double refCurr
 /*
    Calcutate the target temperature
 */
-void updateTargetTemperature(double *targetTemp, double startTemp, double endTemp, double rampUpRate, double latestTime)
+void updateTargetTemperature(double latestTime)
 {
   if (startCounter < TARGET_COUNTER_THRESHOLD)
   {
-    *targetTemp = startTemp;
+    targetTemp = startTemp;
     if ((refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
         (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
     {
@@ -346,17 +346,17 @@ void updateTargetTemperature(double *targetTemp, double startTemp, double endTem
     }
     rampUpStartTime = millis();
   }
-  else if ((*targetTemp < endTemp) && (endTemp > startTemp))
+  else if ((endTemp > startTemp) && (targetTemp < endTemp))
   {
-    *targetTemp = startTemp + (rampUpRate / (60 * 1000)) * (latestTime - rampUpStartTime);
+    targetTemp = endTemp; // startTemp + (rampUpRate * (latestTime - rampUpStartTime) / 60000);
   }
-  else if ((*targetTemp > endTemp) && (endTemp < startTemp))
+  else if ((endTemp < startTemp) && (targetTemp > endTemp))
   {
-    *targetTemp = startTemp - (rampUpRate / (60 * 1000)) * (latestTime - rampUpStartTime);
+    targetTemp = endTemp; // startTemp - (rampUpRate * (latestTime - rampUpStartTime) / 60000);
   }
   else
   {
-    *targetTemp = endTemp;
+    targetTemp = endTemp;
   }
 }
 
@@ -448,7 +448,7 @@ void controlLoop()
     calculateHeatFlow(&refHeatFlow, &sampHeatFlow, refCurrent, sampCurrent);
 
     // Calculate the new target temperature
-    updateTargetTemperature(&targetTemp, startTemp, endTemp, rampUpRate, latestTime);
+    updateTargetTemperature(latestTime);
 
     // Run the PID algorithm
     refPID.run();
@@ -542,7 +542,7 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 1;
+  Kp = 0.01;
   Ki = 0;
   Kd = 0;
 
@@ -553,9 +553,9 @@ void setup()
   // Set temperature control parameters to default values
   startTemp = 30;
   targetTemp = startTemp;
-  endTemp = 120;
-  rampUpRate = 5;
-  holdTime = 0;
+  endTemp = 40;      // 120;
+  rampUpRate = 2000; // 20;
+  holdTime = 30;     // 0;
 
   // Set the sample masses to default values
   refMass = 1.0;
