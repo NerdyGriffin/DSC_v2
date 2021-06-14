@@ -555,7 +555,7 @@ void setup()
   targetTemp = startTemp;
   endTemp = 40;      // 120;
   rampUpRate = 2000; // 20;
-  holdTime = 30;     // 0;
+  holdTime = 120;    // 0;
 
   // Set the sample masses to default values
   refMass = 1.0;
