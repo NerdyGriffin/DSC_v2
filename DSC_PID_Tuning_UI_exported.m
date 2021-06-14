@@ -78,11 +78,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         SerialPort % The name of the serial port to be used
         SerialPortList % The list of available serial ports
         
-        BangOffLine
         TargetMaxLine
+        BangOffLine
         TargetLine % Animate line object for the target temperature
-        TargetMinLine
         BangOnLine
+        TargetMinLine
         RefSampleLine % Animated line object for the reference sample
         TestSampleLine % Animated line object for the test sample
         
@@ -381,11 +381,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             MINIMUM_ACCEPTABLE_ERROR = 5;
             
             % Update the plots
-            addpoints(app.BangOffLine, timeInSeconds, targetTempArray + BANG_RANGE)
             addpoints(app.TargetMaxLine, timeInSeconds, targetTempArray + MINIMUM_ACCEPTABLE_ERROR)
+            addpoints(app.BangOffLine, timeInSeconds, targetTempArray + BANG_RANGE)
             addpoints(app.TargetLine, timeInSeconds, targetTempArray)
-            addpoints(app.TargetMinLine, timeInSeconds, targetTempArray - MINIMUM_ACCEPTABLE_ERROR)
             addpoints(app.BangOnLine, timeInSeconds, targetTempArray - BANG_RANGE)
+            addpoints(app.TargetMinLine, timeInSeconds, targetTempArray - MINIMUM_ACCEPTABLE_ERROR)
             addpoints(app.RefSampleLine, timeInSeconds, refTempArray)
             addpoints(app.TestSampleLine, timeInSeconds, sampTempArray)
             
@@ -425,15 +425,15 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             end
             
             % Create the animatedline objects
-            app.BangOffLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
-                'LineStyle', ':');
             app.TargetMaxLine = animatedline(app.UIAxes, 'Color', 'green', ...
+                'LineStyle', ':');
+            app.BangOffLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
                 'LineStyle', ':');
             app.TargetLine = animatedline(app.UIAxes, 'Color', 'black', ...
                 'LineStyle', ':');
-            app.TargetMinLine = animatedline(app.UIAxes, 'Color', 'green', ...
-                'LineStyle', ':');
             app.BangOnLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
+                'LineStyle', ':');
+            app.TargetMinLine = animatedline(app.UIAxes, 'Color', 'green', ...
                 'LineStyle', ':');
             app.RefSampleLine = animatedline(app.UIAxes, 'Color', 'blue', ...
                 'LineStyle', '--');
