@@ -57,7 +57,7 @@ unsigned long sensorValues[4];
 
 // PID settings and gains
 #define PULSE_WIDTH 100 // Pulse width in milliseconds
-double Kp = 0.01;
+double Kp = 1;
 double Ki = 0;
 double Kd = 0;
 #define BANG_RANGE 10
@@ -217,6 +217,10 @@ void getSensorValues()
     // Current sensor values are squared for RMS calculation
     sensorValues[2] += sq(analogRead(REF_CURRENT_SENS_PIN) - analogMidpoint);
     sensorValues[3] += sq(analogRead(SAMP_CURRENT_SENS_PIN) - analogMidpoint);
+
+    // Run the PID algorithm
+    refPID.run();
+    sampPID.run();
 
     // Wait 2 milliseconds before the next loop for the analog-to-digital
     // converter to settle after the last reading
@@ -562,7 +566,12 @@ void loop()
 {
   digitalWrite(13, LOW); // Blink the LED
   delay(500);
-  digitalWrite(13, HIGH);
+
+  // Run the PID algorithm
+  refPID.run();
+  sampPID.run();
+
+  digitalWrite(13, HIGH); // Blink the LED
   delay(500);
 
   neopixel.clear();
