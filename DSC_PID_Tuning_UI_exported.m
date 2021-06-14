@@ -536,6 +536,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 % Create an serial port object where you specify the USB port
                 % (look in Arduino->tools -> port and the baud rate (9600)
                 app.Arduino = serialport(app.SerialPort, 9600);
+                
+                % Request the temperature control parameters from the arduino
+                write(app.Arduino, 'i', 'char');
+                receivePIDGains(app);
+                receiveControlParameters(app);
             else
                 warndlg(sprintf("%s is not in the list of available serial ports", app.SerialPortEditField.Value));
                 disp(app.SerialPortList)
