@@ -23,6 +23,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         LoadConfigFileButton          matlab.ui.control.Button
         CenterPanel                   matlab.ui.container.Panel
         GridLayout3                   matlab.ui.container.GridLayout
+        UIAxes2                       matlab.ui.control.UIAxes
         UIAxes                        matlab.ui.control.UIAxes
         RightPanel                    matlab.ui.container.Panel
         GridLayout4                   matlab.ui.container.GridLayout
@@ -85,6 +86,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         BangOnLine
         RefSampleLine % Animated line object for the reference sample
         TestSampleLine % Animated line object for the test sample
+        
+        RefDutyCycleLine
+        SampDutyCycleLine
 
         % The number of new samples to wait before attempting to update
         % the numeric fields
@@ -287,7 +291,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
                         if ~mod(dataLength, app.PlotRefreshDelay)
                             refreshLivePlot(app, elapsedTime,...
-                                targetTemp, refTemp, sampTemp);
+                                targetTemp, refTemp, sampTemp,...
+                                refDutyCycle, sampDutyCycle);
                         end
                     case 'x'
                         experimentIsRunning = false;
@@ -315,7 +320,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 refDutyCycle(dataLength), ...
                 sampDutyCycle(dataLength));
 
-            refreshLivePlot(app, elapsedTime, targetTemp, refTemp, sampTemp);
+            refreshLivePlot(app, elapsedTime, targetTemp,...
+                refTemp, sampTemp,...
+                refDutyCycle, sampDutyCycle);
 
             setIdleUI(app);
         end
@@ -366,7 +373,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function refreshLivePlot(app, elapsedTimeArray,...
-                targetTempArray, refTempArray, sampTempArray)
+                targetTempArray, refTempArray, sampTempArray,...
+                refDutyCycleArray, sampDutyCycleArray)
 
             % Convert from milliseconds to seconds
             timeInSeconds = elapsedTimeArray ./ 1000;
@@ -380,6 +388,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             clearpoints(app.BangOnLine)
             clearpoints(app.RefSampleLine)
             clearpoints(app.TestSampleLine)
+
+            clearpoints(app.RefDutyCycleLine)
+            clearpoints(app.SampDutyCycleLine)
 
             % When the temperature is less than {TargetTemp - BANG_RANGE},
             % the PID control is deactivated, and the output is set to max
@@ -395,7 +406,12 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             addpoints(app.RefSampleLine, timeInSeconds, refTempArray)
             addpoints(app.TestSampleLine, timeInSeconds, sampTempArray)
 
+            addpoints(app.RefDutyCycleLine, timeInSeconds, refDutyCycleArray)
+            addpoints(app.SampDutyCycleLine, timeInSeconds, sampDutyCycleArray)
+
             legend(app.UIAxes, 'Location', 'best')
+            
+            legend(app.UIAxes2, 'Location', 'best')
 
             drawnow limitrate
         end
@@ -445,11 +461,20 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 'LineStyle', '--');
             app.TestSampleLine = animatedline(app.UIAxes, 'Color', 'red', ...
                 'LineStyle', '-.');
+            
+            app.RefDutyCycleLine = animatedline(app.UIAxes2, 'Color', 'blue', ...
+                'LineStyle', '--');
+            app.SampDutyCycleLine = animatedline(app.UIAxes2, 'Color', 'red', ...
+                'LineStyle', '-.');
 
             % Create a legend for the temperature plot
             legend(app.UIAxes, 'PID Upper Bound', 'Target Upper Bound', ...
                 'Target Temperature', 'Target Lower Bound', ...
                 'PID Lower Bound', 'Reference Sample', 'Test Sample', ...
+                'Location', 'best')
+            
+            % Create a legend for the duty cycle plot
+            legend(app.UIAxes2, 'Reference Sample', 'Test Sample', ...
                 'Location', 'best')
 
             setIdleUI(app);
@@ -716,7 +741,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             % Create GridLayout3
             app.GridLayout3 = uigridlayout(app.CenterPanel);
             app.GridLayout3.ColumnWidth = {'1x'};
-            app.GridLayout3.RowHeight = {'1x'};
+            app.GridLayout3.RowHeight = {'2x', '1x'};
             app.GridLayout3.Padding = [5 5 5 5];
 
             % Create UIAxes
@@ -728,6 +753,16 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.UIAxes.YGrid = 'on';
             app.UIAxes.Layout.Row = 1;
             app.UIAxes.Layout.Column = 1;
+
+            % Create UIAxes2
+            app.UIAxes2 = uiaxes(app.GridLayout3);
+            title(app.UIAxes2, 'PWM Duty Cycle')
+            xlabel(app.UIAxes2, 'Time (sec)')
+            ylabel(app.UIAxes2, 'Duty Cycle')
+            app.UIAxes2.XGrid = 'on';
+            app.UIAxes2.YGrid = 'on';
+            app.UIAxes2.Layout.Row = 2;
+            app.UIAxes2.Layout.Column = 1;
 
             % Create RightPanel
             app.RightPanel = uipanel(app.GridLayout);
