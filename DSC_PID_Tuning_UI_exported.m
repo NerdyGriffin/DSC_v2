@@ -412,6 +412,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             legend(app.UIAxes, 'Location', 'best')
             
             legend(app.UIAxes2, 'Location', 'best')
+            
+            ylim(app.UIAxes2, [0 1])
 
             drawnow limitrate
         end
