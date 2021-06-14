@@ -106,7 +106,7 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 // The number of the consecutive samples within the
 // MINIMUM_ACCEPTABLE_ERROR that are required before the program
 // considers the target to be satisfied
-#define TARGET_COUNTER_THRESHOLD 10
+#define TARGET_COUNTER_THRESHOLD 100
 
 // target temperature and temp control parameters
 double targetTemp;
