@@ -21,7 +21,7 @@
         {
             "label": "compile dsc_arduino",
             "type": "shell",
-            "command": "make DSC_ARDUINO=${fileBasenameNoExtension}",
+            "command": "make build DSC_ARDUINO=${fileBasenameNoExtension}",
             "group": "build",
             "isBackground": false,
             "presentation": {

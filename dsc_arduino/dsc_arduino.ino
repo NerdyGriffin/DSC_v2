@@ -293,7 +293,7 @@ void getSensorValues()
    Reads the values from each of the sensor pins and converts them to the
    appropriate units, storing the result in the global variables
 */
-void readSensors(double *refTemperature, double *sampTemperature, double *refCurrent, double *sampCurrent)
+void readSensors()
 {
   getSensorValues();
 
@@ -305,26 +305,26 @@ void readSensors(double *refTemperature, double *sampTemperature, double *refCur
 
   // Convert the voltage readings into appropriate units.
   // This will calculate the temperature (in Celcius)
-  *refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
-  *sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
+  refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
+  sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
   // This will calculate the actual current (in mA)
   // Using the ~~Vref~~ and sensitivity settings you configure
   //? (Vref is automatically accounted for during RMS calculation)
-  *refCurrent = (refCurrentVoltage)*CURRENT_SENSOR_SENS;
-  *sampCurrent = (sampCurrentVoltage)*CURRENT_SENSOR_SENS;
+  refCurrent = (refCurrentVoltage)*CURRENT_SENSOR_SENS;
+  sampCurrent = (sampCurrentVoltage)*CURRENT_SENSOR_SENS;
 }
 
 /*
    Calcutate the heat flow
 */
-void calculateHeatFlow(double *refHeatFlow, double *sampHeatFlow, double refCurrent, double sampCurrent)
+void calculateHeatFlow()
 {
   // Convert current from milliAmps to Amps
   double refCurrentAmps = refCurrent / 1000.0;
   double sampCurrentAmps = sampCurrent / 1000.0;
   // Calculate the heat flow as Watts per gram
-  *refHeatFlow = refCurrentAmps * HEATING_COIL_VOLTAGE / refMass;
-  *sampHeatFlow = sampCurrentAmps * HEATING_COIL_VOLTAGE / sampMass;
+  refHeatFlow = refCurrentAmps * HEATING_COIL_VOLTAGE / refMass;
+  sampHeatFlow = sampCurrentAmps * HEATING_COIL_VOLTAGE / sampMass;
 }
 
 /*
@@ -349,10 +349,12 @@ void updateTargetTemperature(double latestTime)
   else if ((endTemp > startTemp) && (targetTemp < endTemp))
   {
     targetTemp = endTemp; // startTemp + (latestTime - rampUpStartTime) * rampUpRate / 60000;
+    //! DEBUG: Ramp up has been disabled for PID tuning
   }
   else if ((endTemp < startTemp) && (targetTemp > endTemp))
   {
     targetTemp = endTemp; // startTemp - (latestTime - rampUpStartTime) * rampUpRate / 60000;
+    //! DEBUG: Ramp up has been disabled for PID tuning
   }
   else
   {
@@ -442,10 +444,10 @@ void controlLoop()
     elapsedTime = latestTime - startTime;
 
     // Read the measurements from the sensors
-    readSensors(&refTemperature, &sampTemperature, &refCurrent, &sampCurrent);
+    readSensors();
 
     // Calcutate the heat flow
-    calculateHeatFlow(&refHeatFlow, &sampHeatFlow, refCurrent, sampCurrent);
+    calculateHeatFlow();
 
     // Calculate the new target temperature
     updateTargetTemperature(latestTime);
@@ -625,5 +627,19 @@ void loop()
     default:
       break;
     }
+  }
+  else
+  {
+    digitalWrite(13, LOW); // Blink the LED
+
+    // Read the measurements from the sensors
+    readSensors();
+
+    // Update the PWM Relay output
+    digitalWrite(Ref_Heater_PIN, LOW);
+    digitalWrite(Samp_Heater_PIN, LOW);
+
+    // Send data out via Serial bus
+    sendData();
   }
 }
