@@ -626,4 +626,17 @@ void loop()
       break;
     }
   }
+
+  digitalWrite(13, LOW); // Blink the LED
+  delay(500);
+
+  // Read the measurements from the sensors
+  readSensors(&refTemperature, &sampTemperature, &refCurrent, &sampCurrent);
+
+  // Update the PWM Relay output
+  digitalWrite(Ref_Heater_PIN, LOW);
+  digitalWrite(Samp_Heater_PIN, LOW);
+
+  // Send data out via Serial bus
+  sendData();
 }
