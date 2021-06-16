@@ -198,16 +198,20 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         function receivePIDGains(app)
             % Receive the PID gain constants via the serial bus
-            for awaitData = 1:100
+            awaitResponse = true;
+            while awaitResponse
                 serialData = readline(app.Arduino);
-                if length(serialData) == 1 && serialData == 'k'
-                    app.KpEditField.Value = double(readline(app.Arduino));
-                    app.KiEditField.Value = double(readline(app.Arduino));
-                    app.KdEditField.Value = double(readline(app.Arduino));
-                    break
-                else
-                    disp('Unrecognized control param flag:')
-                    disp(serialData)
+                if length(serialData) == 1
+                    switch serialData
+                        case 'k'
+                            app.KpEditField.Value = double(readline(app.Arduino));
+                            app.KiEditField.Value = double(readline(app.Arduino));
+                            app.KdEditField.Value = double(readline(app.Arduino));
+                            awaitResponse = false;
+                        otherwise
+                            disp('Unrecognized data flag while awaiting PID Gains:')
+                            disp(serialData)
+                    end
                 end
             end
         end
@@ -225,17 +229,21 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function receiveControlParameters(app)
-            for awaitData = 1:100
+            awaitResponse = true;
+            while awaitResponse
                 serialData = readline(app.Arduino);
-                if length(serialData) == 1 && serialData == 'c'
-                    app.StartTemp = double(readline(app.Arduino));
-                    app.EndTemp = double(readline(app.Arduino));
-                    app.RampUpRate = double(readline(app.Arduino));
-                    app.HoldTime = double(readline(app.Arduino));
-                    break
-                else
-                    disp('Unrecognized control param flag:')
-                    disp(serialData)
+                if length(serialData) == 1
+                    switch serialData
+                        case 'c'
+                            app.StartTemp = double(readline(app.Arduino));
+                            app.EndTemp = double(readline(app.Arduino));
+                            app.RampUpRate = double(readline(app.Arduino));
+                            app.HoldTime = double(readline(app.Arduino));
+                            awaitResponse = false;
+                        otherwise
+                            disp('Unrecognized data flag while awaiting control params:')
+                            disp(serialData)
+                    end
                 end
             end
         end
@@ -267,7 +275,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                             experimentIsRunning = false;
                             disp('Received end signal')
                         otherwise
-                            disp('Unrecognized control param flag:')
+                            disp('Unrecognized data flag while awaiting data:')
                             disp(serialData)
                     end
                 else
@@ -528,12 +536,19 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             write(app.Arduino, 's', 'char');
 
-            for i = 1:100
+            awaitStart = true
+            while awaitStart
                 serialData = readline(app.Arduino);
-                if length(serialData) == 1 && serialData == 's'
-                    setRunningUI(app);
-                    receiveSerialData(app);
-                    break
+                if length(serialData) == 1
+                    switch serialData
+                        case 's'
+                            setRunningUI(app);
+                            receiveSerialData(app);
+                            awaitStart = false;
+                        otherwise
+                            disp('Unrecognized data flag while awaiting start response:')
+                            disp(serialData)
+                    end
                 end
             end
 
