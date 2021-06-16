@@ -85,27 +85,30 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 // Current sensor conversion constants
 #define CURRENT_SENSOR_SENS 0.4 // Sensitivity (Sens) 100mA per 250mV = 0.4
 // #define CURRENT_SENSOR_VREF 1650.0 // Output voltage with no current: ~ 1650mV or 1.65V
-// #define CURRENT_SENSOR_VREF 2500.0 // Output voltage with no current: ~ 2500mV or 2.5V
+#define CURRENT_SENSOR_VREF 0.0 // VRef = {Output voltate with no current} - ANALOG_REF/2
 // VREF is now accounted for by `sensorValue - analogMidpoint` during the RMS calculation
+double Ref_Current_Sensor_Sens = 0.4, Samp_Current_Sensor_Sens = 0.4;
+double Ref_Current_Sensor_VRef = 0.0, Samp_Current_Sensor_VRef = 0.0;
 
 // The constant voltage supplied to the heating coils
 #define HEATING_COIL_VOLTAGE 23.0 // Theoretical 24 VAC
-// I recommend measuring the real-world voltage across the resistor and adjusting this value accordingly
+// I recommend measuring the real-world voltage across the resistor and adjusting this value
+// accordingly
 
 // The resistance of the heating coil circuit (Ohms, not kilo-Ohms)
 #define HEATING_COIL_RESISTANCE 49.0
-// For best accuracy during sensor calibration, this value should be measured as the
-// total resistance around the heating coil circuit, not just the resistance of the
-// heating components alone.
+// For best accuracy during sensor calibration, this value should be measured as the total
+// resistance around the heating coil circuit, not just the resistance of the heating components
+// alone.
 
 // Max allowable temperature.
 // If the either temperature exceeds this value, the PWM duty cycle will be set
 // set to zero
 #define MAX_TEMPERATURE 300
 
-// The minimum acceptable error between the sample temperatures and the target
-// temperature. The error for both samples must be less than this value before
-// the stage controller will continue to the next stage. Units: [degrees C]
+// The minimum acceptable error between the sample temperatures and the target temperature. The
+// error for both samples must be less than this value before the stage controller will continue to
+// the next stage. Units: [degrees C]
 #define MINIMUM_ACCEPTABLE_ERROR 5
 
 // The number of the consecutive samples within the
@@ -256,29 +259,31 @@ void readSensorValues()
 
    (This function is not yet completed/functional)
 */
-/*
-  void calibrateCurrentSensors(double *refCurrentSensorVref, double *sampCurrentSensorVref, double *refCurrentSensorSens, double *sampCurrentSensorSens)
-  {
+
+void calibrateCurrentSensors()
+{
   // Set the heater circuit to OFF to measure the baseline (current sensors measure 0 mA)
   digitalWrite(Ref_Heater_PIN, LOW);
   digitalWrite(Samp_Heater_PIN, LOW);
 
-  // Take a measurement of the sensor with expected current reading 0 mA
-  getSensorValues();
+  delay(100);
 
-  // The current sensor voltage is in millivolts
-  double ref_VREF = sensorValues[2] * byteToMillivolts;
-  double samp_VREF = sensorValues[3] * byteToMillivolts;
+  // Take a measurement of the sensor with expected current reading 0 mA
+  readSensorValues();
+
   // Calculate the ideal VREF using the zero current measurement
-  refCurrentSensorVref = ref_VREF;
-  sampCurrentSensorVref = samp_VREF;
+  // The voltage is in millivolts
+  Ref_Current_Sensor_VRef = sensorValues[2] * byteToMillivolts;
+  Samp_Current_Sensor_VRef = sensorValues[3] * byteToMillivolts;
 
   // Set the heater circuit to ON to measure the sensitivity (current sensors measure V_AC / R_heater)
   digitalWrite(Ref_Heater_PIN, HIGH);
   digitalWrite(Samp_Heater_PIN, HIGH);
 
+  delay(100);
+
   // Take a measurement of the sensor with expected maximum current
-  getSensorValues();
+  readSensorValues();
 
   // The current sensor voltage is in millivolts
   double refCurrentVoltage = sensorValues[2] * byteToMillivolts;
@@ -288,14 +293,13 @@ void readSensorValues()
   double idealHeatingCoilCurrent = (HEATING_COIL_VOLTAGE / HEATING_COIL_RESISTANCE) * 1000;
 
   // Calculate the ideal SENS using the max current measurement
-  refCurrentSensorSens = idealHeatingCoilCurrent / (refCurrentVoltage - ref_VREF);
-  sampCurrentSensorSens = idealHeatingCoilCurrent / (sampCurrentVoltage - samp_VREF);
+  Ref_Current_Sensor_Sens = idealHeatingCoilCurrent / (refCurrentVoltage - Ref_Current_Sensor_VRef);
+  Samp_Current_Sensor_Sens = idealHeatingCoilCurrent / (sampCurrentVoltage - Samp_Current_Sensor_VRef);
 
   // Reset the heater circuit to OFF to at the end of calibration
   digitalWrite(Ref_Heater_PIN, LOW);
   digitalWrite(Samp_Heater_PIN, LOW);
-  }
-*/
+}
 
 /*
    Reads the values from each of the sensor pins and converts them to the
