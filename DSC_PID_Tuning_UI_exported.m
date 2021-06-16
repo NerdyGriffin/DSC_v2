@@ -198,17 +198,21 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         function receivePIDGains(app)
             % Receive the PID gain constants via the serial bus
-            serialData = read(app.Arduino, 1, 'char');
-            switch serialData
-                case 'k'
-                    readline(app.Arduino);
-                    app.KpEditField.Value = double(readline(app.Arduino));
-                    app.KiEditField.Value = double(readline(app.Arduino));
-                    app.KdEditField.Value = double(readline(app.Arduino));
-                otherwise
-                    disp('Unrecognized control param flag:')
-                    disp(serialData)
-                    disp(readline(app.Arduino))
+            awaitData = true;
+            while awaitData
+                serialData = read(app.Arduino, 1, 'char');
+                switch serialData
+                    case 'k'
+                        readline(app.Arduino);
+                        app.KpEditField.Value = double(readline(app.Arduino));
+                        app.KiEditField.Value = double(readline(app.Arduino));
+                        app.KdEditField.Value = double(readline(app.Arduino));
+                        awaitData = false;
+                    otherwise
+                        disp('Unrecognized control param flag:')
+                        disp(serialData)
+                        disp(readline(app.Arduino))
+                end
             end
         end
 
@@ -225,18 +229,21 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function receiveControlParameters(app)
-            serialData = read(app.Arduino, 1, 'char');
-            switch serialData
-                case 'c'
-                    readline(app.Arduino);
-                    app.StartTemp = double(readline(app.Arduino));
-                    app.EndTemp = double(readline(app.Arduino));
-                    app.RampUpRate = double(readline(app.Arduino));
-                    app.HoldTime = double(readline(app.Arduino));
-                otherwise
-                    disp('Unrecognized control param flag:')
-                    disp(serialData)
-                    disp(readline(app.Arduino))
+            awaitData = true;
+            while awaitData
+                serialData = read(app.Arduino, 1, 'char');
+                switch serialData
+                    case 'c'
+                        readline(app.Arduino);
+                        app.StartTemp = double(readline(app.Arduino));
+                        app.EndTemp = double(readline(app.Arduino));
+                        app.RampUpRate = double(readline(app.Arduino));
+                        app.HoldTime = double(readline(app.Arduino));
+                    otherwise
+                        disp('Unrecognized control param flag:')
+                        disp(serialData)
+                        disp(readline(app.Arduino))
+                end
             end
         end
 
@@ -297,6 +304,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                                     targetTemp, refTemp, sampTemp,...
                                     refDutyCycle, sampDutyCycle);
                             end
+                        else
+                            disp(parsedData)
                         end
                 end
             end
