@@ -97,7 +97,7 @@ double Ref_Current_Sensor_Sens = 0.4, Samp_Current_Sensor_Sens = 0.4;
 double Ref_Current_Sensor_VRef = 0.0, Samp_Current_Sensor_VRef = 0.0;
 
 // The constant voltage supplied to the heating coils
-#define HEATING_COIL_VOLTAGE 23.0 // Theoretical 24 VAC
+#define HEATING_COIL_VOLTAGE 24.0 // Theoretical 24 VAC
 // I recommend measuring the real-world voltage across the resistor and
 // adjusting this value accordingly
 
