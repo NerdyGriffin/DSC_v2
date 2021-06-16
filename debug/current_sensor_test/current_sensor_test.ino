@@ -223,9 +223,9 @@ void sendData()
   Serial.print(sampHeatFlow);
   Serial.print(",");
 
-  Serial.print(0); // refPID.getPulseValue()
+  Serial.print(0);
   Serial.print(",");
-  Serial.println(0); // sampPID.getPulseValue()
+  Serial.println(0);
 }
 
 void setup()

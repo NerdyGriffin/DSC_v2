@@ -387,20 +387,31 @@ void sendData()
   // Send the char 'd' to indicate the start of data set
   Serial.println('d');
 
-  // Send each value in the expected order, separated by newlines
-  Serial.println(elapsedTime);
-  Serial.println(targetTemp);
+  Serial.println("ElapsedTime(ms),TargetTemp(C),RefTemp(C),SampTemp(C),RefCurrent(mA),SampCurrent(mA),RefHeatFlow(),SampHeatFlow(),RefDutyCycle(%),SampDutyCycle(%)");
 
-  Serial.println(refTemperature);
-  Serial.println(sampTemperature);
+  // Send each value in the expected order, separated by commas
+  Serial.print(elapsedTime);
+  Serial.print(",");
+  Serial.print(targetTemp);
+  Serial.print(",");
 
-  Serial.println(refCurrent);
-  Serial.println(sampCurrent);
+  Serial.print(refTemperature);
+  Serial.print(",");
+  Serial.print(sampTemperature);
+  Serial.print(",");
 
-  Serial.println(refHeatFlow);
-  Serial.println(sampHeatFlow);
+  Serial.print(refCurrent);
+  Serial.print(",");
+  Serial.print(sampCurrent);
+  Serial.print(",");
 
-  Serial.println(refPID.getPulseValue());
+  Serial.print(refHeatFlow);
+  Serial.print(",");
+  Serial.print(sampHeatFlow);
+  Serial.print(",");
+
+  Serial.print(refPID.getPulseValue());
+  Serial.print(",");
   Serial.println(sampPID.getPulseValue());
 }
 
