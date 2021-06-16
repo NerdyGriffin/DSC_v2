@@ -133,6 +133,7 @@ unsigned long holdStartTime;
 
 // Counter used to hold samples at start temperature before beginning to ramp up
 // the target temperature
+unsigned long standbyCounter;
 unsigned long startCounter;
 unsigned long endCounter;
 
@@ -525,8 +526,6 @@ void controlLoop()
     {
       controlLoopState = false;
     }
-
-    // delay(1);
   }
 
   // Stop PID calculations and reset internal PID calculation values
@@ -588,6 +587,8 @@ void setup()
   endTemp = 40;      // 120;
   rampUpRate = 2000; // 20;
   holdTime = 120;    // 0;
+
+  standbyCounter = 0;
 
   // Set the sample masses to default values
   refMass = 1.0;
@@ -658,8 +659,14 @@ void loop()
       break;
     }
   }
+  else if (standbyCounter % 100)
+  {
+    standbyCounter++;
+  }
   else
   {
+    standbyCounter = 0;
+
     digitalWrite(13, LOW); // Blink the LED
 
     // Zero the time during standby mode
