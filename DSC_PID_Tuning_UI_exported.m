@@ -271,19 +271,19 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                             disp(serialData)
                     end
                 else
-                    [parsedData, dataIsNum] = str2num(serialData);
-                    if dataIsNum && length(parsedData) == 10
+                    parsedData = strsplit(serialData, ',');
+                    if length(parsedData) == 10
                         dataLength = dataLength + 1;
-                        elapsedTime(dataLength) = parsedData(1);
-                        targetTemp(dataLength) = parsedData(2);
-                        refTemp(dataLength) = parsedData(3);
-                        sampTemp(dataLength) = parsedData(4);
-                        refCurrent(dataLength) = parsedData(5);
-                        sampCurrent(dataLength) = parsedData(6);
-                        refHeatFlow(dataLength) = parsedData(7);
-                        sampHeatFlow(dataLength) = parsedData(8);
-                        refDutyCycle(dataLength) = parsedData(9);
-                        sampDutyCycle(dataLength) = parsedData(10);
+                        elapsedTime(dataLength) = str2double(parsedData{1});
+                        targetTemp(dataLength) = str2double(parsedData{2});
+                        refTemp(dataLength) = str2double(parsedData{3});
+                        sampTemp(dataLength) = str2double(parsedData{4});
+                        refCurrent(dataLength) = str2double(parsedData{5});
+                        sampCurrent(dataLength) = str2double(parsedData{6});
+                        refHeatFlow(dataLength) = str2double(parsedData{7});
+                        sampHeatFlow(dataLength) = str2double(parsedData{8});
+                        refDutyCycle(dataLength) = str2double(parsedData{9});
+                        sampDutyCycle(dataLength) = str2double(parsedData{10});
 
                         if ~mod(dataLength, app.DataRefreshDelay)
                             updateLiveData(app, ...
