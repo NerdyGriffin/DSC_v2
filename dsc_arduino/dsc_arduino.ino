@@ -632,10 +632,23 @@ void loop()
   {
     digitalWrite(13, LOW); // Blink the LED
 
+    // Zero the time during standby mode
+    elapsedTime = 0;
+
     // Read the measurements from the sensors
     readSensors();
 
-    // Update the PWM Relay output
+    // Calcutate the heat flow
+    calculateHeatFlow();
+
+    // Set standby target temp
+    targetTemp = 20;
+
+    // Stop PID calculations and reset internal PID calculation values
+    refPID.stop();
+    sampPID.stop();
+
+    // Turn off the PWM Relay output
     digitalWrite(Ref_Heater_PIN, LOW);
     digitalWrite(Samp_Heater_PIN, LOW);
 
