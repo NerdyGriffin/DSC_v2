@@ -340,8 +340,8 @@ void calculateHeatFlow()
   double refCurrentAmps = refCurrent / 1000.0;
   double sampCurrentAmps = sampCurrent / 1000.0;
   // Calculate the heat flow as Watts per gram
-  refHeatFlow = refCurrentAmps * HEATING_COIL_VOLTAGE / refMass;
-  sampHeatFlow = sampCurrentAmps * HEATING_COIL_VOLTAGE / sampMass;
+  refHeatFlow = refCurrent * HEATING_COIL_VOLTAGE / refMass;
+  sampHeatFlow = sampCurrent * HEATING_COIL_VOLTAGE / sampMass;
 }
 
 /**
