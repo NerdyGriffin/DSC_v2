@@ -46,11 +46,15 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
 
 // Number of samples to average the reading over
 // Change this to make the reading smoother... but beware of buffer overflows!
-const int avgSamples = 200;
 //! Must NOT exceed 2^(32 - 2*ANALOG_RESOLUTION)
 //! to prevent overflow error during summation
 // For 10-bit analog res, this max is 4096 samples
 // For 12-bit analog res, this max is 256 samples
+#define AVG_SAMPLES 200
+
+// Wait 2 milliseconds before the next loop for the analog-to-digital
+// converter to settle after the last reading
+#define AVG_SAMPLE_DELAY 2 // Sample delay in milliseconds
 
 // global variable for holding the raw analog sensor values
 unsigned long sensorValues[4];
@@ -80,8 +84,9 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 
 // Current sensor conversion constants
 #define CURRENT_SENSOR_SENS 0.4 // Sensitivity (Sens) 100mA per 250mV = 0.4
-//#define CURRENT_SENSOR_VREF 1650.0 // Output voltage with no current: ~ 1650mV or 1.65V
-//#define CURRENT_SENSOR_VREF 2500.0 // Output voltage with no current: ~ 2500mV or 2.5V
+// #define CURRENT_SENSOR_VREF 1650.0 // Output voltage with no current: ~ 1650mV or 1.65V
+// #define CURRENT_SENSOR_VREF 2500.0 // Output voltage with no current: ~ 2500mV or 2.5V
+// VREF is now accounted for by `sensorValue - analogMidpoint` during the RMS calculation
 
 // The constant voltage supplied to the heating coils
 #define HEATING_COIL_VOLTAGE 23.0 // Theoretical 24 VAC
@@ -115,13 +120,14 @@ double endTemp;
 double rampUpRate;
 double holdTime;
 
-unsigned long latestSampleTime;
 unsigned long latestTime, elapsedTime; // tracks clock time
 unsigned long rampUpStartTime;
+unsigned long holdStartTime;
 
 // Counter used to hold samples at start temperature before beginning to ramp up
 // the target temperature
 unsigned long startCounter;
+unsigned long endCounter;
 
 // global variables for holding temperature and current sensor readings
 double refTemperature, sampTemperature;
@@ -139,8 +145,8 @@ AutoPIDRelay sampPID(&sampTemperature, &targetTemp, &sampRelayState, PULSE_WIDTH
 double refMass = 1, sampMass = 1;
 
 // Debug variables used to override the control loop end conditions
-bool debugMode = false;
-#define DEBUG_TIME_LIMIT 100000
+#define DEBUG_MODE false
+#define DEBUG_TIME_LIMIT 300000
 
 /*
    Send the PID gain constants via the serial bus
@@ -201,13 +207,15 @@ void receiveControlParameters()
 /*
    Reads the values from each of the sensor pins and computes to average of multiple measurements for each pin
 */
-void getSensorValues()
+void readSensorValues()
 {
+  unsigned long latestSampleTime;
+
   // Zero the array before taking samples
   memset(sensorValues, 0, sizeof(sensorValues));
 
   // Read the analog signals from the sensors
-  for (int i = 0; i < avgSamples; i++)
+  for (int i = 0; i < AVG_SAMPLES; i++)
   {
     latestSampleTime = millis();
 
@@ -224,14 +232,14 @@ void getSensorValues()
 
     // Wait 2 milliseconds before the next loop for the analog-to-digital
     // converter to settle after the last reading
-    while ((millis() - latestSampleTime) < 2)
+    while ((millis() - latestSampleTime) < AVG_SAMPLE_DELAY)
       ;
   }
 
   // Calculate the average of the samples
   for (int i = 0; i < 4; i++)
   {
-    sensorValues[i] = sensorValues[i] / avgSamples;
+    sensorValues[i] = sensorValues[i] / AVG_SAMPLES;
   }
 
   // Calculate the RMS for current sensors
@@ -293,9 +301,9 @@ void getSensorValues()
    Reads the values from each of the sensor pins and converts them to the
    appropriate units, storing the result in the global variables
 */
-void readSensors()
+void updateSensorData()
 {
-  getSensorValues();
+  readSensorValues();
 
   // The voltage is in millivolts
   double refTempVoltage = sensorValues[0] * byteToMillivolts;
@@ -330,7 +338,7 @@ void calculateHeatFlow()
 /*
    Calcutate the target temperature
 */
-void updateTargetTemperature(double latestTime)
+void updateTargetTemperature()
 {
   if (startCounter < TARGET_COUNTER_THRESHOLD)
   {
@@ -396,9 +404,10 @@ void controlLoop()
   Serial.println('s');
 
   unsigned long startTime = millis();
-  unsigned long holdStartTime = millis();
+  rampUpStartTime = millis();
+  holdStartTime = millis();
   startCounter = 0;
-  unsigned long targetCounter = 0;
+  endCounter = 0;
   bool controlLoopState = true;
   while (controlLoopState)
   {
@@ -444,13 +453,13 @@ void controlLoop()
     elapsedTime = latestTime - startTime;
 
     // Read the measurements from the sensors
-    readSensors();
+    updateSensorData();
 
     // Calcutate the heat flow
     calculateHeatFlow();
 
     // Calculate the new target temperature
-    updateTargetTemperature(latestTime);
+    updateTargetTemperature();
 
     // Run the PID algorithm
     refPID.run();
@@ -471,31 +480,33 @@ void controlLoop()
     sendData();
 
     // Check loop exit conditions
-    if (targetCounter < TARGET_COUNTER_THRESHOLD)
+    if (targetTemp == endTemp)
     {
-      if ((targetTemp == endTemp) &&
-          (refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
-          (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
+      if (endCounter < TARGET_COUNTER_THRESHOLD)
       {
-        targetCounter++;
+        if ((refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
+            (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
+        {
+          endCounter++;
+        }
+        else
+        {
+          endCounter = 0;
+        }
+        holdStartTime = millis();
       }
-      else
+      else if ((latestTime - holdStartTime) > (holdTime * 1000))
       {
-        targetCounter = 0;
+        controlLoopState = false;
       }
-      holdStartTime = millis();
     }
-    else if ((latestTime - holdStartTime) > (holdTime * 1000))
+
+    if (DEBUG_MODE && (elapsedTime > DEBUG_TIME_LIMIT))
     {
       controlLoopState = false;
     }
 
-    if (debugMode && (elapsedTime > DEBUG_TIME_LIMIT))
-    {
-      controlLoopState = false;
-    }
-
-    //delay(1);
+    // delay(1);
   }
 
   // Stop PID calculations and reset internal PID calculation values
@@ -519,7 +530,6 @@ void setup()
   pinMode(13, OUTPUT);
 
   analogReadResolution(ANALOG_RESOLUTION);
-  //  analogReference(AR_EXTERNAL);
 
   // Set the temperature and current sensor pins
   pinMode(REF_TEMP_PROBE_PIN, INPUT);
@@ -636,7 +646,7 @@ void loop()
     elapsedTime = 0;
 
     // Read the measurements from the sensors
-    readSensors();
+    updateSensorData();
 
     // Calcutate the heat flow
     calculateHeatFlow();
