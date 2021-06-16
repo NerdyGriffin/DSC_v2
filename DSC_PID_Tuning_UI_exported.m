@@ -187,6 +187,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         function sendPIDGains(app)
             % Send the PID gain constants via the serial bus
+            flush(app.Arduino);
             write(app.Arduino, 'p', 'char');
 
             write(app.Arduino, string(app.KpEditField.Value), 'string');
@@ -217,6 +218,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function sendControlParameters(app)
+            flush(app.Arduino);
             write(app.Arduino, 'l', 'char');
 
             write(app.Arduino, string(app.StartTemp), 'string');
@@ -455,6 +457,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 app.Arduino = serialport(app.SerialPort, 9600);
 
                 % Request the temperature control parameters from the arduino
+                flush(app.Arduino);
                 write(app.Arduino, 'i', 'char');
                 receivePIDGains(app);
                 receiveControlParameters(app);
@@ -534,9 +537,10 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         function StartExperimentButtonPushed(app, event)
             app.StartExperimentButton.Enable = 'off';
 
+            flush(app.Arduino);
             write(app.Arduino, 's', 'char');
 
-            awaitStart = true
+            awaitStart = true;
             while awaitStart
                 serialData = readline(app.Arduino);
                 if length(serialData) == 1
