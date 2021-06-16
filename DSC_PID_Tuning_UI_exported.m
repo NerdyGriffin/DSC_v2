@@ -274,7 +274,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         disp('Received end signal')
                     otherwise
                         [parsedData, dataIsNum] = str2num(readline(app.Arduino));
-                        if dataIsNum
+                        if dataIsNum && length(parsedData) == 10
                             dataLength = dataLength + 1;
                             elapsedTime(dataLength) = parsedData(1);
                             targetTemp(dataLength) = parsedData(2);
