@@ -1,22 +1,22 @@
-/*
-   DSC_v2: UI and control systems for prototype DSC system
-   Copyright (C) 2020  Christian Kunis
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program. If not, see <https://www.gnu.org/licenses/>
-
-   You may contact the author at ckunis.contact@gmail.com
-*/
+/**
+ * DSC_v2: UI and control systems for prototype DSC system
+ * Copyright (C) 2020  Christian Kunis
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>
+ *
+ * You may contact the author at ckunis.contact@gmail.com
+ */
 
 #include <Adafruit_NeoPixel.h>
 #include <AutoPID.h>
@@ -44,16 +44,21 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
 #define Ref_Heater_PIN 11
 #define Samp_Heater_PIN 10
 
-// Number of samples to average the reading over
-// Change this to make the reading smoother... but beware of buffer overflows!
-//! Must NOT exceed 2^(32 - 2*ANALOG_RESOLUTION)
-//! to prevent overflow error during summation
-// For 10-bit analog res, this max is 4096 samples
-// For 12-bit analog res, this max is 256 samples
+/**
+ * Number of samples to average the reading over. Change this to make the
+ * reading smoother... but beware of buffer overflows!
+ *
+ * ! Must NOT exceed 2^(32 - 2*ANALOG_RESOLUTION) to prevent overflow error
+ * during summation
+ *
+ * For 10-bit analog res, this max is 4096 samples.
+ *
+ * For 12-bit analog res, this max is 256 samples.
+ */
 #define AVG_SAMPLES 200
 
-// Wait 2 milliseconds before the next loop for the analog-to-digital
-// converter to settle after the last reading
+// Wait 2 milliseconds before the next loop for the analog-to-digital converter
+// to settle after the last reading
 #define AVG_SAMPLE_DELAY 2 // Sample delay in milliseconds
 
 // global variable for holding the raw analog sensor values
@@ -65,8 +70,8 @@ double Kp = 1;
 double Ki = 0;
 double Kd = 0;
 #define BANG_RANGE 10
-// When the temperature is less than {TargetTemp - BANG_RANGE},
-// the PID control is deactivated, and the output is set to max
+// When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
+// is deactivated, and the output is set to max
 #define PID_UPDATE_INTERVAL PULSE_WIDTH
 
 // The max voltage of analog input readings
@@ -86,34 +91,33 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 #define CURRENT_SENSOR_SENS 0.4 // Sensitivity (Sens) 100mA per 250mV = 0.4
 // #define CURRENT_SENSOR_VREF 1650.0 // Output voltage with no current: ~ 1650mV or 1.65V
 #define CURRENT_SENSOR_VREF 0.0 // VRef = {Output voltate with no current} - ANALOG_REF/2
-// VREF is now accounted for by `sensorValue - analogMidpoint` during the RMS calculation
+// VREF is now accounted for by `sensorValue - analogMidpoint` during the RMS
+// calculation
 double Ref_Current_Sensor_Sens = 0.4, Samp_Current_Sensor_Sens = 0.4;
 double Ref_Current_Sensor_VRef = 0.0, Samp_Current_Sensor_VRef = 0.0;
 
 // The constant voltage supplied to the heating coils
 #define HEATING_COIL_VOLTAGE 23.0 // Theoretical 24 VAC
-// I recommend measuring the real-world voltage across the resistor and adjusting this value
-// accordingly
+// I recommend measuring the real-world voltage across the resistor and
+// adjusting this value accordingly
 
 // The resistance of the heating coil circuit (Ohms, not kilo-Ohms)
 #define HEATING_COIL_RESISTANCE 49.0
-// For best accuracy during sensor calibration, this value should be measured as the total
-// resistance around the heating coil circuit, not just the resistance of the heating components
-// alone.
+// For best accuracy during sensor calibration, this value should be measured as
+// the total resistance around the heating coil circuit, not just the resistance
+// of the heating components alone.
 
-// Max allowable temperature.
-// If the either temperature exceeds this value, the PWM duty cycle will be set
-// set to zero
+// Max allowable temperature. If the either temperature exceeds this value, the
+// PWM duty cycle will be set set to zero
 #define MAX_TEMPERATURE 300
 
-// The minimum acceptable error between the sample temperatures and the target temperature. The
-// error for both samples must be less than this value before the stage controller will continue to
-// the next stage. Units: [degrees C]
+// The minimum acceptable error between the sample temperatures and the target
+// temperature. The error for both samples must be less than this value before
+// the stage controller will continue to the next stage. Units: [degrees C]
 #define MINIMUM_ACCEPTABLE_ERROR 5
 
-// The number of the consecutive samples within the
-// MINIMUM_ACCEPTABLE_ERROR that are required before the program
-// considers the target to be satisfied
+// The number of the consecutive samples within the MINIMUM_ACCEPTABLE_ERROR
+// that are required before the program considers the target to be satisfied
 #define TARGET_COUNTER_THRESHOLD 100
 
 // target temperature and temp control parameters
@@ -151,9 +155,9 @@ double refMass = 1, sampMass = 1;
 #define DEBUG_MODE false
 #define DEBUG_TIME_LIMIT 300000
 
-/*
-   Send the PID gain constants via the serial bus
-*/
+/**
+ * Send the PID gain constants via the serial bus
+ */
 void sendPIDGains()
 {
   // Send the char 'k' to indicate the start of the PID data set
@@ -165,9 +169,9 @@ void sendPIDGains()
   Serial.println(Kd);
 }
 
-/*
-   Receive the PID gain constants via the serial bus
-*/
+/**
+ * Receive the PID gain constants via the serial bus
+ */
 void receivePIDGains()
 {
   // Read the incoming data as a float
@@ -180,9 +184,9 @@ void receivePIDGains()
   sampPID.setGains(Kp, Ki, Kd);
 }
 
-/*
-   Send the temperature control parameters via the serial bus
-*/
+/**
+ * Send the temperature control parameters via the serial bus
+ */
 void sendControlParameters()
 {
   // Send the char 'c' to indicate the start of config data set
@@ -195,9 +199,9 @@ void sendControlParameters()
   Serial.println(holdTime);
 }
 
-/*
-   Receive the temperature control parameters via the serial bus
-*/
+/**
+ * Receive the temperature control parameters via the serial bus
+ */
 void receiveControlParameters()
 {
   // Read the incoming data as a float
@@ -207,9 +211,10 @@ void receiveControlParameters()
   holdTime = Serial.parseFloat();
 }
 
-/*
-   Reads the values from each of the sensor pins and computes to average of multiple measurements for each pin
-*/
+/**
+ * Reads the values from each of the sensor pins and computes to average of
+ * multiple measurements for each pin
+ */
 void readSensorValues()
 {
   unsigned long latestSampleTime;
@@ -252,17 +257,17 @@ void readSensorValues()
   }
 }
 
-/*
-   ! -- Experimental Feature -- !
-
-   Calculate the current sensor offset and sensitivity values
-
-   (This function is not yet completed/functional)
-*/
-
+/**
+ * ! -- Experimental Feature -- !
+ *
+ * Calculate the current sensor offset and sensitivity values
+ *
+ * (This function is not yet completed/functional)
+ */
 void calibrateCurrentSensors()
 {
-  // Set the heater circuit to OFF to measure the baseline (current sensors measure 0 mA)
+  // Set the heater circuit to OFF to measure the baseline (current sensors
+  // measure 0 mA)
   digitalWrite(Ref_Heater_PIN, LOW);
   digitalWrite(Samp_Heater_PIN, LOW);
 
@@ -271,12 +276,13 @@ void calibrateCurrentSensors()
   // Take a measurement of the sensor with expected current reading 0 mA
   readSensorValues();
 
-  // Calculate the ideal VREF using the zero current measurement
-  // The voltage is in millivolts
+  // Calculate the ideal VREF using the zero current measurement. The voltage is
+  // in millivolts
   Ref_Current_Sensor_VRef = sensorValues[2] * byteToMillivolts;
   Samp_Current_Sensor_VRef = sensorValues[3] * byteToMillivolts;
 
-  // Set the heater circuit to ON to measure the sensitivity (current sensors measure V_AC / R_heater)
+  // Set the heater circuit to ON to measure the sensitivity (current sensors
+  // measure V_{AC} / R_{heater})
   digitalWrite(Ref_Heater_PIN, HIGH);
   digitalWrite(Samp_Heater_PIN, HIGH);
 
@@ -301,10 +307,10 @@ void calibrateCurrentSensors()
   digitalWrite(Samp_Heater_PIN, LOW);
 }
 
-/*
-   Reads the values from each of the sensor pins and converts them to the
-   appropriate units, storing the result in the global variables
-*/
+/**
+ * Reads the values from each of the sensor pins and converts them to the
+ * appropriate units, storing the result in the global variables
+ */
 void updateSensorData()
 {
   readSensorValues();
@@ -315,20 +321,19 @@ void updateSensorData()
   double refCurrentVoltage = sensorValues[2] * byteToMillivolts;
   double sampCurrentVoltage = sensorValues[3] * byteToMillivolts;
 
-  // Convert the voltage readings into appropriate units.
-  // This will calculate the temperature (in Celcius)
+  // Convert the voltage readings into appropriate units. This will calculate
+  // the temperature (in Celcius)
   refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
   sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
-  // This will calculate the actual current (in mA)
-  // Using the ~~Vref~~ and sensitivity settings you configure
-  //? (Vref is automatically accounted for during RMS calculation)
-  refCurrent = (refCurrentVoltage)*CURRENT_SENSOR_SENS;
-  sampCurrent = (sampCurrentVoltage)*CURRENT_SENSOR_SENS;
+  // This will calculate the actual current (in mA). Using the ~~Vref~~ and
+  // sensitivity settings you configure
+  refCurrent = (refCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
+  sampCurrent = (sampCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
 }
 
-/*
-   Calcutate the heat flow
-*/
+/**
+ * Calcutate the heat flow
+ */
 void calculateHeatFlow()
 {
   // Convert current from milliAmps to Amps
@@ -339,9 +344,9 @@ void calculateHeatFlow()
   sampHeatFlow = sampCurrentAmps * HEATING_COIL_VOLTAGE / sampMass;
 }
 
-/*
-   Calcutate the target temperature
-*/
+/**
+ * Calcutate the target temperature
+ */
 void updateTargetTemperature()
 {
   if (startCounter < TARGET_COUNTER_THRESHOLD)
@@ -374,9 +379,9 @@ void updateTargetTemperature()
   }
 }
 
-/*
-   Send the latest measurement data via the serial bus
-*/
+/**
+ * Send the latest measurement data via the serial bus
+ */
 void sendData()
 {
   // Send the char 'd' to indicate the start of data set
@@ -399,9 +404,9 @@ void sendData()
   Serial.println(sampPID.getPulseValue());
 }
 
-/*
-   Temperature control loop
-*/
+/**
+ * Temperature control loop
+ */
 void controlLoop()
 {
   // Send the char 's' to indicate the start of control loop
@@ -545,11 +550,11 @@ void setup()
   pinMode(Ref_Heater_PIN, OUTPUT);
   pinMode(Samp_Heater_PIN, OUTPUT);
 
-  // if temperature is more than 4 degrees below or above setpoint, OUTPUT
-  // will be set to min or max respectively
+  // if temperature is more than 4 degrees below or above setpoint, OUTPUT will
+  // be set to min or max respectively
   refPID.setBangBang(BANG_RANGE);
   sampPID.setBangBang(BANG_RANGE);
-  //set PID update interval
+  // set PID update interval
   refPID.setTimeStep(PID_UPDATE_INTERVAL);
   sampPID.setTimeStep(PID_UPDATE_INTERVAL);
 
@@ -612,8 +617,8 @@ void loop()
       neopixel.show();
       // Receive the temperature control parameters via the serial bus
       receiveControlParameters();
-      // Send the temperature control parameters to confirm that the
-      // values were received properly
+      // Send the temperature control parameters to confirm that the values were
+      // received properly
       sendControlParameters();
       break;
     case 'p':
@@ -622,8 +627,8 @@ void loop()
       neopixel.show();
       // Receive the PID gain constants via the serial bus
       receivePIDGains();
-      // Send the PID gain constants to confirm that the values were
-      // received properly
+      // Send the PID gain constants to confirm that the values were received
+      // properly
       sendPIDGains();
       break;
     case 's':
