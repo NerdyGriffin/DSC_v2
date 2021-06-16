@@ -86,7 +86,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         BangOnLine
         RefSampleLine % Animated line object for the reference sample
         TestSampleLine % Animated line object for the test sample
-        
+
         RefDutyCycleLine
         SampDutyCycleLine
 
@@ -261,46 +261,43 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             experimentIsRunning = true;
             while experimentIsRunning
                 serialData = read(app.Arduino, 1, 'char');
-
                 switch serialData
-                    case 'd'
-                        readline(app.Arduino);
-                        dataLength = dataLength + 1;
-                        elapsedTime(dataLength) = double(readline(app.Arduino));
-                        targetTemp(dataLength) = double(readline(app.Arduino));
-                        refTemp(dataLength) = double(readline(app.Arduino));
-                        sampTemp(dataLength) = double(readline(app.Arduino));
-                        refCurrent(dataLength) = double(readline(app.Arduino));
-                        sampCurrent(dataLength) = double(readline(app.Arduino));
-                        refHeatFlow(dataLength) = double(readline(app.Arduino));
-                        sampHeatFlow(dataLength) = double(readline(app.Arduino));
-                        refDutyCycle(dataLength) = double(readline(app.Arduino));
-                        sampDutyCycle(dataLength) = double(readline(app.Arduino));
-
-                        if ~mod(dataLength, app.DataRefreshDelay)
-                            updateLiveData(app, ...
-                                elapsedTime(dataLength), ...
-                                targetTemp(dataLength), ...
-                                refTemp(dataLength), ...
-                                sampTemp(dataLength), ...
-                                refCurrent(dataLength), ...
-                                sampCurrent(dataLength), ...
-                                refDutyCycle(dataLength), ...
-                                sampDutyCycle(dataLength));
-                        end
-
-                        if ~mod(dataLength, app.PlotRefreshDelay)
-                            refreshLivePlot(app, elapsedTime,...
-                                targetTemp, refTemp, sampTemp,...
-                                refDutyCycle, sampDutyCycle);
-                        end
                     case 'x'
                         experimentIsRunning = false;
                         disp('Received end signal')
                     otherwise
-                        disp('Unrecognized data flag:')
-                        disp(serialData)
-                        disp(readline(app.Arduino))
+                        [parsedData, dataIsNum] = str2num(readline(app.Arduino));
+                        if dataIsNum
+                            dataLength = dataLength + 1;
+                            elapsedTime(dataLength) = parsedData(1);
+                            targetTemp(dataLength) = parsedData(2);
+                            refTemp(dataLength) = parsedData(3);
+                            sampTemp(dataLength) = parsedData(4);
+                            refCurrent(dataLength) = parsedData(5);
+                            sampCurrent(dataLength) = parsedData(6);
+                            refHeatFlow(dataLength) = parsedData(7);
+                            sampHeatFlow(dataLength) = parsedData(8);
+                            refDutyCycle(dataLength) = parsedData(9);
+                            sampDutyCycle(dataLength) = parsedData(10);
+
+                            if ~mod(dataLength, app.DataRefreshDelay)
+                                updateLiveData(app, ...
+                                    elapsedTime(dataLength), ...
+                                    targetTemp(dataLength), ...
+                                    refTemp(dataLength), ...
+                                    sampTemp(dataLength), ...
+                                    refCurrent(dataLength), ...
+                                    sampCurrent(dataLength), ...
+                                    refDutyCycle(dataLength), ...
+                                    sampDutyCycle(dataLength));
+                            end
+
+                            if ~mod(dataLength, app.PlotRefreshDelay)
+                                refreshLivePlot(app, elapsedTime,...
+                                    targetTemp, refTemp, sampTemp,...
+                                    refDutyCycle, sampDutyCycle);
+                            end
+                        end
                 end
             end
 
@@ -410,9 +407,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             addpoints(app.SampDutyCycleLine, timeInSeconds, sampDutyCycleArray)
 
             legend(app.UIAxes, 'Location', 'best')
-            
+
             legend(app.UIAxes2, 'Location', 'best')
-            
+
             ylim(app.UIAxes2, [0 1])
 
             drawnow limitrate
@@ -463,7 +460,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 'LineStyle', '--');
             app.TestSampleLine = animatedline(app.UIAxes, 'Color', 'red', ...
                 'LineStyle', '-.');
-            
+
             app.RefDutyCycleLine = animatedline(app.UIAxes2, 'Color', 'blue', ...
                 'LineStyle', '--');
             app.SampDutyCycleLine = animatedline(app.UIAxes2, 'Color', 'red', ...
@@ -474,7 +471,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 'Target Temperature', 'Target Lower Bound', ...
                 'PID Lower Bound', 'Reference Sample', 'Test Sample', ...
                 'Location', 'best')
-            
+
             % Create a legend for the duty cycle plot
             legend(app.UIAxes2, 'Reference Sample', 'Test Sample', ...
                 'Location', 'best')
