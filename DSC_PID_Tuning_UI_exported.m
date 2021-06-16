@@ -198,20 +198,16 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         function receivePIDGains(app)
             % Receive the PID gain constants via the serial bus
-            awaitData = true;
-            while awaitData
-                serialData = read(app.Arduino, 1, 'char');
-                switch serialData
-                    case 'k'
-                        readline(app.Arduino);
-                        app.KpEditField.Value = double(readline(app.Arduino));
-                        app.KiEditField.Value = double(readline(app.Arduino));
-                        app.KdEditField.Value = double(readline(app.Arduino));
-                        awaitData = false;
-                    otherwise
-                        disp('Unrecognized control param flag:')
-                        disp(serialData)
-                        disp(readline(app.Arduino))
+            for awaitData = 1:100
+                serialData = readline(app.Arduino);
+                if length(serialData) == 1 && serialData == 'k'
+                    app.KpEditField.Value = double(readline(app.Arduino));
+                    app.KiEditField.Value = double(readline(app.Arduino));
+                    app.KdEditField.Value = double(readline(app.Arduino));
+                    break
+                else
+                    disp('Unrecognized control param flag:')
+                    disp(serialData)
                 end
             end
         end
@@ -229,20 +225,17 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function receiveControlParameters(app)
-            awaitData = true;
-            while awaitData
-                serialData = read(app.Arduino, 1, 'char');
-                switch serialData
-                    case 'c'
-                        readline(app.Arduino);
-                        app.StartTemp = double(readline(app.Arduino));
-                        app.EndTemp = double(readline(app.Arduino));
-                        app.RampUpRate = double(readline(app.Arduino));
-                        app.HoldTime = double(readline(app.Arduino));
-                    otherwise
-                        disp('Unrecognized control param flag:')
-                        disp(serialData)
-                        disp(readline(app.Arduino))
+            for awaitData = 1:100
+                serialData = readline(app.Arduino);
+                if length(serialData) == 1 && serialData == 'c'
+                    app.StartTemp = double(readline(app.Arduino));
+                    app.EndTemp = double(readline(app.Arduino));
+                    app.RampUpRate = double(readline(app.Arduino));
+                    app.HoldTime = double(readline(app.Arduino));
+                    break
+                else
+                    disp('Unrecognized control param flag:')
+                    disp(serialData)
                 end
             end
         end
@@ -267,46 +260,51 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             experimentIsRunning = true;
             while experimentIsRunning
-                serialData = read(app.Arduino, 1, 'char');
-                switch serialData
-                    case 'x'
-                        experimentIsRunning = false;
-                        disp('Received end signal')
-                    otherwise
-                        [parsedData, dataIsNum] = str2num(readline(app.Arduino));
-                        if dataIsNum && length(parsedData) == 10
-                            dataLength = dataLength + 1;
-                            elapsedTime(dataLength) = parsedData(1);
-                            targetTemp(dataLength) = parsedData(2);
-                            refTemp(dataLength) = parsedData(3);
-                            sampTemp(dataLength) = parsedData(4);
-                            refCurrent(dataLength) = parsedData(5);
-                            sampCurrent(dataLength) = parsedData(6);
-                            refHeatFlow(dataLength) = parsedData(7);
-                            sampHeatFlow(dataLength) = parsedData(8);
-                            refDutyCycle(dataLength) = parsedData(9);
-                            sampDutyCycle(dataLength) = parsedData(10);
+                serialData = readline(app.Arduino);
+                if length(serialData) == 1
+                    switch serialData
+                        case 'x'
+                            experimentIsRunning = false;
+                            disp('Received end signal')
+                        otherwise
+                            disp('Unrecognized control param flag:')
+                            disp(serialData)
+                    end
+                else
+                    [parsedData, dataIsNum] = str2num(serialData);
+                    if dataIsNum && length(parsedData) == 10
+                        dataLength = dataLength + 1;
+                        elapsedTime(dataLength) = parsedData(1);
+                        targetTemp(dataLength) = parsedData(2);
+                        refTemp(dataLength) = parsedData(3);
+                        sampTemp(dataLength) = parsedData(4);
+                        refCurrent(dataLength) = parsedData(5);
+                        sampCurrent(dataLength) = parsedData(6);
+                        refHeatFlow(dataLength) = parsedData(7);
+                        sampHeatFlow(dataLength) = parsedData(8);
+                        refDutyCycle(dataLength) = parsedData(9);
+                        sampDutyCycle(dataLength) = parsedData(10);
 
-                            if ~mod(dataLength, app.DataRefreshDelay)
-                                updateLiveData(app, ...
-                                    elapsedTime(dataLength), ...
-                                    targetTemp(dataLength), ...
-                                    refTemp(dataLength), ...
-                                    sampTemp(dataLength), ...
-                                    refCurrent(dataLength), ...
-                                    sampCurrent(dataLength), ...
-                                    refDutyCycle(dataLength), ...
-                                    sampDutyCycle(dataLength));
-                            end
-
-                            if ~mod(dataLength, app.PlotRefreshDelay)
-                                refreshLivePlot(app, elapsedTime,...
-                                    targetTemp, refTemp, sampTemp,...
-                                    refDutyCycle, sampDutyCycle);
-                            end
-                        else
-                            disp(parsedData)
+                        if ~mod(dataLength, app.DataRefreshDelay)
+                            updateLiveData(app, ...
+                                elapsedTime(dataLength), ...
+                                targetTemp(dataLength), ...
+                                refTemp(dataLength), ...
+                                sampTemp(dataLength), ...
+                                refCurrent(dataLength), ...
+                                sampCurrent(dataLength), ...
+                                refDutyCycle(dataLength), ...
+                                sampDutyCycle(dataLength));
                         end
+
+                        if ~mod(dataLength, app.PlotRefreshDelay)
+                            refreshLivePlot(app, elapsedTime,...
+                                targetTemp, refTemp, sampTemp,...
+                                refDutyCycle, sampDutyCycle);
+                        end
+                    else
+                        disp(parsedData)
+                    end
                 end
             end
 
@@ -530,13 +528,15 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             write(app.Arduino, 's', 'char');
 
-            serialData = read(app.Arduino, 1, 'char');
-            switch serialData
-                case 's'
-                    readline(app.Arduino);
+            for i = 1:100
+                serialData = readline(app.Arduino);
+                if length(serialData) == 1 && serialData == 's'
                     setRunningUI(app);
                     receiveSerialData(app);
+                    break
+                end
             end
+
         end
 
         % Button pushed function: StopExperimentButton
