@@ -31,6 +31,10 @@ all: build program
 build:
 	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) $(DSC_ARDUINO_BASE)
 
+program-test:
+	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) debug/current_sensor_test
+	arduino-cli upload $(VERBOSE) -p $(SERIAL_PORT) --fqbn $(BOARD_TYPE) debug/current_sensor_test
+
 program:
 	arduino-cli upload $(VERBOSE) -p $(SERIAL_PORT) --fqbn $(BOARD_TYPE) $(DSC_ARDUINO_BASE)
 
