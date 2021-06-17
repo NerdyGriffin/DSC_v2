@@ -148,7 +148,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     else
                         warningMessage = sprintf("The seleced .ini file does not contain a [%s] section", PIDSection);
                         warndlg(warningMessage)
-                        warning(warningMessage)
+                        warning("The seleced .ini file does not contain a [%s] section", PIDSection)
                         configLoadStatus = false;
                         return
                     end
@@ -178,7 +178,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     else
                         warningMessage = sprintf("The seleced .ini file does not contain a [%s] section", TempControlSection);
                         warndlg(warningMessage)
-                        warning(warningMessage)
+                        warning("The seleced .ini file does not contain a [%s] section", TempControlSection)
                         configLoadStatus = false;
                         return
                     end
@@ -220,7 +220,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                             awaitResponse = false;
                         otherwise
                             disp('Unrecognized data flag while awaiting PID Gains:')
-                            serialData
+                            disp(serialData);
                     end
                 end
             end
@@ -263,7 +263,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                             awaitResponse = false;
                         otherwise
                             disp('Unrecognized data flag while awaiting control params:')
-                            serialData
+                            disp(serialData);
                     end
                 end
             end
@@ -574,7 +574,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                             awaitStart = false;
                         otherwise
                             disp('Unrecognized data flag while awaiting start response:')
-                            serialData
+                            disp(serialData);
                     end
                 end
             end
