@@ -621,7 +621,7 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.04;
+  Kp = 0.01;
   Ki = 0;
   Kd = 0;
 
@@ -630,11 +630,11 @@ void setup()
   sampPID.setGains(Kp, Ki, Kd);
 
   // Set temperature control parameters to default values
-  startTemp = 30;
+  startTemp = 40;
   targetTemp = startTemp;
-  endTemp = 40;      // 120;
+  endTemp = 42;      // 120;
   rampUpRate = 2000; // 20;
-  holdTime = 120;    // 0;
+  holdTime = 240;    // 0;
 
   standbyCounter = 0;
 
