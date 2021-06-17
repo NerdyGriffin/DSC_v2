@@ -148,7 +148,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     else
                         warningMessage = sprintf("The seleced .ini file does not contain a [%s] section", PIDSection);
                         warndlg(warningMessage)
-                        warning(warningMessage)
+                        warning("The seleced .ini file does not contain a [%s] section", PIDSection)
                         configLoadStatus = false;
                         return
                     end
@@ -178,7 +178,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     else
                         warningMessage = sprintf("The seleced .ini file does not contain a [%s] section", TempControlSection);
                         warndlg(warningMessage)
-                        warning(warningMessage)
+                        warning("The seleced .ini file does not contain a [%s] section", TempControlSection)
                         configLoadStatus = false;
                         return
                     end
@@ -187,6 +187,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         function sendPIDGains(app)
             % Send the PID gain constants via the serial bus
+            flush(app.Arduino);
             write(app.Arduino, 'p', 'char');
 
             write(app.Arduino, string(app.KpEditField.Value), 'string');
@@ -198,21 +199,35 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         function receivePIDGains(app)
             % Receive the PID gain constants via the serial bus
-            serialData = read(app.Arduino, 1, 'char');
-            switch serialData
-                case 'k'
-                    readline(app.Arduino);
-                    app.KpEditField.Value = double(readline(app.Arduino));
-                    app.KiEditField.Value = double(readline(app.Arduino));
-                    app.KdEditField.Value = double(readline(app.Arduino));
-                otherwise
-                    disp('Unrecognized control param flag:')
-                    disp(serialData)
-                    disp(readline(app.Arduino))
+            awaitResponse = true;
+            while awaitResponse
+                serialData = strip(readline(app.Arduino));
+                if strlength(serialData) == 1
+                    switch strip(serialData)
+                        case 'k'
+                            readline(app.Arduino);
+                            serialData = strip(readline(app.Arduino));
+                            [parsedData, dataIsNum] = str2num(serialData);
+                            if dataIsNum && length(parsedData) == 3
+                                app.KpEditField.Value = parsedData(1); %double(readline(app.Arduino));
+                                app.KiEditField.Value = parsedData(2); %double(readline(app.Arduino));
+                                app.KdEditField.Value = parsedData(3); %double(readline(app.Arduino));
+                            end
+                            awaitResponse = false;
+                        case 'x'
+                            setIdleUI(app);
+                            disp('Received end signal')
+                            awaitResponse = false;
+                        otherwise
+                            disp('Unrecognized data flag while awaiting PID Gains:')
+                            disp(serialData);
+                    end
+                end
             end
         end
 
         function sendControlParameters(app)
+            flush(app.Arduino);
             write(app.Arduino, 'l', 'char');
 
             write(app.Arduino, string(app.StartTemp), 'string');
@@ -225,18 +240,32 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function receiveControlParameters(app)
-            serialData = read(app.Arduino, 1, 'char');
-            switch serialData
-                case 'c'
-                    readline(app.Arduino);
-                    app.StartTemp = double(readline(app.Arduino));
-                    app.EndTemp = double(readline(app.Arduino));
-                    app.RampUpRate = double(readline(app.Arduino));
-                    app.HoldTime = double(readline(app.Arduino));
-                otherwise
-                    disp('Unrecognized control param flag:')
-                    disp(serialData)
-                    disp(readline(app.Arduino))
+            awaitResponse = true;
+            while awaitResponse
+                serialData = strip(readline(app.Arduino));
+                if strlength(serialData) == 1
+                    switch strip(serialData)
+                        case 'c'
+                            readline(app.Arduino);
+                            serialData = strip(readline(app.Arduino));
+                            [parsedData, dataIsNum] = str2num(serialData);
+                            if dataIsNum && length(parsedData) == 4
+                                app.StartTemp = parsedData(1); %double(readline(app.Arduino));
+                                app.EndTemp = parsedData(2); %double(readline(app.Arduino));
+                                app.RampUpRate = parsedData(3); %double(readline(app.Arduino));
+                                app.HoldTime = parsedData(4); %double(readline(app.Arduino));
+                            end
+
+                            awaitResponse = false;
+                        case 'x'
+                            setIdleUI(app);
+                            disp('Received end signal')
+                            awaitResponse = false;
+                        otherwise
+                            disp('Unrecognized data flag while awaiting control params:')
+                            disp(serialData);
+                    end
+                end
             end
         end
 
@@ -260,44 +289,51 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             experimentIsRunning = true;
             while experimentIsRunning
-                serialData = read(app.Arduino, 1, 'char');
-                switch serialData
-                    case 'x'
-                        experimentIsRunning = false;
-                        disp('Received end signal')
-                    otherwise
-                        [parsedData, dataIsNum] = str2num(readline(app.Arduino));
-                        if dataIsNum
-                            dataLength = dataLength + 1;
-                            elapsedTime(dataLength) = parsedData(1);
-                            targetTemp(dataLength) = parsedData(2);
-                            refTemp(dataLength) = parsedData(3);
-                            sampTemp(dataLength) = parsedData(4);
-                            refCurrent(dataLength) = parsedData(5);
-                            sampCurrent(dataLength) = parsedData(6);
-                            refHeatFlow(dataLength) = parsedData(7);
-                            sampHeatFlow(dataLength) = parsedData(8);
-                            refDutyCycle(dataLength) = parsedData(9);
-                            sampDutyCycle(dataLength) = parsedData(10);
+                serialData = strip(readline(app.Arduino));
+                if strlength(serialData) == 1
+                    switch strip(serialData)
+                        case 'x'
+                            experimentIsRunning = false;
+                            disp('Received end signal')
+                        otherwise
+                            disp('Unrecognized data flag while awaiting data:')
+                            disp(serialData)
+                    end
+                else
+                    [parsedData, dataIsNum] = str2num(serialData);
+                    if dataIsNum && length(parsedData) == 10
+                        dataLength = dataLength + 1;
+                        elapsedTime(dataLength) = parsedData(1); %str2double(parsedData{1});
+                        targetTemp(dataLength) = parsedData(2); %str2double(parsedData{2});
+                        refTemp(dataLength) = parsedData(3); %str2double(parsedData{3});
+                        sampTemp(dataLength) = parsedData(4); %str2double(parsedData{4});
+                        refCurrent(dataLength) = parsedData(5); %str2double(parsedData{5});
+                        sampCurrent(dataLength) = parsedData(6); %str2double(parsedData{6});
+                        refHeatFlow(dataLength) = parsedData(7); %str2double(parsedData{7});
+                        sampHeatFlow(dataLength) = parsedData(8); %str2double(parsedData{8});
+                        refDutyCycle(dataLength) = parsedData(9); %str2double(parsedData{9});
+                        sampDutyCycle(dataLength) = parsedData(10); %str2double(parsedData{10});
 
-                            if ~mod(dataLength, app.DataRefreshDelay)
-                                updateLiveData(app, ...
-                                    elapsedTime(dataLength), ...
-                                    targetTemp(dataLength), ...
-                                    refTemp(dataLength), ...
-                                    sampTemp(dataLength), ...
-                                    refCurrent(dataLength), ...
-                                    sampCurrent(dataLength), ...
-                                    refDutyCycle(dataLength), ...
-                                    sampDutyCycle(dataLength));
-                            end
-
-                            if ~mod(dataLength, app.PlotRefreshDelay)
-                                refreshLivePlot(app, elapsedTime,...
-                                    targetTemp, refTemp, sampTemp,...
-                                    refDutyCycle, sampDutyCycle);
-                            end
+                        if ~mod(dataLength, app.DataRefreshDelay)
+                            updateLiveData(app, ...
+                                elapsedTime(dataLength), ...
+                                targetTemp(dataLength), ...
+                                refTemp(dataLength), ...
+                                sampTemp(dataLength), ...
+                                refCurrent(dataLength), ...
+                                sampCurrent(dataLength), ...
+                                refDutyCycle(dataLength), ...
+                                sampDutyCycle(dataLength));
                         end
+
+                        if ~mod(dataLength, app.PlotRefreshDelay)
+                            refreshLivePlot(app, elapsedTime,...
+                                targetTemp, refTemp, sampTemp,...
+                                refDutyCycle, sampDutyCycle);
+                        end
+                    else
+                        disp(parsedData)
+                    end
                 end
             end
 
@@ -440,6 +476,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 app.Arduino = serialport(app.SerialPort, 9600);
 
                 % Request the temperature control parameters from the arduino
+                flush(app.Arduino);
                 write(app.Arduino, 'i', 'char');
                 receivePIDGains(app);
                 receiveControlParameters(app);
@@ -519,15 +556,29 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         function StartExperimentButtonPushed(app, event)
             app.StartExperimentButton.Enable = 'off';
 
+            flush(app.Arduino);
             write(app.Arduino, 's', 'char');
 
-            serialData = read(app.Arduino, 1, 'char');
-            switch serialData
-                case 's'
-                    readline(app.Arduino);
-                    setRunningUI(app);
-                    receiveSerialData(app);
+            awaitStart = true;
+            while awaitStart
+                serialData = strip(readline(app.Arduino));
+                if strlength(serialData) == 1
+                    switch strip(serialData)
+                        case 's'
+                            setRunningUI(app);
+                            receiveSerialData(app);
+                            awaitStart = false;
+                        case 'x'
+                            setIdleUI(app);
+                            disp('Received end signal')
+                            awaitStart = false;
+                        otherwise
+                            disp('Unrecognized data flag while awaiting start response:')
+                            disp(serialData);
+                    end
+                end
             end
+
         end
 
         % Button pushed function: StopExperimentButton

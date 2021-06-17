@@ -133,6 +133,7 @@ unsigned long holdStartTime;
 
 // Counter used to hold samples at start temperature before beginning to ramp up
 // the target temperature
+unsigned long standbyCounter;
 unsigned long startCounter;
 unsigned long endCounter;
 
@@ -163,9 +164,13 @@ void sendPIDGains()
   // Send the char 'k' to indicate the start of the PID data set
   Serial.println('k');
 
+  Serial.println("Kp,Ki,Kd");
+
   // Send each value in the expected order, separated by newlines
-  Serial.println(Kp);
-  Serial.println(Ki);
+  Serial.print(Kp);
+  Serial.print(",");
+  Serial.print(Ki);
+  Serial.print(",");
   Serial.println(Kd);
 }
 
@@ -192,10 +197,15 @@ void sendControlParameters()
   // Send the char 'c' to indicate the start of config data set
   Serial.println('c');
 
+  Serial.println("StartTemp(C),EndTemp(C),RampUpRate(C/min),HoldTime(sec)");
+
   // Send each value in the expected order, separated by newlines
-  Serial.println(startTemp);
-  Serial.println(endTemp);
-  Serial.println(rampUpRate);
+  Serial.print(startTemp);
+  Serial.print(",");
+  Serial.print(endTemp);
+  Serial.print(",");
+  Serial.print(rampUpRate);
+  Serial.print(",");
   Serial.println(holdTime);
 }
 
@@ -384,23 +394,31 @@ void updateTargetTemperature()
  */
 void sendData()
 {
-  // Send the char 'd' to indicate the start of data set
-  Serial.println('d');
+  Serial.println("ElapsedTime(ms),TargetTemp(C),RefTemp(C),SampTemp(C),RefCurrent(mA),SampCurrent(mA),RefHeatFlow(),SampHeatFlow(),RefDutyCycle(%),SampDutyCycle(%)");
 
-  // Send each value in the expected order, separated by newlines
-  Serial.println(elapsedTime);
-  Serial.println(targetTemp);
+  // Send each value in the expected order, separated by commas
+  Serial.print(elapsedTime);
+  Serial.print(",");
+  Serial.print(targetTemp);
+  Serial.print(",");
 
-  Serial.println(refTemperature);
-  Serial.println(sampTemperature);
+  Serial.print(refTemperature);
+  Serial.print(",");
+  Serial.print(sampTemperature);
+  Serial.print(",");
 
-  Serial.println(refCurrent);
-  Serial.println(sampCurrent);
+  Serial.print(refCurrent);
+  Serial.print(",");
+  Serial.print(sampCurrent);
+  Serial.print(",");
 
-  Serial.println(refHeatFlow);
-  Serial.println(sampHeatFlow);
+  Serial.print(refHeatFlow);
+  Serial.print(",");
+  Serial.print(sampHeatFlow);
+  Serial.print(",");
 
-  Serial.println(refPID.getPulseValue());
+  Serial.print(refPID.getPulseValue());
+  Serial.print(",");
   Serial.println(sampPID.getPulseValue());
 }
 
@@ -514,8 +532,6 @@ void controlLoop()
     {
       controlLoopState = false;
     }
-
-    // delay(1);
   }
 
   // Stop PID calculations and reset internal PID calculation values
@@ -530,6 +546,37 @@ void controlLoop()
   neopixel.show();
   // Send the char 'x' to indicate the end of the control loop
   Serial.println("x");
+}
+
+/**
+ * Passive sensor measurements
+ */
+void standbyData()
+{
+  digitalWrite(13, LOW); // Blink the LED
+
+  // Zero the time during standby mode
+  elapsedTime = 0;
+
+  // Read the measurements from the sensors
+  updateSensorData();
+
+  // Calcutate the heat flow
+  calculateHeatFlow();
+
+  // Set standby target temp
+  targetTemp = 20;
+
+  // Stop PID calculations and reset internal PID calculation values
+  refPID.stop();
+  sampPID.stop();
+
+  // Turn off the PWM Relay output
+  digitalWrite(Ref_Heater_PIN, LOW);
+  digitalWrite(Samp_Heater_PIN, LOW);
+
+  // Send data out via Serial bus
+  sendData();
 }
 
 void setup()
@@ -577,6 +624,8 @@ void setup()
   endTemp = 40;      // 120;
   rampUpRate = 2000; // 20;
   holdTime = 120;    // 0;
+
+  standbyCounter = 0;
 
   // Set the sample masses to default values
   refMass = 1.0;
@@ -647,31 +696,13 @@ void loop()
       break;
     }
   }
+  else if (standbyCounter % 10 == 0)
+  {
+    standbyCounter++;
+  }
   else
   {
-    digitalWrite(13, LOW); // Blink the LED
-
-    // Zero the time during standby mode
-    elapsedTime = 0;
-
-    // Read the measurements from the sensors
-    updateSensorData();
-
-    // Calcutate the heat flow
-    calculateHeatFlow();
-
-    // Set standby target temp
-    targetTemp = 20;
-
-    // Stop PID calculations and reset internal PID calculation values
-    refPID.stop();
-    sampPID.stop();
-
-    // Turn off the PWM Relay output
-    digitalWrite(Ref_Heater_PIN, LOW);
-    digitalWrite(Samp_Heater_PIN, LOW);
-
-    // Send data out via Serial bus
-    sendData();
+    standbyCounter = 0;
+    standbyData();
   }
 }
