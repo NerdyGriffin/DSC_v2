@@ -578,7 +578,6 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     end
                 end
             end
-
         end
 
         % Button pushed function: StopExperimentButton

@@ -413,6 +413,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                 app.Arduino = serialport(app.SerialPort, 9600);
 
                 % Request the temperature control parameters from the arduino
+                flush(app.Arduino);
                 write(app.Arduino, 'i', 'char');
                 receivePIDGains(app);
                 receiveControlParameters(app);
@@ -471,24 +472,43 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
         % Button pushed function: StartExperimentButton
         function StartExperimentButtonPushed(app, event)
+            app.StartExperimentButton.Enable = 'off';
+
+            flush(app.Arduino);
             write(app.Arduino, 's', 'char');
 
-            serialData = read(app.Arduino, 1, 'char');
-            switch serialData
-                case 's'
-                    readline(app.Arduino);
-                    setRunningUI(app);
-                    receiveSerialData(app);
+            awaitStart = true;
+            while awaitStart
+                serialData = strip(readline(app.Arduino));
+                if strlength(serialData) == 1
+                    switch strip(serialData)
+                        case 's'
+                            setRunningUI(app);
+                            receiveSerialData(app);
+                            awaitStart = false;
+                        case 'x'
+                            setIdleUI(app);
+                            disp('Received end signal')
+                            awaitStart = false;
+                        otherwise
+                            disp('Unrecognized data flag while awaiting start response:')
+                            disp(serialData);
+                    end
+                end
             end
         end
 
         % Button pushed function: StopExperimentButton
         function StopExperimentButtonPushed(app, event)
+            app.StopExperimentButton.Enable = 'off';
+
             write(app.Arduino, 'x', 'char');
         end
 
         % Button pushed function: LoadConfigFileButton
         function LoadConfigFileButtonPushed(app, event)
+            app.LoadConfigFileButton.Enable = 'off';
+
             loadConfigFile(app);
 
             sendPIDGains(app);
@@ -496,19 +516,27 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             sendControlParameters(app);
             receiveControlParameters(app);
+
+            app.LoadConfigFileButton.Enable = 'on';
         end
 
         % Button pushed function: ApplyExperimentParametersButton
         function ApplyExperimentParametersButtonPushed(app, event)
+            app.ApplyExperimentParametersButton.Enable = 'off';
+
             sendPIDGains(app);
             receivePIDGains(app);
 
             sendControlParameters(app);
             receiveControlParameters(app);
+
+            app.ApplyExperimentParametersButton.Enable = 'on';
         end
 
         % Button pushed function: SetSerialPortButton
         function SetSerialPortButtonPushed(app, event)
+            app.SetSerialPortButton.Enable = 'off';
+
             delete(app.Arduino);
 
             % Get the list of available serial ports
@@ -520,11 +548,18 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                 % Create an serial port object where you specify the USB port
                 % (look in Arduino->tools -> port and the baud rate (9600)
                 app.Arduino = serialport(app.SerialPort, 9600);
+
+                % Request the temperature control parameters from the arduino
+                write(app.Arduino, 'i', 'char');
+                receivePIDGains(app);
+                receiveControlParameters(app);
             else
                 warndlg(sprintf("%s is not in the list of available serial ports", app.SerialPortEditField.Value));
                 disp(app.SerialPortList)
                 disp(app.SerialPortEditField.Value)
             end
+
+            app.SetSerialPortButton.Enable = 'on';
         end
 
         % Close request function: UIFigure
