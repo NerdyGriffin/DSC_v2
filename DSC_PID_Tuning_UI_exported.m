@@ -345,7 +345,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 'refHeatFlow', 'sampHeatFlow', ...
                 'refDutyCycle', 'sampDutyCycle', 'dataLength')
             if isfile(matfileName)
-                fprintf('Autosave file created: %s\n', matfileName)
+                fprintf("Autosave file created: './%s'\n", matfileName)
             end
 
             updateLiveData(app, ...
