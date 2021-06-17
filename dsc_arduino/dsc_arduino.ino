@@ -190,6 +190,27 @@ void receivePIDGains()
 }
 
 /**
+ * Run the PID algorithm and update the PWM Relay outputs
+ */
+void runPIDUpdate()
+{
+  // Run the PID algorithm
+  refPID.run();
+  sampPID.run();
+
+  // Update the PWM Relay output
+  if (refTemperature < MAX_TEMPERATURE)
+    digitalWrite(Ref_Heater_PIN, refRelayState);
+  else
+    digitalWrite(Ref_Heater_PIN, LOW);
+
+  if (sampTemperature < MAX_TEMPERATURE)
+    digitalWrite(Samp_Heater_PIN, sampRelayState);
+  else
+    digitalWrite(Samp_Heater_PIN, LOW);
+}
+
+/**
  * Send the temperature control parameters via the serial bus
  */
 void sendControlParameters()
@@ -244,9 +265,8 @@ void readSensorValues()
     sensorValues[2] += sq(analogRead(REF_CURRENT_SENS_PIN) - analogMidpoint);
     sensorValues[3] += sq(analogRead(SAMP_CURRENT_SENS_PIN) - analogMidpoint);
 
-    // Run the PID algorithm
-    refPID.run();
-    sampPID.run();
+    // Update the PID calculations and output
+    runPIDUpdate();
 
     // Wait 2 milliseconds before the next loop for the analog-to-digital
     // converter to settle after the last reading
@@ -265,6 +285,9 @@ void readSensorValues()
   {
     sensorValues[i] = sqrt(sensorValues[i]);
   }
+
+  // Update the PID calculations and output
+  runPIDUpdate();
 }
 
 /**
@@ -339,6 +362,9 @@ void updateSensorData()
   // sensitivity settings you configure
   refCurrent = (refCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
   sampCurrent = (sampCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
+
+  // Update the PID calculations and output
+  runPIDUpdate();
 }
 
 /**
@@ -352,6 +378,9 @@ void calculateHeatFlow()
   // Calculate the heat flow as Watts per gram
   refHeatFlow = refCurrent * HEATING_COIL_VOLTAGE / refMass;
   sampHeatFlow = sampCurrent * HEATING_COIL_VOLTAGE / sampMass;
+
+  // Update the PID calculations and output
+  runPIDUpdate();
 }
 
 /**
@@ -398,6 +427,9 @@ void updateTargetTemperature()
     //! DEBUG: Ramp up has been disabled for PID tuning
     targetTemp = endTemp;
   }
+
+  // Update the PID calculations and output
+  runPIDUpdate();
 }
 
 /**
@@ -500,19 +532,7 @@ void controlLoop()
     updateTargetTemperature();
 
     // Run the PID algorithm
-    refPID.run();
-    sampPID.run();
-
-    // Update the PWM Relay output
-    if (refTemperature < MAX_TEMPERATURE)
-      digitalWrite(Ref_Heater_PIN, refRelayState);
-    else
-      digitalWrite(Ref_Heater_PIN, LOW);
-
-    if (sampTemperature < MAX_TEMPERATURE)
-      digitalWrite(Samp_Heater_PIN, sampRelayState);
-    else
-      digitalWrite(Samp_Heater_PIN, LOW);
+    runPIDUpdate();
 
     // Send data out via Serial bus
     sendData();
