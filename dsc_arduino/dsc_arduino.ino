@@ -694,6 +694,6 @@ void loop()
   else
   {
     standbyCounter = 0;
-    // standbyData();
+    standbyData();
   }
 }
