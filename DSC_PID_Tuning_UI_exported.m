@@ -202,7 +202,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             awaitResponse = true;
             while awaitResponse
                 serialData = strip(readline(app.Arduino));
-                if length(serialData) == 1
+                if strlength(serialData) == 1
                     switch strip(serialData)
                         case 'k'
                             app.KpEditField.Value = double(readline(app.Arduino));
@@ -234,7 +234,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             awaitResponse = true;
             while awaitResponse
                 serialData = strip(readline(app.Arduino));
-                if length(serialData) == 1
+                if strlength(serialData) == 1
                     switch strip(serialData)
                         case 'c'
                             app.StartTemp = double(readline(app.Arduino));
@@ -271,7 +271,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             experimentIsRunning = true;
             while experimentIsRunning
                 serialData = strip(readline(app.Arduino));
-                if length(serialData) == 1
+                if strlength(serialData) == 1
                     switch strip(serialData)
                         case 'x'
                             experimentIsRunning = false;
@@ -281,7 +281,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                             disp(serialData)
                     end
                 else
-                    parsedData = strsplit(serialData, ',');
+                    parsedData = str2num(serialData);
                     if length(parsedData) == 10
                         dataLength = dataLength + 1;
                         elapsedTime(dataLength) = str2double(parsedData{1});
@@ -543,7 +543,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             awaitStart = true;
             while awaitStart
                 serialData = strip(readline(app.Arduino));
-                if length(serialData) == 1
+                if strlength(serialData) == 1
                     switch strip(serialData)
                         case 's'
                             setRunningUI(app);
