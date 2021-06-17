@@ -373,18 +373,29 @@ void updateTargetTemperature()
     }
     rampUpStartTime = millis();
   }
-  else if ((endTemp > startTemp) && (targetTemp < endTemp))
-  {
-    targetTemp = endTemp; // startTemp + (latestTime - rampUpStartTime) * rampUpRate / 60000;
-    //! DEBUG: Ramp up has been disabled for PID tuning
-  }
-  else if ((endTemp < startTemp) && (targetTemp > endTemp))
-  {
-    targetTemp = endTemp; // startTemp - (latestTime - rampUpStartTime) * rampUpRate / 60000;
-    //! DEBUG: Ramp up has been disabled for PID tuning
-  }
   else
   {
+    if (endTemp > startTemp)
+    {
+      targetTemp = startTemp + (latestTime - rampUpStartTime) * rampUpRate / 60000.0;
+      if (targetTemp > endTemp)
+      {
+        targetTemp = endTemp;
+      }
+    }
+    else if (endTemp < startTemp)
+    {
+      targetTemp = startTemp - (latestTime - rampUpStartTime) * rampUpRate / 60000.0;
+      if (targetTemp < endTemp)
+      {
+        targetTemp = endTemp;
+      }
+    }
+    else
+    {
+      targetTemp = endTemp;
+    }
+    //! DEBUG: Ramp up has been disabled for PID tuning
     targetTemp = endTemp;
   }
 }
