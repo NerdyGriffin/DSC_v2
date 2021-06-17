@@ -87,6 +87,9 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 #define AMPLIFIER_VOLTAGE_OFFSET 1250.0 // 1250 mV = 1.25 V
 #define AMPLIFIER_CONVERSION_FACTOR 5.0 // 5 mV/C = 0.005 V/C
 
+#define REF_TEMP_CALIBRATION_OFFSET 6.333333333333333
+#define SAMP_TEMP_CALIBRATION_OFFSET 3.333333333333333
+
 // Current sensor conversion constants
 #define CURRENT_SENSOR_SENS 0.4 // Sensitivity (Sens) 100mA per 250mV = 0.4
 // #define CURRENT_SENSOR_VREF 1650.0 // Output voltage with no current: ~ 1650mV or 1.65V
@@ -381,8 +384,8 @@ void updateSensorData()
 
   // Convert the voltage readings into appropriate units. This will calculate
   // the temperature (in Celcius)
-  refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
-  sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
+  refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR - REF_TEMP_CALIBRATION_OFFSET;
+  sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR - SAMP_TEMP_CALIBRATION_OFFSET;
   // This will calculate the actual current (in mA). Using the ~~Vref~~ and
   // sensitivity settings you configure
   refCurrent = (refCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
