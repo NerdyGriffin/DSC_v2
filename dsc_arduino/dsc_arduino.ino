@@ -542,6 +542,37 @@ void controlLoop()
   Serial.println("x");
 }
 
+/**
+ * Passive sensor measurement loop
+ */
+void passiveLoop()
+{
+  digitalWrite(13, LOW); // Blink the LED
+
+  // Zero the time during standby mode
+  elapsedTime = 0;
+
+  // Read the measurements from the sensors
+  updateSensorData();
+
+  // Calcutate the heat flow
+  calculateHeatFlow();
+
+  // Set standby target temp
+  targetTemp = 20;
+
+  // Stop PID calculations and reset internal PID calculation values
+  refPID.stop();
+  sampPID.stop();
+
+  // Turn off the PWM Relay output
+  digitalWrite(Ref_Heater_PIN, LOW);
+  digitalWrite(Samp_Heater_PIN, LOW);
+
+  // Send data out via Serial bus
+  sendData();
+}
+
 void setup()
 {
   Serial.begin(9600);
@@ -658,38 +689,5 @@ void loop()
     default:
       break;
     }
-  }
-  else if (standbyCounter % 100)
-  {
-    standbyCounter++;
-  }
-  else
-  {
-    standbyCounter = 0;
-
-    digitalWrite(13, LOW); // Blink the LED
-
-    // Zero the time during standby mode
-    elapsedTime = 0;
-
-    // Read the measurements from the sensors
-    updateSensorData();
-
-    // Calcutate the heat flow
-    calculateHeatFlow();
-
-    // Set standby target temp
-    targetTemp = 20;
-
-    // Stop PID calculations and reset internal PID calculation values
-    refPID.stop();
-    sampPID.stop();
-
-    // Turn off the PWM Relay output
-    digitalWrite(Ref_Heater_PIN, LOW);
-    digitalWrite(Samp_Heater_PIN, LOW);
-
-    // Send data out via Serial bus
-    sendData();
   }
 }
