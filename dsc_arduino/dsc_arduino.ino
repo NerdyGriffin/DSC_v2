@@ -164,9 +164,13 @@ void sendPIDGains()
   // Send the char 'k' to indicate the start of the PID data set
   Serial.println('k');
 
+  Serial.println("Kp,Ki,Kd");
+
   // Send each value in the expected order, separated by newlines
-  Serial.println(Kp);
-  Serial.println(Ki);
+  Serial.print(Kp);
+  Serial.print(",");
+  Serial.print(Ki);
+  Serial.print(",");
   Serial.println(Kd);
 }
 
@@ -193,10 +197,15 @@ void sendControlParameters()
   // Send the char 'c' to indicate the start of config data set
   Serial.println('c');
 
+  Serial.println("StartTemp(C),EndTemp(C),RampUpRate(C/min),HoldTime(sec)");
+
   // Send each value in the expected order, separated by newlines
-  Serial.println(startTemp);
-  Serial.println(endTemp);
-  Serial.println(rampUpRate);
+  Serial.print(startTemp);
+  Serial.print(",");
+  Serial.print(endTemp);
+  Serial.print(",");
+  Serial.print(rampUpRate);
+  Serial.print(",");
   Serial.println(holdTime);
 }
 
