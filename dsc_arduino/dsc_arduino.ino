@@ -192,7 +192,7 @@ void receivePIDGains()
 /**
  * Run the PID algorithm and update the PWM Relay outputs
  */
-void runPIDUpdate()
+void refreshPID()
 {
   // Run the PID algorithm
   refPID.run();
@@ -265,8 +265,8 @@ void readSensorValues()
     sensorValues[2] += sq(analogRead(REF_CURRENT_SENS_PIN) - analogMidpoint);
     sensorValues[3] += sq(analogRead(SAMP_CURRENT_SENS_PIN) - analogMidpoint);
 
-    // Update the PID calculations and output
-    runPIDUpdate();
+    // Refresh the PID calculations and PWM output
+    refreshPID();
 
     // Wait 2 milliseconds before the next loop for the analog-to-digital
     // converter to settle after the last reading
@@ -286,8 +286,8 @@ void readSensorValues()
     sensorValues[i] = sqrt(sensorValues[i]);
   }
 
-  // Update the PID calculations and output
-  runPIDUpdate();
+  // Refresh the PID calculations and PWM output
+  refreshPID();
 }
 
 /**
@@ -363,8 +363,8 @@ void updateSensorData()
   refCurrent = (refCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
   sampCurrent = (sampCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
 
-  // Update the PID calculations and output
-  runPIDUpdate();
+  // Refresh the PID calculations and PWM output
+  refreshPID();
 }
 
 /**
@@ -379,8 +379,8 @@ void calculateHeatFlow()
   refHeatFlow = refCurrent * HEATING_COIL_VOLTAGE / refMass;
   sampHeatFlow = sampCurrent * HEATING_COIL_VOLTAGE / sampMass;
 
-  // Update the PID calculations and output
-  runPIDUpdate();
+  // Refresh the PID calculations and PWM output
+  refreshPID();
 }
 
 /**
@@ -428,8 +428,8 @@ void updateTargetTemperature()
     targetTemp = endTemp;
   }
 
-  // Update the PID calculations and output
-  runPIDUpdate();
+  // Refresh the PID calculations and PWM output
+  refreshPID();
 }
 
 /**
@@ -530,9 +530,6 @@ void controlLoop()
 
     // Calculate the new target temperature
     updateTargetTemperature();
-
-    // Run the PID algorithm
-    runPIDUpdate();
 
     // Send data out via Serial bus
     sendData();
