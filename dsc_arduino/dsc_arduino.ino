@@ -202,6 +202,7 @@ void refreshPID()
   refPID.run();
   if (refTemperature > MAX_TEMPERATURE)
   {
+    digitalWrite(13, HIGH);
     // Override the PID controller if the sample temp exceed the max temp
     digitalWrite(Ref_Heater_PIN, LOW);
     // Set duty cycle to zero
@@ -219,6 +220,7 @@ void refreshPID()
   sampPID.run();
   if (sampTemperature > MAX_TEMPERATURE)
   {
+    digitalWrite(13, HIGH);
     // Override the PID controller if the sample temp exceed the max temp
     digitalWrite(Samp_Heater_PIN, LOW);
     // Set duty cycle to zero
