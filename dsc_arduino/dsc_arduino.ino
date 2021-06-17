@@ -268,6 +268,10 @@ void readSensorValues()
     // Refresh the PID calculations and PWM output
     refreshPID();
 
+    //! DEBUG: Test if the PID refresh extends the loop duration beyond the intended delay per iteration
+    if ((millis() - latestSampleTime) < AVG_SAMPLE_DELAY)
+      digitalWrite(13, HIGH);
+
     // Wait 2 milliseconds before the next loop for the analog-to-digital
     // converter to settle after the last reading
     while ((millis() - latestSampleTime) < AVG_SAMPLE_DELAY)
