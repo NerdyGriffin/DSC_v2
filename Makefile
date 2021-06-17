@@ -1,6 +1,7 @@
 # Arduino Library base folder and example structure
 DSC_ARDUINO_BASE = dsc_arduino
-# DSC_ARDUINO ?= dsc_arduino
+DSC_ARDUINO ?= dsc_arduino
+DSC_DEBUG_BASE = debug/current_sensor_test
 
 # Arduino CLI executable name and directory location
 ARDUINO_CLI = arduino-cli
@@ -31,12 +32,14 @@ all: build program
 build:
 	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) $(DSC_ARDUINO_BASE)
 
-program-test:
-	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) debug/current_sensor_test
-	arduino-cli upload $(VERBOSE) -p $(SERIAL_PORT) --fqbn $(BOARD_TYPE) debug/current_sensor_test
+build-debug-script:
+	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) $(DSC_DEBUG_BASE)
 
-program:
+program: build
 	arduino-cli upload $(VERBOSE) -p $(SERIAL_PORT) --fqbn $(BOARD_TYPE) $(DSC_ARDUINO_BASE)
+
+program-debug-script: build-debug-script
+	arduino-cli upload $(VERBOSE) -p $(SERIAL_PORT) --fqbn $(BOARD_TYPE) $(DSC_DEBUG_BASE)
 
 clean:
 	@rm -rf $(BUILD_PATH)
