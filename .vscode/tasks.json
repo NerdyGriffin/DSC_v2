@@ -4,21 +4,6 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "make all",
-            "type": "shell",
-            "command": "make all",
-            "group": "build",
-            "isBackground": false,
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared",
-                "showReuseMessage": true
-            },
-            "problemMatcher": []
-        },
-        {
             "label": "compile dsc_arduino",
             "type": "shell",
             "command": "make build DSC_ARDUINO=${fileBasenameNoExtension}",
@@ -37,7 +22,7 @@
             "label": "program dsc_arduino",
             "type": "shell",
             "command": "make program DSC_ARDUINO=${fileBasenameNoExtension}",
-            "group": "test",
+            "group": "build",
             "isBackground": false,
             "presentation": {
                 "echo": true,

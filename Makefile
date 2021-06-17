@@ -25,9 +25,7 @@ ifneq ($(V), 0)
 	VERBOSE=-v
 endif
 
-.PHONY: all build program clean
-
-all: build program
+.PHONY: build build-debug-script program program-debug-script clean
 
 build:
 	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) $(DSC_ARDUINO_BASE)
