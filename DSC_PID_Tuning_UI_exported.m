@@ -271,7 +271,10 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         function receiveSerialData(app)
             startDateTime = datetime;
-            mkdir('autosave');
+            [~, msg, msgID] = mkdir('autosave');
+            if ~strcmp(msgID,'MATLAB:MKDIR:DirectoryExists')
+                warning(msg);
+            end
             matfileName = ['autosave/autoSaveData-',datestr(startDateTime, 'yyyy-mm-dd-HHMM'),'.mat'];
 
             elapsedTime = zeros(1,app.PlotRefreshDelay);
