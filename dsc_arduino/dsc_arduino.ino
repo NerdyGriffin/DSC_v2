@@ -118,7 +118,7 @@ double Ref_Current_Sensor_VRef = 0.0, Samp_Current_Sensor_VRef = 0.0;
 
 // The number of the consecutive samples within the MINIMUM_ACCEPTABLE_ERROR
 // that are required before the program considers the target to be satisfied
-#define TARGET_COUNTER_THRESHOLD 100
+#define TARGET_COUNTER_THRESHOLD 200
 
 // target temperature and temp control parameters
 double targetTemp;
@@ -682,7 +682,7 @@ void setup()
   targetTemp = startTemp;
   endTemp = 42;      // 120;
   rampUpRate = 2000; // 20;
-  holdTime = 1000;   // 0;
+  holdTime = 300;    // 0;
 
   standbyCounter = 0;
 
