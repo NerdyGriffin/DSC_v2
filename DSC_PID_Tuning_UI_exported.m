@@ -201,9 +201,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             % Receive the PID gain constants via the serial bus
             awaitResponse = true;
             while awaitResponse
-                serialData = readline(app.Arduino);
+                serialData = strip(readline(app.Arduino));
                 if length(serialData) == 1
-                    switch serialData
+                    switch strip(serialData)
                         case 'k'
                             app.KpEditField.Value = double(readline(app.Arduino));
                             app.KiEditField.Value = double(readline(app.Arduino));
@@ -211,7 +211,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                             awaitResponse = false;
                         otherwise
                             disp('Unrecognized data flag while awaiting PID Gains:')
-                            disp(serialData)
+                            serialData
                     end
                 end
             end
@@ -233,9 +233,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         function receiveControlParameters(app)
             awaitResponse = true;
             while awaitResponse
-                serialData = readline(app.Arduino);
+                serialData = strip(readline(app.Arduino));
                 if length(serialData) == 1
-                    switch serialData
+                    switch strip(serialData)
                         case 'c'
                             app.StartTemp = double(readline(app.Arduino));
                             app.EndTemp = double(readline(app.Arduino));
@@ -270,9 +270,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             experimentIsRunning = true;
             while experimentIsRunning
-                serialData = readline(app.Arduino);
+                serialData = strip(readline(app.Arduino));
                 if length(serialData) == 1
-                    switch serialData
+                    switch strip(serialData)
                         case 'x'
                             experimentIsRunning = false;
                             disp('Received end signal')
@@ -542,9 +542,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             awaitStart = true;
             while awaitStart
-                serialData = readline(app.Arduino);
+                serialData = strip(readline(app.Arduino));
                 if length(serialData) == 1
-                    switch serialData
+                    switch strip(serialData)
                         case 's'
                             setRunningUI(app);
                             receiveSerialData(app);
