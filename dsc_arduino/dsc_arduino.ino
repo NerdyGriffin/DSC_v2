@@ -144,6 +144,8 @@ double refTemperature, sampTemperature;
 double refCurrent, sampCurrent;
 double refHeatFlow, sampHeatFlow;
 
+double refDutyCycle, sampDutyCycle;
+
 // PID Relay output values
 bool refRelayState, sampRelayState;
 
@@ -198,18 +200,37 @@ void refreshPID()
 {
   // Run the PID algorithm
   refPID.run();
-  sampPID.run();
-
-  // Update the PWM Relay output
-  if (refTemperature < MAX_TEMPERATURE)
-    digitalWrite(Ref_Heater_PIN, refRelayState);
-  else
+  if (refTemperature > MAX_TEMPERATURE)
+  {
+    // Override the PID controller if the sample temp exceed the max temp
     digitalWrite(Ref_Heater_PIN, LOW);
-
-  if (sampTemperature < MAX_TEMPERATURE)
-    digitalWrite(Samp_Heater_PIN, sampRelayState);
+    // Set duty cycle to zero
+    refDutyCycle = 0;
+  }
   else
+  {
+    // Update the PWM Relay output
+    digitalWrite(Ref_Heater_PIN, refRelayState);
+    // Store the latest duty cycle
+    refDutyCycle = refPID.getPulseValue();
+  }
+
+  // Run the PID algorithm
+  sampPID.run();
+  if (sampTemperature > MAX_TEMPERATURE)
+  {
+    // Override the PID controller if the sample temp exceed the max temp
     digitalWrite(Samp_Heater_PIN, LOW);
+    // Set duty cycle to zero
+    sampDutyCycle = 0;
+  }
+  else
+  {
+    // Update the PWM Relay output
+    digitalWrite(Samp_Heater_PIN, sampRelayState);
+    // Store the latest duty cycle
+    sampDutyCycle = refPID.getPulseValue();
+  }
 }
 
 /**
@@ -430,6 +451,12 @@ void updateTargetTemperature()
     targetTemp = endTemp;
   }
 
+  // Prevent the target temp from exceeding the maximum
+  if (targetTemp > MAX_TEMPERATURE)
+  {
+    targetTemp = MAX_TEMPERATURE;
+  }
+
   // Refresh the PID calculations and PWM output
   refreshPID();
 }
@@ -462,9 +489,9 @@ void sendData()
   Serial.print(sampHeatFlow);
   Serial.print(",");
 
-  Serial.print(refPID.getPulseValue());
+  Serial.print(refDutyCycle);
   Serial.print(",");
-  Serial.println(sampPID.getPulseValue());
+  Serial.println(sampDutyCycle);
 }
 
 /**
@@ -640,7 +667,7 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.01;
+  Kp = 0.02;
   Ki = 0;
   Kd = 0;
 
@@ -653,7 +680,7 @@ void setup()
   targetTemp = startTemp;
   endTemp = 42;      // 120;
   rampUpRate = 2000; // 20;
-  holdTime = 240;    // 0;
+  holdTime = 1000;   // 0;
 
   standbyCounter = 0;
 
