@@ -385,9 +385,6 @@ void updateTargetTemperature()
  */
 void sendData()
 {
-  // Send the char 'd' to indicate the start of data set
-  Serial.println('d');
-
   Serial.println("ElapsedTime(ms),TargetTemp(C),RefTemp(C),SampTemp(C),RefCurrent(mA),SampCurrent(mA),RefHeatFlow(),SampHeatFlow(),RefDutyCycle(%),SampDutyCycle(%)");
 
   // Send each value in the expected order, separated by commas
@@ -543,9 +540,9 @@ void controlLoop()
 }
 
 /**
- * Passive sensor measurement loop
+ * Passive sensor measurements
  */
-void passiveLoop()
+void standbyData()
 {
   digitalWrite(13, LOW); // Blink the LED
 
@@ -689,5 +686,14 @@ void loop()
     default:
       break;
     }
+  }
+  else if (standbyCounter % 10 == 0)
+  {
+    standbyCounter++;
+  }
+  else
+  {
+    standbyCounter = 0;
+    // standbyData();
   }
 }
