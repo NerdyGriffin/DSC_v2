@@ -205,9 +205,14 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 if strlength(serialData) == 1
                     switch strip(serialData)
                         case 'k'
-                            app.KpEditField.Value = double(readline(app.Arduino));
-                            app.KiEditField.Value = double(readline(app.Arduino));
-                            app.KdEditField.Value = double(readline(app.Arduino));
+                            readline(app.Arduino);
+                            serialData = strip(readline(app.Arduino));
+                            [parsedData, dataIsNum] = str2num(serialData);
+                            if dataIsNum && length(parsedData) == 3
+                                app.KpEditField.Value = parsedData(1); %double(readline(app.Arduino));
+                                app.KiEditField.Value = parsedData(2); %double(readline(app.Arduino));
+                                app.KdEditField.Value = parsedData(3); %double(readline(app.Arduino));
+                            end
                             awaitResponse = false;
                         case 'x'
                             setIdleUI(app);
@@ -241,10 +246,16 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 if strlength(serialData) == 1
                     switch strip(serialData)
                         case 'c'
-                            app.StartTemp = double(readline(app.Arduino));
-                            app.EndTemp = double(readline(app.Arduino));
-                            app.RampUpRate = double(readline(app.Arduino));
-                            app.HoldTime = double(readline(app.Arduino));
+                            readline(app.Arduino);
+                            serialData = strip(readline(app.Arduino));
+                            [parsedData, dataIsNum] = str2num(serialData);
+                            if dataIsNum && length(parsedData) == 4
+                                app.StartTemp = parsedData(1); %double(readline(app.Arduino));
+                                app.EndTemp = parsedData(2); %double(readline(app.Arduino));
+                                app.RampUpRate = parsedData(3); %double(readline(app.Arduino));
+                                app.HoldTime = parsedData(4); %double(readline(app.Arduino));
+                            end
+
                             awaitResponse = false;
                         case 'x'
                             setIdleUI(app);
