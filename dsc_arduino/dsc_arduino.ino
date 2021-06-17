@@ -127,6 +127,8 @@ double endTemp;
 double rampUpRate;
 double holdTime;
 
+#define MIN_TO_MILLIS 60000.0
+
 unsigned long latestTime, elapsedTime; // tracks clock time
 unsigned long rampUpStartTime;
 unsigned long holdStartTime;
@@ -268,10 +270,6 @@ void readSensorValues()
     // Refresh the PID calculations and PWM output
     refreshPID();
 
-    //! DEBUG: Test if the PID refresh extends the loop duration beyond the intended delay per iteration
-    if ((millis() - latestSampleTime) < AVG_SAMPLE_DELAY)
-      digitalWrite(13, HIGH);
-
     // Wait 2 milliseconds before the next loop for the analog-to-digital
     // converter to settle after the last reading
     while ((millis() - latestSampleTime) < AVG_SAMPLE_DELAY)
@@ -410,7 +408,7 @@ void updateTargetTemperature()
   {
     if (endTemp > startTemp)
     {
-      targetTemp = startTemp + (latestTime - rampUpStartTime) * rampUpRate / 60000.0;
+      targetTemp = startTemp + (latestTime - rampUpStartTime) * rampUpRate / MIN_TO_MILLIS;
       if (targetTemp > endTemp)
       {
         targetTemp = endTemp;
@@ -418,7 +416,7 @@ void updateTargetTemperature()
     }
     else if (endTemp < startTemp)
     {
-      targetTemp = startTemp - (latestTime - rampUpStartTime) * rampUpRate / 60000.0;
+      targetTemp = startTemp - (latestTime - rampUpStartTime) * rampUpRate / MIN_TO_MILLIS;
       if (targetTemp < endTemp)
       {
         targetTemp = endTemp;
