@@ -486,15 +486,15 @@ void controlLoop()
     neopixel.fill(green);
     neopixel.show();
 
-    // Record the time
-    latestTime = millis();
-    elapsedTime = latestTime - startTime;
-
     // Read the measurements from the sensors
     updateSensorData();
 
     // Calcutate the heat flow
     calculateHeatFlow();
+
+    // Record the time
+    latestTime = millis();
+    elapsedTime = latestTime - startTime;
 
     // Calculate the new target temperature
     updateTargetTemperature();
@@ -566,14 +566,14 @@ void standbyData()
 {
   digitalWrite(13, LOW); // Blink the LED
 
-  // Zero the time during standby mode
-  elapsedTime = 0;
-
   // Read the measurements from the sensors
   updateSensorData();
 
   // Calcutate the heat flow
   calculateHeatFlow();
+
+  // Zero the time during standby mode
+  elapsedTime = 0;
 
   // Set standby target temp
   targetTemp = 20;
