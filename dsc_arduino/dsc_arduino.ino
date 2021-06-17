@@ -129,7 +129,7 @@ double holdTime;
 
 #define MIN_TO_MILLIS 60000.0
 
-unsigned long latestTime, elapsedTime; // tracks clock time
+unsigned long elapsedTime; // tracks clock time
 unsigned long rampUpStartTime;
 unsigned long holdStartTime;
 
@@ -431,7 +431,7 @@ void updateTargetTemperature()
   {
     if (endTemp > startTemp)
     {
-      targetTemp = startTemp + (latestTime - rampUpStartTime) * rampUpRate / MIN_TO_MILLIS;
+      targetTemp = startTemp + (millis() - rampUpStartTime) * rampUpRate / MIN_TO_MILLIS;
       if (targetTemp > endTemp)
       {
         targetTemp = endTemp;
@@ -439,7 +439,7 @@ void updateTargetTemperature()
     }
     else if (endTemp < startTemp)
     {
-      targetTemp = startTemp - (latestTime - rampUpStartTime) * rampUpRate / MIN_TO_MILLIS;
+      targetTemp = startTemp - (millis() - rampUpStartTime) * rampUpRate / MIN_TO_MILLIS;
       if (targetTemp < endTemp)
       {
         targetTemp = endTemp;
@@ -549,15 +549,14 @@ void controlLoop()
     neopixel.fill(green);
     neopixel.show();
 
+    // Record the time
+    elapsedTime = millis() - startTime;
+
     // Read the measurements from the sensors
     updateSensorData();
 
     // Calcutate the heat flow
     calculateHeatFlow();
-
-    // Record the time
-    latestTime = millis();
-    elapsedTime = latestTime - startTime;
 
     // Calculate the new target temperature
     updateTargetTemperature();
@@ -581,7 +580,7 @@ void controlLoop()
         }
         holdStartTime = millis();
       }
-      else if ((latestTime - holdStartTime) > (holdTime * 1000))
+      else if ((millis() - holdStartTime) > (holdTime * 1000))
       {
         controlLoopState = false;
       }
