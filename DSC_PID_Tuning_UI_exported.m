@@ -74,7 +74,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
     %
     %       You may contact the author at ckunis.contact@gmail.com
 
-    properties (Access = private)
+    properties (Access = public)
         Arduino % The serialport object used for communications
         SerialPort % The name of the serial port to be used
         SerialPortList % The list of available serial ports
@@ -104,7 +104,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         HoldTime
     end
 
-    methods (Access = private)
+    methods (Access = public)
 
         function configLoadStatus = loadConfigFile(app)
             %   Load control parameters from a .ini file
@@ -146,9 +146,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         end
 
                     else
-                        warningMessage = sprintf("The seleced .ini file does not contain a [%s] section", PIDSection);
+                        warningMessage = sprintf("The selected .ini file does not contain a [%s] section", PIDSection);
                         warndlg(warningMessage)
-                        warning("The seleced .ini file does not contain a [%s] section", PIDSection)
+                        warning("The selected .ini file does not contain a [%s] section", PIDSection)
                         configLoadStatus = false;
                         return
                     end
@@ -176,9 +176,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         end
 
                     else
-                        warningMessage = sprintf("The seleced .ini file does not contain a [%s] section", TempControlSection);
+                        warningMessage = sprintf("The selected .ini file does not contain a [%s] section", TempControlSection);
                         warndlg(warningMessage)
-                        warning("The seleced .ini file does not contain a [%s] section", TempControlSection)
+                        warning("The selected .ini file does not contain a [%s] section", TempControlSection)
                         configLoadStatus = false;
                         return
                     end
