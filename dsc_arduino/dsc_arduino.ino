@@ -684,7 +684,7 @@ void setup()
   targetTemp = startTemp;
   endTemp = 42;      // 120;
   rampUpRate = 2000; // 20;
-  holdTime = 300;    // 0;
+  holdTime = 240;    // 0;
 
   standbyCounter = 0;
 
