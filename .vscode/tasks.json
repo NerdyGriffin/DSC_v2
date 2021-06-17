@@ -22,7 +22,10 @@
             "label": "program dsc_arduino",
             "type": "shell",
             "command": "make program DSC_ARDUINO=${fileBasenameNoExtension}",
-            "group": "build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
             "isBackground": false,
             "presentation": {
                 "echo": true,
