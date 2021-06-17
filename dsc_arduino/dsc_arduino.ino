@@ -121,7 +121,7 @@ double Ref_Current_Sensor_VRef = 0.0, Samp_Current_Sensor_VRef = 0.0;
 
 // The number of the consecutive samples within the MINIMUM_ACCEPTABLE_ERROR
 // that are required before the program considers the target to be satisfied
-#define TARGET_COUNTER_THRESHOLD 200
+#define TARGET_COUNTER_THRESHOLD 1000 //200
 
 // target temperature and temp control parameters
 double targetTemp;
@@ -671,7 +671,7 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.005;
+  Kp = 0.05;
   Ki = 0;
   Kd = 0;
 
@@ -680,11 +680,11 @@ void setup()
   sampPID.setGains(Kp, Ki, Kd);
 
   // Set temperature control parameters to default values
-  startTemp = 40;
+  startTemp = 30;
   targetTemp = startTemp;
-  endTemp = 42;      // 120;
+  endTemp = 25;      // 120;
   rampUpRate = 2000; // 20;
-  holdTime = 240;    // 0;
+  holdTime = 0;      // 0;
 
   standbyCounter = 0;
 
