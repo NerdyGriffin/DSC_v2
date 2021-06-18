@@ -107,6 +107,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         RampUpRate
         HoldTime
 
+        SharedProgressDlg
+
         AutomatedTestIsRunning
     end
 
@@ -128,6 +130,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     return
 
                 otherwise
+                    % Create and display the progress bar
+                    app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Loading Config',...
+                        'Indeterminate','on');
+                    drawnow
+
                     % Create fully-formed filename as a string
                     configFullPath = fullfile(configFilePath, configFileName);
 
@@ -152,6 +159,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         end
 
                     else
+                        % Close the progress bar
+                        close(app.SharedProgressDlg)
+
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", PIDSection);
                         warndlg(warningMessage)
                         warning("The selected .ini file does not contain a [%s] section", PIDSection)
@@ -182,12 +192,19 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         end
 
                     else
+                        % Close the progress bar
+                        close(app.SharedProgressDlg)
+
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", TempControlSection);
                         warndlg(warningMessage)
                         warning("The selected .ini file does not contain a [%s] section", TempControlSection)
                         configLoadStatus = false;
                         return
                     end
+            end
+            if isvalid(app.SharedProgressDlg)
+                % Close the progress bar
+                close(app.SharedProgressDlg)
             end
         end
 
@@ -204,7 +221,6 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             Ki = app.KiEditField.Value;
             Kd = app.KdEditField.Value;
 
-            n = 0;
             switch sweepType
                 case 'P'
                     n = floor(log(abs(Kp))./log(10));
@@ -336,6 +352,10 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         function sendPIDGains(app)
             % Send the PID gain constants via the serial bus
+            if isvalid(app.SharedProgressDlg)
+                app.SharedProgressDlg.Message = 'Sending PID Gains to Arduino...';
+            end
+
             flush(app.Arduino);
             write(app.Arduino, 'p', 'char');
 
@@ -348,6 +368,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         function receivePIDGains(app)
             % Receive the PID gain constants via the serial bus
+            if isvalid(app.SharedProgressDlg)
+                app.SharedProgressDlg.Message = 'Receiving PID Gains from Arduino...';
+            end
             awaitResponse = true;
             while awaitResponse
                 serialData = strip(readline(app.Arduino));
@@ -376,6 +399,10 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function sendControlParameters(app)
+            if isvalid(app.SharedProgressDlg)
+                app.SharedProgressDlg.Message = 'Sending temperature control parameters to Arduino...';
+            end
+
             flush(app.Arduino);
             write(app.Arduino, 'l', 'char');
 
@@ -389,6 +416,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function receiveControlParameters(app)
+            if isvalid(app.SharedProgressDlg)
+                app.SharedProgressDlg.Message = 'Receiving temperature control parameters from Arduino...';
+            end
             awaitResponse = true;
             while awaitResponse
                 serialData = strip(readline(app.Arduino));
@@ -404,7 +434,6 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                                 app.RampUpRate = parsedData(3); %double(readline(app.Arduino));
                                 app.HoldTime = parsedData(4); %double(readline(app.Arduino));
                             end
-
                             awaitResponse = false;
                         case 'x'
                             setIdleUI(app);
@@ -732,11 +761,19 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             loadConfigFile(app);
 
+            % Create and display the progress bar
+            app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino',...
+                'Indeterminate','on');
+            drawnow
+
             sendPIDGains(app);
             receivePIDGains(app);
 
             sendControlParameters(app);
             receiveControlParameters(app);
+
+            % Close the progress bar
+            close(app.SharedProgressDlg)
 
             app.LoadConfigFileButton.Enable = 'on';
         end
@@ -745,11 +782,19 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         function ApplyPIDParametersButtonPushed(app, event)
             app.ApplyPIDParametersButton.Enable = 'off';
 
+            % Create and display the progress bar
+            app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino',...
+                'Indeterminate','on');
+            drawnow
+
             sendPIDGains(app);
             receivePIDGains(app);
 
             sendControlParameters(app);
             receiveControlParameters(app);
+
+            % Close the progress bar
+            close(app.SharedProgressDlg)
 
             app.ApplyPIDParametersButton.Enable = 'on';
         end
