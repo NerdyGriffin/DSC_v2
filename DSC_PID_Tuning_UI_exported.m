@@ -11,6 +11,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         SetSerialPortButton           matlab.ui.control.Button
         PIDParametersPanel            matlab.ui.container.Panel
         GridLayout7                   matlab.ui.container.GridLayout
+        AbortSweepButton              matlab.ui.control.Button
+        AutomatedKpSweepButton        matlab.ui.control.Button
         KdEditField                   matlab.ui.control.NumericEditField
         KdEditFieldLabel              matlab.ui.control.Label
         KiEditField                   matlab.ui.control.NumericEditField
@@ -102,6 +104,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         EndTemp
         RampUpRate
         HoldTime
+
+        AbortAutomatedTest
     end
 
     methods (Access = public)
@@ -654,6 +658,83 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         function UIFigureCloseRequest(app, event)
             delete(app)
         end
+
+        % Button pushed function: AutomatedKpSweepButton
+        function AutomatedKpSweepButtonPushed(app, event)
+            app.AbortSweepButton.Enable = 'on';
+            app.AutomatedKpSweepButton.Enable = 'off';
+            app.ApplyPIDParametersButton.Enable = 'off';
+            app.LoadConfigFileButton.Enable = 'off';
+            app.StartExperimentButton.Enable = 'off';
+
+            app.AbortAutomatedTest = false;
+            for Kp = 1:0.1:5
+                % Set the Kp gain value for this trial
+                app.KpEditField.Value = Kp;
+                app.KiEditField.Value = 0;
+                app.KdEditField.Value = 0;
+
+                % Sync PID gains with Arduino
+                sendPIDGains(app);
+                receivePIDGains(app);
+
+                % Set the control parameters for PID tuning
+                app.StartTemp = 30;
+                app.EndTemp = 25;
+                app.RampUpRate = 60000;
+                app.HoldTime = 0;
+
+                % Sync control parameters with arduino
+                sendControlParameters(app);
+                receiveControlParameters(app);
+
+                % Start the experiment
+                flush(app.Arduino);
+                write(app.Arduino, 's', 'char');
+
+                awaitStart = true;
+                while awaitStart
+                    serialData = strip(readline(app.Arduino));
+                    if strlength(serialData) == 1
+                        switch strip(serialData)
+                            case 's'
+                                setRunningUI(app);
+                                receiveSerialData(app);
+                                awaitStart = false;
+                            case 'x'
+                                setIdleUI(app);
+                                disp('Received end signal')
+                                awaitStart = false;
+                            otherwise
+                                disp('Unrecognized data flag while awaiting start response:')
+                                disp(serialData);
+                        end
+                    end
+                end
+
+                if app.AbortAutomatedTest
+                    app.AbortAutomatedTest = false;
+                    break
+                else
+                    pause(30);
+                end
+            end
+
+            app.AutomatedKpSweepButton.Enable = 'on';
+            app.AbortSweepButton.Enable = 'off';
+        end
+
+        % Button pushed function: AbortSweepButton
+        function AbortSweepButtonPushed(app, event)
+            app.AbortSweepButton.Enable = 'off';
+            app.StopExperimentButton.Enable = 'off';
+
+            app.AbortAutomatedTest = true;
+
+            write(app.Arduino, 'x', 'char');
+
+            app.AbortSweepButton.Enable = 'on';
+        end
     end
 
     % Component initialization
@@ -767,6 +848,22 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.KdEditField = uieditfield(app.GridLayout7, 'numeric');
             app.KdEditField.Layout.Row = 3;
             app.KdEditField.Layout.Column = 2;
+
+            % Create AutomatedKpSweepButton
+            app.AutomatedKpSweepButton = uibutton(app.GridLayout7, 'push');
+            app.AutomatedKpSweepButton.ButtonPushedFcn = createCallbackFcn(app, @AutomatedKpSweepButtonPushed, true);
+            app.AutomatedKpSweepButton.BackgroundColor = [0.3922 0.8314 0.0745];
+            app.AutomatedKpSweepButton.Layout.Row = 4;
+            app.AutomatedKpSweepButton.Layout.Column = 1;
+            app.AutomatedKpSweepButton.Text = {'Automated'; 'Kp Sweep'};
+
+            % Create AbortSweepButton
+            app.AbortSweepButton = uibutton(app.GridLayout7, 'push');
+            app.AbortSweepButton.ButtonPushedFcn = createCallbackFcn(app, @AbortSweepButtonPushed, true);
+            app.AbortSweepButton.BackgroundColor = [1 0.4118 0.1608];
+            app.AbortSweepButton.Layout.Row = 4;
+            app.AbortSweepButton.Layout.Column = 2;
+            app.AbortSweepButton.Text = {'Abort'; 'Sweep'};
 
             % Create SetSerialPortButton
             app.SetSerialPortButton = uibutton(app.GridLayout2, 'push');
