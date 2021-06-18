@@ -686,10 +686,10 @@ void setup()
 
   // Set temperature control parameters to default values
   startTemp = 30;
-  // endTemp = 120;
-  // rampUpRate = 20;
-  endTemp = 25;
-  rampUpRate = 60000;
+  endTemp = 120;
+  rampUpRate = 20;
+  // endTemp = 25;
+  // rampUpRate = 60000;
   holdTime = 0;
 
   targetTemp = startTemp;
