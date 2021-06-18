@@ -105,7 +105,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         RampUpRate
         HoldTime
 
-        AbortAutomatedTest
+        AutomatedTestIsRunning
     end
 
     methods (Access = public)
@@ -278,7 +278,12 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             if not(isfolder('autosave'))
                 mkdir('autosave');
             end
-            matfileName = ['autosave/autoSaveData-',datestr(startDateTime, 'yyyy-mm-dd-HHMM'),'.mat'];
+            if app.AutomatedTestIsRunning
+                Kp_str = strrep(num2str(app.KpEditField.Value),'.','-');
+                matfileName = ['autosave/autoPIDTestData-',Kp_str,'-P-',datestr(startDateTime, 'yyyy-mm-dd-HHMM'),'.mat'];
+            else
+                matfileName = ['autosave/autoSaveData-',datestr(startDateTime, 'yyyy-mm-dd-HHMM'),'.mat'];
+            end
 
             elapsedTime = zeros(1,app.PlotRefreshDelay);
             targetTemp = zeros(1,app.PlotRefreshDelay);
@@ -667,7 +672,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.LoadConfigFileButton.Enable = 'off';
             app.StartExperimentButton.Enable = 'off';
 
-            app.AbortAutomatedTest = false;
+            app.AutomatedTestIsRunning = true;
             for Kp = 1:0.1:5
                 % Set the Kp gain value for this trial
                 app.KpEditField.Value = Kp;
@@ -712,11 +717,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     end
                 end
 
-                if app.AbortAutomatedTest
-                    app.AbortAutomatedTest = false;
+                pause(30);
+
+                if ~app.AutomatedTestIsRunning
+                    app.AutomatedTestIsRunning = false;
                     break
-                else
-                    pause(30);
                 end
             end
 
@@ -729,7 +734,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.AbortSweepButton.Enable = 'off';
             app.StopExperimentButton.Enable = 'off';
 
-            app.AbortAutomatedTest = true;
+            app.AutomatedTestIsRunning = false;
 
             write(app.Arduino, 'x', 'char');
 
