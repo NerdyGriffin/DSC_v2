@@ -676,7 +676,7 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.4;
+  Kp = 0.5;
   Ki = 0;
   Kd = 0;
 
@@ -690,7 +690,7 @@ void setup()
   endTemp = 120;
   rampUpRate = 20;
   // endTemp = 25;
-  // rampUpRate = 20000;
+  // rampUpRate = 60000;
   holdTime = 0;
 
   standbyCounter = 0;
