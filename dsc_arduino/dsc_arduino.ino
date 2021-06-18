@@ -507,11 +507,14 @@ void controlLoop()
   // Send the char 's' to indicate the start of control loop
   Serial.println('s');
 
-  unsigned long startTime = millis();
-  rampUpStartTime = millis();
-  holdStartTime = millis();
+  refPID.reset();
+  sampPID.reset();
+
   startCounter = 0;
   endCounter = 0;
+  unsigned long startTime = millis();
+  rampUpStartTime = startTime;
+  holdStartTime = startTime;
   bool controlLoopState = true;
   while (controlLoopState)
   {
@@ -671,7 +674,7 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.2;
+  Kp = 0.4;
   Ki = 0;
   Kd = 0;
 
