@@ -161,7 +161,7 @@ double refMass = 1, sampMass = 1;
 
 // Debug variables used to override the control loop end conditions
 #define DEBUG_MODE false
-#define DEBUG_TIME_LIMIT 300000
+#define DEBUG_TIME_LIMIT 3600000
 
 /**
  * Send the PID gain constants via the serial bus
@@ -452,8 +452,8 @@ void updateTargetTemperature()
     {
       targetTemp = endTemp;
     }
-    //! DEBUG: Ramp up has been disabled for PID tuning
-    targetTemp = endTemp;
+    // //! DEBUG: Ramp up has been disabled for PID tuning
+    // targetTemp = endTemp;
   }
 
   // Prevent the target temp from exceeding the maximum
@@ -671,7 +671,7 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.1;
+  Kp = 0.2;
   Ki = 0;
   Kd = 0;
 
@@ -682,10 +682,10 @@ void setup()
   // Set temperature control parameters to default values
   startTemp = 30;
   targetTemp = startTemp;
-  // endTemp = 120;
-  // rampUpRate = 20;
-  endTemp = 25;
-  rampUpRate = 2000;
+  endTemp = 120;
+  rampUpRate = 20;
+  // endTemp = 25;
+  // rampUpRate = 20000;
   holdTime = 0;
 
   standbyCounter = 0;
