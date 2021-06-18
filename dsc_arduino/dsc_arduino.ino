@@ -234,7 +234,7 @@ void refreshPID()
     // Update the PWM Relay output
     digitalWrite(Samp_Heater_PIN, sampRelayState);
     // Store the latest duty cycle
-    sampDutyCycle = refPID.getPulseValue();
+    sampDutyCycle = sampPID.getPulseValue();
   }
 }
 
