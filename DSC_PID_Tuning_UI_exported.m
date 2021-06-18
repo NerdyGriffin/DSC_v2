@@ -163,8 +163,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         close(app.SharedProgressDlg)
 
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", PIDSection);
-                        warndlg(warningMessage)
-                        warning("The selected .ini file does not contain a [%s] section", PIDSection)
+                        uialert(app.UIFigure,warningMessage,'Invalid File');
                         configLoadStatus = false;
                         return
                     end
@@ -196,8 +195,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         close(app.SharedProgressDlg)
 
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", TempControlSection);
-                        warndlg(warningMessage)
-                        warning("The selected .ini file does not contain a [%s] section", TempControlSection)
+                        uialert(app.UIFigure,warningMessage,'Invalid File');
                         configLoadStatus = false;
                         return
                     end
@@ -232,7 +230,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     n = floor(log(abs(Kd))./log(10));
                     kSign = sign(Kp);
                 otherwise
-                    warndlg("Invalid sweepType: '%s'", sweepType)
+                    message = sprintf("Invalid sweepType: '%s'\nPlease report this bug to the developer.", sweepType);
+                    uialert(app.UIFigure,message,'Internal Error');
                     return
             end
 
@@ -263,7 +262,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         app.KiEditField.Value = Ki;
                         app.KdEditField.Value = kVar;
                     otherwise
-                        warndlg("Invalid sweepType: '%s'", sweepType)
+                        message = sprintf("Invalid sweepType: '%s'\nPlease report this bug to the developer.", sweepType);
+                        uialert(app.UIFigure,message,'Internal Error');
                         return
                 end
 
@@ -528,7 +528,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 'refHeatFlow', 'sampHeatFlow', ...
                 'refDutyCycle', 'sampDutyCycle', 'dataLength')
             if isfile(matfileName)
-                fprintf("Autosave file created: './%s'\n", matfileName)
+                beep
+                message = sprintf("Autosave file created: '%s'\n", matfileName);
+                uialert(app.UIFigure,message,'Autosave Successful','Icon','success');
             end
 
             updateLiveData(app, ...
@@ -570,7 +572,6 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.KdEditField.Editable = 'on';
             app.SetSerialPortButton.Enable = 'on';
             app.SerialPortEditField.Editable = 'on';
-            beep
         end
 
         function updateLiveData(app, elapsedTime, targetTemp, ...
@@ -652,7 +653,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             if (isempty(app.SerialPortList))
                 % Display a warning if no serial ports found
-                warndlg('No available serial ports were found. Make sure the arduino device is plugged into this computer via USB')
+                message = 'No available serial ports were found. Make sure the arduino device is plugged into this computer via USB';
+                uialert(app.UIFigure,message,'Serial Device Not Found');
             else
                 % Set the default serial port to the last port in the list
                 app.SerialPort = app.SerialPortList(end);
@@ -664,11 +666,22 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 % (look in Arduino->tools -> port and the baud rate (9600)
                 app.Arduino = serialport(app.SerialPort, 9600);
 
-                % Request the temperature control parameters from the arduino
-                flush(app.Arduino);
-                write(app.Arduino, 'i', 'char');
-                receivePIDGains(app);
-                receiveControlParameters(app);
+                % Create and display the progress bar
+                app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino',...
+                    'Indeterminate','on');
+                drawnow
+
+                if isempty(readline(app.Arduino))
+                    close(app.SharedProgressDlg)
+                    message = sprintf("There was no response from the device on '%s'. Make sure that this is the correct serial port, and that the 'dsc_arduino' sketch has been upload to that Arduino.", app.SerialPort);
+                    uialert(app.UIFigure,message,'No Response from Arduino');
+                else
+                    % Request the temperature control parameters from the arduino
+                    flush(app.Arduino);
+                    write(app.Arduino, 'i', 'char');
+                    receivePIDGains(app);
+                    receiveControlParameters(app);
+                end
             end
 
             % Create the animatedline objects
@@ -815,14 +828,27 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 % (look in Arduino->tools -> port and the baud rate (9600)
                 app.Arduino = serialport(app.SerialPort, 9600);
 
-                % Request the temperature control parameters from the arduino
-                write(app.Arduino, 'i', 'char');
-                receivePIDGains(app);
-                receiveControlParameters(app);
+                % Create and display the progress bar
+                app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino',...
+                    'Indeterminate','on');
+                drawnow
+
+                if isempty(readline(app.Arduino))
+                    close(app.SharedProgressDlg)
+                    message = sprintf("There was no response from the device on '%s'. Make sure that this is the correct serial port, and that the 'dsc_arduino' sketch has been upload to that Arduino.", app.SerialPort);
+                    uialert(app.UIFigure,message,'No Response from Arduino');
+                else
+                    % Request the temperature control parameters from the arduino
+                    flush(app.Arduino);
+                    write(app.Arduino, 'i', 'char');
+                    receivePIDGains(app);
+                    receiveControlParameters(app);
+                end
             else
-                warndlg(sprintf("%s is not in the list of available serial ports", app.SerialPortEditField.Value));
+                message = sprintf("%s is not in the list of available serial ports", app.SerialPortEditField.Value);
+                uialert(app.UIFigure,message,'Invalid Serial Port')
+                disp('Available serial ports:')
                 disp(app.SerialPortList)
-                disp(app.SerialPortEditField.Value)
             end
 
             app.SetSerialPortButton.Enable = 'on';
