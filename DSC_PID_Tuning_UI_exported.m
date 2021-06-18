@@ -387,6 +387,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.KdEditField.Editable = 'on';
             app.SetSerialPortButton.Enable = 'on';
             app.SerialPortEditField.Editable = 'on';
+            beep
         end
 
         function updateLiveData(app, elapsedTime, targetTemp, ...

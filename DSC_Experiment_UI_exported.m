@@ -379,6 +379,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             app.HoldTimesecEditField.Editable = 'on';
             app.SetSerialPortButton.Enable = 'on';
             app.SerialPortEditField.Editable = 'on';
+            beep
         end
 
         function updateLiveData(app, elapsedTime, targetTemp, ...
