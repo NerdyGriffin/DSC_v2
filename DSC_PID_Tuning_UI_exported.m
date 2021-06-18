@@ -252,6 +252,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         return
                     end
             end
+
             if isvalid(app.SharedProgressDlg)
                 % Close the progress bar
                 close(app.SharedProgressDlg)
@@ -403,11 +404,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function sendPIDGains(app)
-            % Send the PID gain constants via the serial bus
             if isvalid(app.SharedProgressDlg)
                 app.SharedProgressDlg.Message = 'Sending PID Gains to Arduino...';
             end
 
+            % Send the PID gain constants via the serial bus
             flush(app.Arduino);
             write(app.Arduino, 'p', 'char');
 
