@@ -88,7 +88,7 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 #define AMPLIFIER_CONVERSION_FACTOR 5.0 // 5 mV/C = 0.005 V/C
 
 #define REF_TEMP_CALIBRATION_OFFSET 6.666666666666666
-#define SAMP_TEMP_CALIBRATION_OFFSET 3.333333333333333
+#define SAMP_TEMP_CALIBRATION_OFFSET 3.000000000000000
 
 // Current sensor conversion constants
 #define CURRENT_SENSOR_SENS 0.4 // Sensitivity (Sens) 100mA per 250mV = 0.4
