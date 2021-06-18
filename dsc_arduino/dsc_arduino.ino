@@ -163,6 +163,45 @@ double refMass = 1, sampMass = 1;
 #define DEBUG_MODE false
 #define DEBUG_TIME_LIMIT 3600000
 
+// Variables used when recieving/parsing CSV data from the serial bus
+const byte numChars = 32;
+char receivedChars[numChars]; // an array to store the received data
+char tempChars[numChars];     // temporary array for use when parsing
+boolean newData = false;
+
+void receiveSerialData()
+{
+  static boolean recvInProgress = false;
+  static byte ndx = 0;
+  char endMarker = '\n';
+  char rc;
+
+  while (Serial.available() > 0 && newData == false)
+  {
+    rc = Serial.read();
+
+    if (recvInProgress == true)
+    {
+      if (rc != endMarker)
+      {
+        receivedChars[ndx] = rc;
+        ndx++;
+        if (ndx >= numChars)
+        {
+          ndx = numChars - 1;
+        }
+      }
+      else
+      {
+        receivedChars[ndx] = '\0'; // terminate the string
+        recvInProgress = false;
+        ndx = 0;
+        newData = true;
+      }
+    }
+  }
+}
+
 /**
  * Send the PID gain constants via the serial bus
  */
@@ -182,14 +221,20 @@ void sendPIDGains()
 }
 
 /**
- * Receive the PID gain constants via the serial bus
+ * Parse the PID gain constants from the CSV data received via the serial bus
  */
-void receivePIDGains()
+void parsePIDGains()
 {
-  // Read the incoming data as a float
-  Kp = Serial.parseFloat();
-  Ki = Serial.parseFloat();
-  Kd = Serial.parseFloat();
+  char *strtokIndx; // this is used by strtok() as an index
+
+  strtokIndx = strtok(receivedChars, ","); // get the first part - Kp
+  Kp = atof(strtokIndx);                   // copy it to the global variable
+
+  strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
+  Ki = atof(strtokIndx);
+
+  strtokIndx = strtok(NULL, ",");
+  Kd = atof(strtokIndx);
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
@@ -261,15 +306,24 @@ void sendControlParameters()
 }
 
 /**
- * Receive the temperature control parameters via the serial bus
+ * Parse the temperature control parameters from the CSV data received via the
+ * serial bus
  */
-void receiveControlParameters()
+void parseControlParameters()
 {
-  // Read the incoming data as a float
-  startTemp = Serial.parseFloat();
-  endTemp = Serial.parseFloat();
-  rampUpRate = Serial.parseFloat();
-  holdTime = Serial.parseFloat();
+  char *strtokIndx; // this is used by strtok() as an index
+
+  strtokIndx = strtok(receivedChars, ",");
+  startTemp = atof(strtokIndx);
+
+  strtokIndx = strtok(NULL, ",");
+  endTemp = atof(strtokIndx);
+
+  strtokIndx = strtok(NULL, ",");
+  rampUpRate = atof(strtokIndx);
+
+  strtokIndx = strtok(NULL, ",");
+  holdTime = atof(strtokIndx);
 }
 
 /**
@@ -733,7 +787,8 @@ void loop()
       neopixel.fill(cyan);
       neopixel.show();
       // Receive the temperature control parameters via the serial bus
-      receiveControlParameters();
+      receiveSerialData();
+      parseControlParameters();
       // Send the temperature control parameters to confirm that the values were
       // received properly
       sendControlParameters();
@@ -743,7 +798,8 @@ void loop()
       neopixel.fill(cyan);
       neopixel.show();
       // Receive the PID gain constants via the serial bus
-      receivePIDGains();
+      receiveSerialData();
+      parsePIDGains();
       // Send the PID gain constants to confirm that the values were received
       // properly
       sendPIDGains();
