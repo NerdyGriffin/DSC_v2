@@ -107,12 +107,64 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         RampUpRate
         HoldTime
 
-        SharedProgressDlg
+        SharedProgressDlg matlab.ui.dialog.ProgressDialog
 
         AutomatedTestIsRunning
     end
 
     methods (Access = public)
+
+        function initializeSerialPort(app)
+            % Get the list of available serial ports
+            app.SerialPortList = serialportlist("available");
+            disp('Available serial ports:')
+            disp(app.SerialPortList)
+            app.StartExperimentButton.Enable = 'off';
+
+            if (isempty(app.SerialPortList))
+                % Display a warning if no serial ports found
+                message = 'No available serial ports were found. Make sure the arduino device is plugged into this computer via USB, and that it is not in use by another program (such as Arduino IDE).';
+                uialert(app.UIFigure,message,'No Serial Device');
+            else
+                if (isempty(app.SerialPortEditField.Value))
+                    % Set the default serial port to the last port in the list
+                    app.SerialPortEditField.Value = app.SerialPortList(end);
+                end
+
+                if ~any(contains(app.SerialPortList, app.SerialPortEditField.Value))
+                    message = sprintf("%s is not in the list of available serial ports", app.SerialPortEditField.Value);
+                    uialert(app.UIFigure,message,'Invalid Serial Port')
+                else
+                    app.SerialPort = app.SerialPortEditField.Value;
+
+                    if exist(app.Arduino,"var") && isvalid(app.Arduino)
+                        delele(app.Arduino)
+                    end
+                    % Create an serial port object where you specify the USB port
+                    % (look in Arduino->tools -> port and the baud rate (9600)
+                    app.Arduino = serialport(app.SerialPort, 9600);
+
+                    % Create and display the progress bar
+                    app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino',...
+                        'Indeterminate','on');
+                    drawnow
+
+                    if isempty(readline(app.Arduino))
+                        message = sprintf("There was no response from the device on '%s'. Make sure that this is the correct serial port, and that the 'dsc_arduino' sketch has been upload onto the Arduino.", app.SerialPort);
+                        uialert(app.UIFigure,message,'Failed to communicate with Arduino');
+                    else
+                        % Request the temperature control parameters from the arduino
+                        flush(app.Arduino);
+                        write(app.Arduino, 'i', 'char');
+                        receivePIDGains(app);
+                        receiveControlParameters(app);
+                        app.StartExperimentButton.Enable = 'on';
+                    end
+
+                    close(app.SharedProgressDlg)
+                end
+            end
+        end
 
         function configLoadStatus = loadConfigFile(app)
             %   Load control parameters from a .ini file
@@ -648,41 +700,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         % Code that executes after component creation
         function startupFcn(app)
-            % Get the list of available serial ports
-            app.SerialPortList = serialportlist("available");
+            app.SerialPortEditField.Value = '';
 
-            if (isempty(app.SerialPortList))
-                % Display a warning if no serial ports found
-                message = 'No available serial ports were found. Make sure the arduino device is plugged into this computer via USB';
-                uialert(app.UIFigure,message,'Serial Device Not Found');
-            else
-                % Set the default serial port to the last port in the list
-                app.SerialPort = app.SerialPortList(end);
-
-                % Update the serial port edit field
-                app.SerialPortEditField.Value = app.SerialPort;
-
-                % Create an serial port object where you specify the USB port
-                % (look in Arduino->tools -> port and the baud rate (9600)
-                app.Arduino = serialport(app.SerialPort, 9600);
-
-                % Create and display the progress bar
-                app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino',...
-                    'Indeterminate','on');
-                drawnow
-
-                if isempty(readline(app.Arduino))
-                    close(app.SharedProgressDlg)
-                    message = sprintf("There was no response from the device on '%s'. Make sure that this is the correct serial port, and that the 'dsc_arduino' sketch has been upload to that Arduino.", app.SerialPort);
-                    uialert(app.UIFigure,message,'No Response from Arduino');
-                else
-                    % Request the temperature control parameters from the arduino
-                    flush(app.Arduino);
-                    write(app.Arduino, 'i', 'char');
-                    receivePIDGains(app);
-                    receiveControlParameters(app);
-                end
-            end
+            initializeSerialPort(app);
 
             % Create the animatedline objects
             app.BangOffLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
@@ -816,40 +836,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         function SetSerialPortButtonPushed(app, event)
             app.SetSerialPortButton.Enable = 'off';
 
-            delete(app.Arduino);
-
-            % Get the list of available serial ports
-            app.SerialPortList = serialportlist("available");
-
-            if any(contains(app.SerialPortList, app.SerialPortEditField.Value))
-                app.SerialPort = app.SerialPortEditField.Value;
-
-                % Create an serial port object where you specify the USB port
-                % (look in Arduino->tools -> port and the baud rate (9600)
-                app.Arduino = serialport(app.SerialPort, 9600);
-
-                % Create and display the progress bar
-                app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino',...
-                    'Indeterminate','on');
-                drawnow
-
-                if isempty(readline(app.Arduino))
-                    close(app.SharedProgressDlg)
-                    message = sprintf("There was no response from the device on '%s'. Make sure that this is the correct serial port, and that the 'dsc_arduino' sketch has been upload to that Arduino.", app.SerialPort);
-                    uialert(app.UIFigure,message,'No Response from Arduino');
-                else
-                    % Request the temperature control parameters from the arduino
-                    flush(app.Arduino);
-                    write(app.Arduino, 'i', 'char');
-                    receivePIDGains(app);
-                    receiveControlParameters(app);
-                end
-            else
-                message = sprintf("%s is not in the list of available serial ports", app.SerialPortEditField.Value);
-                uialert(app.UIFigure,message,'Invalid Serial Port')
-                disp('Available serial ports:')
-                disp(app.SerialPortList)
-            end
+            initializeSerialPort(app)
 
             app.SetSerialPortButton.Enable = 'on';
         end
@@ -1058,7 +1045,6 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.SerialPortEditField = uieditfield(app.GridLayout2, 'text');
             app.SerialPortEditField.Layout.Row = 10;
             app.SerialPortEditField.Layout.Column = 2;
-            app.SerialPortEditField.Value = 'COM3';
 
             % Create CenterPanel
             app.CenterPanel = uipanel(app.GridLayout);
