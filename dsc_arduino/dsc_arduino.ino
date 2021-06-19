@@ -125,7 +125,7 @@ double Ref_Current_Sensor_VRef = 0.0, Samp_Current_Sensor_VRef = 0.0;
 
 // The number of the consecutive samples within the MINIMUM_ACCEPTABLE_ERROR
 // that are required before the program considers the target to be satisfied
-#define TARGET_COUNTER_THRESHOLD 1000 //200
+#define TARGET_COUNTER_THRESHOLD 200 //200
 
 // target temperature and temp control parameters
 double targetTemp;
@@ -142,9 +142,7 @@ unsigned long holdStartTime;
 
 // Counter used to hold samples at start temperature before beginning to ramp up
 // the target temperature
-unsigned long standbyCounter;
-unsigned long startCounter;
-unsigned long endCounter;
+unsigned long standbyCounter, startCounter, endCounter;
 
 // global variables for holding temperature and current sensor readings
 double refTemperature, sampTemperature;
@@ -164,7 +162,8 @@ AutoPIDRelay sampPID(&sampTemperature, &targetTemp, &sampRelayState, PULSE_WIDTH
 // autotuning
 bool tuner_relayState;
 unsigned long tuner_lastPulseTime;
-double tuner_pulseValue;
+double tuner_pulseValue, tuner_output;
+bool autotuneInProgress;
 
 // The mass (in grams) of each of the material samples
 double refMass = 1, sampMass = 1;
@@ -209,10 +208,9 @@ void receivePIDGains()
 /**
  * Run the PID algorithm and update the PWM Relay outputs
  */
-void refreshPID() { refreshPID(true); }
-void refreshPID(bool pidAutotuner)
+void refreshPID()
 {
-  if (pidAutotuner)
+  if (autotuneInProgress)
   {
     // Run the PID algorithm
     while ((millis() - tuner_lastPulseTime) > PULSE_WIDTH)
@@ -223,6 +221,11 @@ void refreshPID(bool pidAutotuner)
     digitalWrite(Ref_Heater_PIN, tuner_relayState);
     // Store the latest duty cycle
     refDutyCycle = tuner_pulseValue;
+
+    // Leave the test sample heater off during auto tuning
+    digitalWrite(Samp_Heater_PIN, LOW);
+    // Set duty cycle to zero
+    sampDutyCycle = 0;
   }
   else
   {
@@ -245,17 +248,7 @@ void refreshPID(bool pidAutotuner)
       // Store the latest duty cycle
       refDutyCycle = refPID.getPulseValue();
     }
-  }
 
-  if (pidAutotuner)
-  {
-    // Leave the test sample heater off during auto tuning
-    digitalWrite(Samp_Heater_PIN, LOW);
-    // Set duty cycle to zero
-    sampDutyCycle = 0;
-  }
-  else
-  {
     // Run the PID algorithm
     sampPID.run();
 
@@ -287,7 +280,7 @@ void autotunePID()
   Serial.println('a');
 
   // Set the target temp for the PID autotuner
-  targetTemp = 60;
+  targetTemp = 40;
 
   // Stop PID controller during autotuning
   refPID.stop();
@@ -309,13 +302,13 @@ void autotunePID()
   // Set the output range
   // These are the minimum and maximum possible output values of whatever you are
   // using to control the system (Arduino analogWrite, for example, is 0-255)
-  tuner.setOutputRange(0, 1.0);
+  tuner.setOutputRange(0, 1000.0);
 
   // Set the Ziegler-Nichols tuning mode
   // Set it to either PIDAutotuner::ZNModeBasicPID, PIDAutotuner::ZNModeLessOvershoot,
   // or PIDAutotuner::ZNModeNoOvershoot. Defaults to ZNModeNoOvershoot as it is the
   // safest option.
-  tuner.setZNMode(PIDAutotuner::ZNModeBasicPID);
+  tuner.setZNMode(PIDAutotuner::ZNModeNoOvershoot);
 
   // This must be called immediately before the tuning loop
   // Must be called with the current time in microseconds
@@ -325,6 +318,7 @@ void autotunePID()
   // Run a loop until tuner.isFinished() returns true
   unsigned long microseconds;
   unsigned long milliseconds;
+  autotuneInProgress = true;
   while (!tuner.isFinished())
   {
     // This loop must run at the same speed as the PID control loop being tuned
@@ -340,13 +334,15 @@ void autotunePID()
     elapsedTime = milliseconds - startTime;
 
     // Read the measurements from the sensors
-    updateSensorData(true);
+    updateSensorData();
 
     // Calcutate the heat flow
-    calculateHeatFlow(true);
+    calculateHeatFlow();
 
     // Call tunePID() with the input value and current time in microseconds
-    tuner_pulseValue = tuner.tunePID(refTemperature, microseconds);
+    tuner_output = tuner.tunePID(refTemperature, microseconds);
+    tuner_pulseValue = tuner_output / 1000.0;
+    digitalWrite(Samp_Heater_PIN, LOW);
 
     // Send data out via Serial bus
     sendData();
@@ -376,8 +372,6 @@ void autotunePID()
         neopixel.show();
         // Confirm by sending the same command back
         Serial.println('x');
-
-        delay(100);
 
         // Reset the target temp
         targetTemp = startTemp;
@@ -409,15 +403,13 @@ void autotunePID()
   // Send the char 'x' to indicate the end of the autotune
   Serial.println("x");
 
-  delay(100);
-
   // Reset the target temp at the end
   targetTemp = startTemp;
 
   // Get PID gains - set your PID controller's gains to these
-  double Kp = tuner.getKp();
-  double Ki = tuner.getKi();
-  double Kd = tuner.getKd();
+  Kp = tuner.getKp();
+  Ki = tuner.getKi();
+  Kd = tuner.getKd();
 
   neopixel.fill(cyan);
   neopixel.show();
@@ -461,8 +453,7 @@ void receiveControlParameters()
  * Reads the values from each of the sensor pins and computes to average of
  * multiple measurements for each pin
  */
-void readSensorValues() { readSensorValues(false); }
-void readSensorValues(bool pidAutotuner)
+void readSensorValues()
 {
   unsigned long latestSampleTime;
 
@@ -482,7 +473,7 @@ void readSensorValues(bool pidAutotuner)
     sensorValues[3] += sq(analogRead(SAMP_CURRENT_SENS_PIN) - analogMidpoint);
 
     // Refresh the PID calculations and PWM output
-    refreshPID(pidAutotuner);
+    refreshPID();
 
     // Wait 2 milliseconds before the next loop for the analog-to-digital
     // converter to settle after the last reading
@@ -503,7 +494,7 @@ void readSensorValues(bool pidAutotuner)
   }
 
   // Refresh the PID calculations and PWM output
-  refreshPID(pidAutotuner);
+  refreshPID();
 }
 
 /**
@@ -560,8 +551,7 @@ void calibrateCurrentSensors()
  * Reads the values from each of the sensor pins and converts them to the
  * appropriate units, storing the result in the global variables
  */
-void updateSensorData() { updateSensorData(false); }
-void updateSensorData(bool pidAutotuner)
+void updateSensorData()
 {
   readSensorValues();
 
@@ -581,14 +571,13 @@ void updateSensorData(bool pidAutotuner)
   sampCurrent = (sampCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
 
   // Refresh the PID calculations and PWM output
-  refreshPID(pidAutotuner);
+  refreshPID();
 }
 
 /**
  * Calcutate the heat flow
  */
-void calculateHeatFlow() { calculateHeatFlow(false); }
-void calculateHeatFlow(bool pidAutotuner)
+void calculateHeatFlow()
 {
   // Convert current from milliAmps to Amps
   double refCurrentAmps = refCurrent / 1000.0;
@@ -598,14 +587,13 @@ void calculateHeatFlow(bool pidAutotuner)
   sampHeatFlow = sampCurrent * HEATING_COIL_VOLTAGE / sampMass;
 
   // Refresh the PID calculations and PWM output
-  refreshPID(pidAutotuner);
+  refreshPID();
 }
 
 /**
  * Calcutate the target temperature
  */
-void updateTargetTemperature() { updateTargetTemperature(false); }
-void updateTargetTemperature(bool pidAutotuner)
+void updateTargetTemperature()
 {
   if (startCounter < TARGET_COUNTER_THRESHOLD)
   {
@@ -654,7 +642,7 @@ void updateTargetTemperature(bool pidAutotuner)
   }
 
   // Refresh the PID calculations and PWM output
-  refreshPID(pidAutotuner);
+  refreshPID();
 }
 
 /**
@@ -873,9 +861,9 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 1.00; // 0.30;
-  Ki = 0.00; // 0.25;
-  Kd = 0.00; // 1.00;
+  Kp = 144.42;  // 0.30;
+  Ki = 7.45;    // 0.25;
+  Kd = 2196.73; // 1.00;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
@@ -921,8 +909,10 @@ void loop()
       // Received autotuner command
       neopixel.fill(green);
       neopixel.show();
+      autotuneInProgress = true;
       // Run the PID autotuner
       autotunePID();
+      autotuneInProgress = false;
       break;
     case 'i':
       // Received initialization command
