@@ -458,6 +458,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         case 'k'
                             readline(app.Arduino);
                             serialData = strip(readline(app.Arduino));
+                            disp(serialData)
                             [parsedData, dataIsNum] = str2num(serialData);
                             if dataIsNum && length(parsedData) == 3
                                 app.KpEditField.Value = parsedData(1); %double(readline(app.Arduino));
@@ -637,6 +638,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.KpEditField.Editable = 'off';
             app.KiEditField.Editable = 'off';
             app.KdEditField.Editable = 'off';
+            app.AutomatedKpSweepButton.Enable = 'off';
+            app.AutomatedKiSweepButton.Enable = 'off';
+            app.AutomatedKdSweepButton.Enable = 'off';
+            app.AbortSweepButton.Enable = 'off';
+            app.PIDAutotunerButton.Enable = 'off';
             app.SetSerialPortButton.Enable = 'off';
             app.SerialPortEditField.Editable = 'off';
         end
@@ -649,6 +655,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.KpEditField.Editable = 'on';
             app.KiEditField.Editable = 'on';
             app.KdEditField.Editable = 'on';
+            app.AutomatedKpSweepButton.Enable = 'on';
+            app.AutomatedKiSweepButton.Enable = 'on';
+            app.AutomatedKdSweepButton.Enable = 'on';
+            app.AbortSweepButton.Enable = 'off';
+            app.PIDAutotunerButton.Enable = 'on';
             app.SetSerialPortButton.Enable = 'on';
             app.SerialPortEditField.Editable = 'on';
         end
