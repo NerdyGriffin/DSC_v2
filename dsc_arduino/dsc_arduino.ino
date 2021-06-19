@@ -62,7 +62,8 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
 // to settle after the last reading
 #define AVG_SAMPLE_DELAY 2 // Sample delay in milliseconds
 
-#define LOOP_INTERVAL 500
+// Loop interval in microseconds
+const unsigned long loopInterval = 1000.0 * (100 + (AVG_SAMPLES * AVG_SAMPLE_DELAY));
 
 // global variable for holding the raw analog sensor values
 unsigned long sensorValues[4];
@@ -303,7 +304,6 @@ void autotunePID()
 
   // Set the loop interval in microseconds
   // This must be the same as the interval the PID control loop will run at
-  unsigned long loopInterval = LOOP_INTERVAL * 1000;
   tuner.setLoopInterval(loopInterval);
 
   // Set the output range
@@ -324,10 +324,12 @@ void autotunePID()
   unsigned long startTime = millis();
   // Run a loop until tuner.isFinished() returns true
   unsigned long microseconds;
+  unsigned long milliseconds;
   while (!tuner.isFinished())
   {
     // This loop must run at the same speed as the PID control loop being tuned
     microseconds = micros();
+    milliseconds = millis();
 
     digitalWrite(13, LOW);
 
@@ -335,7 +337,7 @@ void autotunePID()
     neopixel.show();
 
     // Record the time
-    elapsedTime = (microseconds * 1000) - startTime;
+    elapsedTime = milliseconds - startTime;
 
     // Read the measurements from the sensors
     updateSensorData(true);
@@ -374,6 +376,14 @@ void autotunePID()
         neopixel.show();
         // Confirm by sending the same command back
         Serial.println('x');
+
+        delay(100);
+
+        // Reset the target temp
+        targetTemp = startTemp;
+
+        // Send the old PID gain constants via the serial bus
+        sendPIDGains();
         return;
         break;
       default:
@@ -382,7 +392,7 @@ void autotunePID()
     }
 
     // This loop must run at the same speed as the PID control loop being tuned
-    while (micros() - microseconds < LOOP_INTERVAL * 1000)
+    while (micros() - microseconds < loopInterval)
       delayMicroseconds(1);
   }
 
@@ -399,7 +409,7 @@ void autotunePID()
   // Send the char 'x' to indicate the end of the autotune
   Serial.println("x");
 
-  delay(LOOP_INTERVAL);
+  delay(100);
 
   // Reset the target temp at the end
   targetTemp = startTemp;
@@ -696,10 +706,12 @@ void controlLoop()
   unsigned long startTime = millis();
   rampUpStartTime = startTime;
   holdStartTime = startTime;
+  unsigned long microseconds;
   unsigned long milliseconds;
   bool controlLoopState = true;
   while (controlLoopState)
   {
+    microseconds = micros();
     milliseconds = millis();
 
     digitalWrite(13, LOW);
@@ -781,7 +793,7 @@ void controlLoop()
       controlLoopState = false;
     }
 
-    while (millis() - milliseconds < LOOP_INTERVAL)
+    while (micros() - microseconds < loopInterval)
       delayMicroseconds(1);
   }
 
@@ -889,9 +901,9 @@ void setup()
 void loop()
 {
   digitalWrite(13, LOW); // Blink the LED
-  delay(LOOP_INTERVAL);
+  delay(500);
   digitalWrite(13, HIGH); // Blink the LED
-  delay(LOOP_INTERVAL);
+  delay(500);
 
   neopixel.clear();
   neopixel.show();
