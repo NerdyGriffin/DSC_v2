@@ -11,6 +11,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         SetSerialPortButton           matlab.ui.control.Button
         PIDParametersPanel            matlab.ui.container.Panel
         GridLayout7                   matlab.ui.container.GridLayout
+        PIDAutotunerButton            matlab.ui.control.Button
         AutomatedKdSweepButton        matlab.ui.control.Button
         AutomatedKiSweepButton        matlab.ui.control.Button
         AbortSweepButton              matlab.ui.control.Button
@@ -376,6 +377,31 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.AutomatedKiSweepButton.Enable = 'on';
             app.AutomatedKdSweepButton.Enable = 'on';
             app.AbortSweepButton.Enable = 'off';
+        end
+
+        function startPIDAutotuner(app)
+            flush(app.Arduino);
+            write(app.Arduino, 'a', 'char');
+
+            awaitStart = true;
+            while awaitStart
+                serialData = strip(readline(app.Arduino));
+                if strlength(serialData) == 1
+                    switch strip(serialData)
+                        case 'a'
+                            setRunningUI(app);
+                            receiveSerialData(app);
+                            awaitStart = false;
+                        case 'x'
+                            setIdleUI(app);
+                            disp('Received end signal')
+                            awaitStart = false;
+                        otherwise
+                            disp('Unrecognized data flag while awaiting start response:')
+                            disp(serialData);
+                    end
+                end
+            end
         end
 
         function startExperiment(app)
@@ -879,6 +905,13 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             automatedPIDSweep(app, 'D');
         end
+
+        % Button pushed function: PIDAutotunerButton
+        function PIDAutotunerButtonPushed(app, event)
+            app.PIDAutotunerButton.Enable = 'off';
+
+            startPIDAutotuner(app);
+        end
     end
 
     % Component initialization
@@ -999,34 +1032,46 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             % Create AutomatedKpSweepButton
             app.AutomatedKpSweepButton = uibutton(app.GridLayout7, 'push');
             app.AutomatedKpSweepButton.ButtonPushedFcn = createCallbackFcn(app, @AutomatedKpSweepButtonPushed, true);
+            app.AutomatedKpSweepButton.WordWrap = 'on';
             app.AutomatedKpSweepButton.BackgroundColor = [0.3922 0.8314 0.0745];
             app.AutomatedKpSweepButton.Layout.Row = 1;
             app.AutomatedKpSweepButton.Layout.Column = 1;
-            app.AutomatedKpSweepButton.Text = {'Automated'; 'Kp Sweep'};
+            app.AutomatedKpSweepButton.Text = 'Automated Kp Sweep';
 
             % Create AbortSweepButton
             app.AbortSweepButton = uibutton(app.GridLayout7, 'push');
             app.AbortSweepButton.ButtonPushedFcn = createCallbackFcn(app, @AbortSweepButtonPushed, true);
-            app.AbortSweepButton.BackgroundColor = [1 0.4118 0.1608];
+            app.AbortSweepButton.WordWrap = 'on';
+            app.AbortSweepButton.BackgroundColor = [0.851 0.3255 0.098];
             app.AbortSweepButton.Layout.Row = 4;
-            app.AbortSweepButton.Layout.Column = [1 2];
-            app.AbortSweepButton.Text = {'Abort'; 'Sweep'};
+            app.AbortSweepButton.Layout.Column = 1;
+            app.AbortSweepButton.Text = 'Abort Sweep';
 
             % Create AutomatedKiSweepButton
             app.AutomatedKiSweepButton = uibutton(app.GridLayout7, 'push');
             app.AutomatedKiSweepButton.ButtonPushedFcn = createCallbackFcn(app, @AutomatedKiSweepButtonPushed, true);
+            app.AutomatedKiSweepButton.WordWrap = 'on';
             app.AutomatedKiSweepButton.BackgroundColor = [0.3922 0.8314 0.0745];
             app.AutomatedKiSweepButton.Layout.Row = 2;
             app.AutomatedKiSweepButton.Layout.Column = 1;
-            app.AutomatedKiSweepButton.Text = {'Automated'; 'Ki Sweep'};
+            app.AutomatedKiSweepButton.Text = 'Automated Ki Sweep';
 
             % Create AutomatedKdSweepButton
             app.AutomatedKdSweepButton = uibutton(app.GridLayout7, 'push');
             app.AutomatedKdSweepButton.ButtonPushedFcn = createCallbackFcn(app, @AutomatedKdSweepButtonPushed, true);
+            app.AutomatedKdSweepButton.WordWrap = 'on';
             app.AutomatedKdSweepButton.BackgroundColor = [0.3922 0.8314 0.0745];
             app.AutomatedKdSweepButton.Layout.Row = 3;
             app.AutomatedKdSweepButton.Layout.Column = 1;
-            app.AutomatedKdSweepButton.Text = {'Automated'; 'Kd Sweep'};
+            app.AutomatedKdSweepButton.Text = 'Automated Kd Sweep';
+
+            % Create PIDAutotunerButton
+            app.PIDAutotunerButton = uibutton(app.GridLayout7, 'push');
+            app.PIDAutotunerButton.ButtonPushedFcn = createCallbackFcn(app, @PIDAutotunerButtonPushed, true);
+            app.PIDAutotunerButton.BackgroundColor = [0 1 0];
+            app.PIDAutotunerButton.Layout.Row = 4;
+            app.PIDAutotunerButton.Layout.Column = [2 3];
+            app.PIDAutotunerButton.Text = 'PID Autotuner';
 
             % Create SetSerialPortButton
             app.SetSerialPortButton = uibutton(app.GridLayout2, 'push');
