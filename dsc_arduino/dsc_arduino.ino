@@ -63,7 +63,7 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
 #define AVG_SAMPLE_DELAY 2 // Sample delay in milliseconds
 
 // Loop interval in microseconds
-const unsigned long loopInterval = 1000.0 * (100 + (AVG_SAMPLES * AVG_SAMPLE_DELAY));
+#define LOOP_INTERVAL 500000UL // 500,000 microseconds = 0.5 seconds
 
 // global variable for holding the raw analog sensor values
 unsigned long sensorValues[4];
@@ -304,7 +304,7 @@ void autotunePID()
 
   // Set the loop interval in microseconds
   // This must be the same as the interval the PID control loop will run at
-  tuner.setLoopInterval(loopInterval);
+  tuner.setLoopInterval(LOOP_INTERVAL);
 
   // Set the output range
   // These are the minimum and maximum possible output values of whatever you are
@@ -392,7 +392,7 @@ void autotunePID()
     }
 
     // This loop must run at the same speed as the PID control loop being tuned
-    while (micros() - microseconds < loopInterval)
+    while (micros() - microseconds < LOOP_INTERVAL)
       delayMicroseconds(1);
   }
 
@@ -793,7 +793,7 @@ void controlLoop()
       controlLoopState = false;
     }
 
-    while (micros() - microseconds < loopInterval)
+    while (micros() - microseconds < LOOP_INTERVAL)
       delayMicroseconds(1);
   }
 
