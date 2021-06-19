@@ -911,6 +911,10 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.PIDAutotunerButton.Enable = 'off';
 
             startPIDAutotuner(app);
+
+            % Recieve the PID gains which are send automatically after the
+            % autotuner is complete
+            receivePIDGains(app);
         end
     end
 

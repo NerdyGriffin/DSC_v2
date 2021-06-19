@@ -394,6 +394,16 @@ void autotunePID()
   digitalWrite(Ref_Heater_PIN, LOW);
   digitalWrite(Samp_Heater_PIN, LOW);
 
+  neopixel.fill(magenta);
+  neopixel.show();
+  // Send the char 'x' to indicate the end of the autotune
+  Serial.println("x");
+
+  delay(LOOP_INTERVAL);
+
+  // Reset the target temp at the end
+  targetTemp = startTemp;
+
   // Get PID gains - set your PID controller's gains to these
   double Kp = tuner.getKp();
   double Ki = tuner.getKi();
@@ -403,15 +413,6 @@ void autotunePID()
   neopixel.show();
   // Send the new PID gain constants via the serial bus
   sendPIDGains();
-  delay(LOOP_INTERVAL);
-
-  // Reset the target temp at the end
-  targetTemp = startTemp;
-
-  neopixel.fill(magenta);
-  neopixel.show();
-  // Send the char 'x' to indicate the end of the autotune
-  Serial.println("x");
 }
 
 /**
