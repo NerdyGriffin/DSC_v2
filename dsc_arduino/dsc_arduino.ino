@@ -277,6 +277,9 @@ void refreshPID(bool pidAutotuner)
   }
 }
 
+/**
+ * Simulate the temperature control loop while running the PID autotuner
+ */
 void autotunePID()
 {
   // Send the char 'a' to indicate the start of autotune
@@ -894,6 +897,13 @@ void loop()
 
     switch (inByte)
     {
+    case 'a':
+      // Received autotuner command
+      neopixel.fill(green);
+      neopixel.show();
+      // Run the PID autotuner
+      autotunePID();
+      break;
     case 'i':
       // Received initialization command
       neopixel.fill(cyan);
