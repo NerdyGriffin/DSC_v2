@@ -20,7 +20,7 @@
 
 #include <Adafruit_NeoPixel.h>
 #include <AutoPID.h>
-#include <pidpidautotuner.h>
+#include <pidautotuner.h>
 
 // NeoPixel parameters
 #define LED_PIN 8
@@ -211,7 +211,7 @@ void receivePIDGains()
 void refreshPID() { refreshPID(true); }
 void refreshPID(bool pidAutotuner)
 {
-  if (pidautotuner)
+  if (pidAutotuner)
   {
     // Run the PID algorithm
     while ((millis() - tuner_lastPulseTime) > PULSE_WIDTH)
@@ -246,7 +246,7 @@ void refreshPID(bool pidAutotuner)
     }
   }
 
-  if (pidautotuner)
+  if (pidAutotuner)
   {
     // Leave the test sample heater off during auto tuning
     digitalWrite(Samp_Heater_PIN, LOW);
