@@ -285,8 +285,8 @@ void autotunePID()
   // Send the char 'a' to indicate the start of autotune
   Serial.println('a');
 
-  refPID.reset();
-  sampPID.reset();
+  // Set the target temp for the PID autotuner
+  targetTemp = 60;
 
   // Stop PID controller during autotuning
   refPID.stop();
@@ -386,6 +386,10 @@ void autotunePID()
       delayMicroseconds(1);
   }
 
+  // Stop PID calculations and reset internal PID calculation values
+  refPID.stop();
+  sampPID.stop();
+
   // Turn off the PWM Relay output
   digitalWrite(Ref_Heater_PIN, LOW);
   digitalWrite(Samp_Heater_PIN, LOW);
@@ -400,6 +404,9 @@ void autotunePID()
   // Send the new PID gain constants via the serial bus
   sendPIDGains();
   delay(LOOP_INTERVAL);
+
+  // Reset the target temp at the end
+  targetTemp = startTemp;
 
   neopixel.fill(magenta);
   neopixel.show();
