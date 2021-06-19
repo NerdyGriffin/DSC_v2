@@ -707,7 +707,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % When the temperature is less than {TargetTemp - BANG_RANGE},
             % the PID control is deactivated, and the output is set to max
-            BANG_RANGE = 10;
+            BANG_RANGE = 20;
             MINIMUM_ACCEPTABLE_ERROR = 5;
 
             % Update the plots

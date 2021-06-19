@@ -70,10 +70,10 @@ unsigned long sensorValues[4];
 
 // PID settings and gains
 #define PULSE_WIDTH 100 // Pulse width in milliseconds
-double Kp = 0.30;
-double Ki = 0.25;
-double Kd = 1.00;
-#define BANG_RANGE 10
+double Kp = 4.46;
+double Ki = 4.03;
+double Kd = 3.43;
+#define BANG_RANGE 20
 // When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
 // is deactivated, and the output is set to max
 #define PID_UPDATE_INTERVAL PULSE_WIDTH
@@ -162,7 +162,7 @@ AutoPIDRelay sampPID(&sampTemperature, &targetTemp, &sampRelayState, PULSE_WIDTH
 // autotuning
 bool tuner_relayState;
 unsigned long tuner_lastPulseTime;
-double tuner_pulseValue, tuner_output;
+double tuner_pulseValue;
 bool autotuneInProgress;
 
 // The mass (in grams) of each of the material samples
@@ -210,24 +210,7 @@ void receivePIDGains()
  */
 void refreshPID()
 {
-  if (autotuneInProgress)
-  {
-    // Run the PID algorithm
-    while ((millis() - tuner_lastPulseTime) > PULSE_WIDTH)
-      tuner_lastPulseTime += PULSE_WIDTH;
-    tuner_relayState = ((millis() - tuner_lastPulseTime) < (tuner_pulseValue * PULSE_WIDTH));
-
-    // Update the PWM Relay output
-    digitalWrite(Ref_Heater_PIN, tuner_relayState);
-    // Store the latest duty cycle
-    refDutyCycle = tuner_pulseValue;
-
-    // Leave the test sample heater off during auto tuning
-    digitalWrite(Samp_Heater_PIN, LOW);
-    // Set duty cycle to zero
-    sampDutyCycle = 0;
-  }
-  else
+  if (!autotuneInProgress)
   {
     // Run the PID algorithm
     refPID.run();
@@ -302,13 +285,15 @@ void autotunePID()
   // Set the output range
   // These are the minimum and maximum possible output values of whatever you are
   // using to control the system (Arduino analogWrite, for example, is 0-255)
-  tuner.setOutputRange(0, 1000.0);
+  tuner.setOutputRange(0, 1.0);
 
   // Set the Ziegler-Nichols tuning mode
   // Set it to either PIDAutotuner::ZNModeBasicPID, PIDAutotuner::ZNModeLessOvershoot,
   // or PIDAutotuner::ZNModeNoOvershoot. Defaults to ZNModeNoOvershoot as it is the
   // safest option.
-  tuner.setZNMode(PIDAutotuner::ZNModeNoOvershoot);
+  tuner.setZNMode(PIDAutotuner::ZNModeBasicPID);
+
+  tuner.setTuningCycles(100);
 
   // This must be called immediately before the tuning loop
   // Must be called with the current time in microseconds
@@ -340,8 +325,8 @@ void autotunePID()
     calculateHeatFlow();
 
     // Call tunePID() with the input value and current time in microseconds
-    tuner_output = tuner.tunePID(refTemperature, microseconds);
-    tuner_pulseValue = tuner_output / 1000.0;
+    double output = tuner.tunePID(refTemperature, microseconds);
+    digitalWrite(Ref_Heater_PIN, output);
     digitalWrite(Samp_Heater_PIN, LOW);
 
     // Send data out via Serial bus
@@ -861,9 +846,9 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 144.42;  // 0.30;
-  Ki = 7.45;    // 0.25;
-  Kd = 2196.73; // 1.00;
+  Kp = 4.46;
+  Ki = 4.03;
+  Kd = 3.43;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
