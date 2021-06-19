@@ -70,9 +70,9 @@ unsigned long sensorValues[4];
 
 // PID settings and gains
 #define PULSE_WIDTH 100 // Pulse width in milliseconds
-double Kp = 4.46;
-double Ki = 4.03;
-double Kd = 3.43;
+double Kp = 4.14;
+double Ki = 3.67;
+double Kd = 3.62;
 #define BANG_RANGE 20
 // When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
 // is deactivated, and the output is set to max
@@ -262,9 +262,6 @@ void autotunePID()
   // Send the char 'a' to indicate the start of autotune
   Serial.println('a');
 
-  // Set the target temp for the PID autotuner
-  targetTemp = 40;
-
   // Stop PID controller during autotuning
   refPID.stop();
   sampPID.stop();
@@ -276,7 +273,7 @@ void autotunePID()
   // the usual range of the setpoint. For low-inertia systems, values at the lower
   // end of this range usually give better results. For anything else, start with a
   // value at the middle of the range.
-  tuner.setTargetInputValue(targetTemp);
+  tuner.setTargetInputValue(120);
 
   // Set the loop interval in microseconds
   // This must be the same as the interval the PID control loop will run at
@@ -358,9 +355,6 @@ void autotunePID()
         // Confirm by sending the same command back
         Serial.println('x');
 
-        // Reset the target temp
-        targetTemp = startTemp;
-
         // Send the old PID gain constants via the serial bus
         sendPIDGains();
         return;
@@ -387,9 +381,6 @@ void autotunePID()
   neopixel.show();
   // Send the char 'x' to indicate the end of the autotune
   Serial.println("x");
-
-  // Reset the target temp at the end
-  targetTemp = startTemp;
 
   // Get PID gains - set your PID controller's gains to these
   Kp = tuner.getKp();
