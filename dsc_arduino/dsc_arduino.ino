@@ -56,14 +56,17 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
  *
  * For 12-bit analog res, this max is 256 samples.
  */
-#define AVG_SAMPLES 200UL
+#define AVG_SAMPLES 200
 
 // Wait 2 milliseconds before the next loop for the analog-to-digital converter
 // to settle after the last reading
-#define AVG_SAMPLE_DELAY 2000UL // Sample delay in milliseconds
+#define AVG_SAMPLE_DELAY 2000UL // Sample delay in microseconds
 
-// Loop interval in microseconds
-#define LOOP_INTERVAL 500000UL // 500,000 microseconds = 0.5 seconds
+/**
+ * Loop interval in microseconds.
+ * 500,000 microseconds = 0.5 seconds
+*/
+#define LOOP_INTERVAL 500000UL
 
 // global variable for holding the raw analog sensor values
 unsigned long sensorValues[4];
@@ -73,8 +76,10 @@ unsigned long sensorValues[4];
 double Kp = 0.36;
 double Ki = 0.03;
 double Kd = 1.09;
-// When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
-// is deactivated, and the output is set to max
+/**
+ * When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
+ * is deactivated, and the output is set to max
+ */
 #define BANG_RANGE 20.0
 #define PID_UPDATE_INTERVAL PULSE_WIDTH // Interval in milliseconds
 
@@ -137,9 +142,8 @@ double holdTime;
 #define MIN_TO_MICROS 60000000UL
 #define SEC_TO_MICROS 1000000UL
 
-unsigned long microseconds; // tracks clock time in microseconds
-unsigned long rampUpStartTime;
-unsigned long holdStartTime;
+// tracks clock time in microseconds
+unsigned long microseconds, rampUpStartTime, holdStartTime;
 
 unsigned long standbyCounter, startCounter, endCounter;
 
@@ -339,7 +343,7 @@ void autotunePID()
     calculateHeatFlow();
 
     // Call tunePID() with the input value and current time in microseconds
-    double output = tuner.tunePID(refTemperature, (microseconds - startTime));
+    double output = tuner.tunePID(refTemperature, microseconds);
     refDutyCycle = output;
     sampDutyCycle = 0;
     digitalWrite(Ref_Heater_PIN, output);
@@ -668,7 +672,7 @@ void controlLoop()
     neopixel.fill(blue);
     neopixel.show();
 
-    // Record the time (convert to milliseconds)
+    // Record the time (convert to seconds)
     elapsedTime = (microseconds - startTime) / SEC_TO_MICROS;
 
     // Read the measurements from the sensors
