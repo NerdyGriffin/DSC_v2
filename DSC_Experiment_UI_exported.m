@@ -92,9 +92,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         % the plots
         PlotRefreshDelay = 10;
 
-        Kp
-        Ki
-        Kd
+        Data struct
 
         SharedProgressDlg matlab.ui.dialog.ProgressDialog
 
@@ -134,7 +132,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     app.Arduino = serialport(app.SerialPort, 9600);
 
                     % Create and display the progress bar
-                    app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino',...
+                    app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino', ...
                         'Indeterminate','on');
                     drawnow
 
@@ -172,7 +170,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
                 otherwise
                     % Create and display the progress bar
-                    app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Loading Config',...
+                    app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Loading Config', ...
                         'Indeterminate','on');
                     drawnow
 
@@ -185,17 +183,17 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     PIDSection = 'PID Settings';
                     if ini.IsSections(PIDSection)
                         if ini.IsKeys(PIDSection,'Kp')
-                            app.Kp = ...
+                            app.Data.Kp = ...
                                 ini.GetValues('PID Settings','Kp');
                         end
 
                         if ini.IsKeys(PIDSection,'Ki')
-                            app.Ki = ...
+                            app.Data.Ki = ...
                                 ini.GetValues('PID Settings','Ki');
                         end
 
                         if ini.IsKeys(PIDSection,'Kd')
-                            app.Kd = ...
+                            app.Data.Kd = ...
                                 ini.GetValues('PID Settings','Kd');
                         end
 
@@ -282,11 +280,11 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             flush(app.Arduino);
             write(app.Arduino, 'p', 'char');
 
-            write(app.Arduino, string(app.Kp), 'string');
+            write(app.Arduino, string(app.Data.Kp), 'string');
             write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.Ki), 'string');
+            write(app.Arduino, string(app.Data.Ki), 'string');
             write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.Kd), 'string');
+            write(app.Arduino, string(app.Data.Kd), 'string');
         end
 
         function receivePIDGains(app)
@@ -304,9 +302,9 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                             serialData = strip(readline(app.Arduino));
                             [parsedData, dataIsNum] = str2num(serialData);
                             if dataIsNum && length(parsedData) == 3
-                                app.Kp = parsedData(1); %double(readline(app.Arduino));
-                                app.Ki = parsedData(2); %double(readline(app.Arduino));
-                                app.Kd = parsedData(3); %double(readline(app.Arduino));
+                                app.Data.Kp = parsedData(1); %double(readline(app.Arduino));
+                                app.Data.Ki = parsedData(2); %double(readline(app.Arduino));
+                                app.Data.Kd = parsedData(3); %double(readline(app.Arduino));
                             end
                             awaitResponse = false;
                         case 'x'
@@ -371,22 +369,29 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         end
 
         function receiveSerialData(app)
-            startDateTime = datetime;
+            app.Data.startTemp = app.StartTempCEditField.Value;
+            app.Data.endTemp = app.EndTempCEditField.Value;
+            app.Data.rampUpRate = app.RateCminEditField.Value;
+            app.Data.holdTime = app.HoldTimesecEditField.Value;
+
+            app.Data.startDateTime = datetime;
+
             if not(isfolder('autosave'))
                 mkdir('autosave');
             end
-            matfileName = ['autosave/autoSaveData-',datestr(startDateTime, 'yyyy-mm-dd-HHMM'),'.mat'];
+            currentDataString = datestr(app.Data.startDateTime, 'yyyy-mm-dd-HHMM');
+            matfileName = ['autosave/autoSaveData-',currentDataString,'.mat'];
 
-            elapsedTime = zeros(1,app.PlotRefreshDelay);
-            targetTemp = zeros(1,app.PlotRefreshDelay);
-            refTemp = zeros(1,app.PlotRefreshDelay);
-            sampTemp = zeros(1,app.PlotRefreshDelay);
-            refCurrent = zeros(1,app.PlotRefreshDelay);
-            sampCurrent = zeros(1,app.PlotRefreshDelay);
-            refHeatFlow = zeros(1,app.PlotRefreshDelay);
-            sampHeatFlow = zeros(1,app.PlotRefreshDelay);
-            refDutyCycle = zeros(1,app.PlotRefreshDelay);
-            sampDutyCycle = zeros(1,app.PlotRefreshDelay);
+            app.Data.elapsedTime = zeros(1,app.PlotRefreshDelay);
+            app.Data.targetTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data.refTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data.refCurrent = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampCurrent = zeros(1,app.PlotRefreshDelay);
+            app.Data.refHeatFlow = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampHeatFlow = zeros(1,app.PlotRefreshDelay);
+            app.Data.refDutyCycle = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampDutyCycle = zeros(1,app.PlotRefreshDelay);
 
             dataLength = 0;
 
@@ -406,32 +411,33 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     [parsedData, dataIsNum] = str2num(serialData);
                     if dataIsNum && length(parsedData) == 10
                         dataLength = dataLength + 1;
-                        elapsedTime(dataLength) = parsedData(1); %str2double(parsedData{1});
-                        targetTemp(dataLength) = parsedData(2); %str2double(parsedData{2});
-                        refTemp(dataLength) = parsedData(3); %str2double(parsedData{3});
-                        sampTemp(dataLength) = parsedData(4); %str2double(parsedData{4});
-                        refCurrent(dataLength) = parsedData(5); %str2double(parsedData{5});
-                        sampCurrent(dataLength) = parsedData(6); %str2double(parsedData{6});
-                        refHeatFlow(dataLength) = parsedData(7); %str2double(parsedData{7});
-                        sampHeatFlow(dataLength) = parsedData(8); %str2double(parsedData{8});
-                        refDutyCycle(dataLength) = parsedData(9); %str2double(parsedData{9});
-                        sampDutyCycle(dataLength) = parsedData(10); %str2double(parsedData{10});
+                        app.Data.elapsedTime(dataLength) = parsedData(1); %str2double(parsedData{1});
+                        app.Data.targetTemp(dataLength) = parsedData(2); %str2double(parsedData{2});
+                        app.Data.refTemp(dataLength) = parsedData(3); %str2double(parsedData{3});
+                        app.Data.sampTemp(dataLength) = parsedData(4); %str2double(parsedData{4});
+                        app.Data.refCurrent(dataLength) = parsedData(5); %str2double(parsedData{5});
+                        app.Data.sampCurrent(dataLength) = parsedData(6); %str2double(parsedData{6});
+                        app.Data.refHeatFlow(dataLength) = parsedData(7); %str2double(parsedData{7});
+                        app.Data.sampHeatFlow(dataLength) = parsedData(8); %str2double(parsedData{8});
+                        app.Data.refDutyCycle(dataLength) = parsedData(9); %str2double(parsedData{9});
+                        app.Data.sampDutyCycle(dataLength) = parsedData(10); %str2double(parsedData{10});
 
                         if ~mod(dataLength, app.DataRefreshDelay)
                             updateLiveData(app, ...
-                                elapsedTime(dataLength), ...
-                                targetTemp(dataLength), ...
-                                refTemp(dataLength), ...
-                                sampTemp(dataLength), ...
-                                refCurrent(dataLength), ...
-                                sampCurrent(dataLength), ...
-                                refDutyCycle(dataLength), ...
-                                sampDutyCycle(dataLength));
+                                app.Data.elapsedTime(dataLength), ...
+                                app.Data.targetTemp(dataLength), ...
+                                app.Data.refTemp(dataLength), ...
+                                app.Data.sampTemp(dataLength), ...
+                                app.Data.refCurrent(dataLength), ...
+                                app.Data.sampCurrent(dataLength), ...
+                                app.Data.refDutyCycle(dataLength), ...
+                                app.Data.sampDutyCycle(dataLength));
                         end
 
                         if ~mod(dataLength, app.PlotRefreshDelay)
-                            refreshLivePlot(app, elapsedTime,...
-                                targetTemp, refTemp, sampTemp);
+                            refreshLivePlot(app, ...
+                                app.Data.elapsedTime, app.Data.targetTemp, ...
+                                app.Data.refTemp, app.Data.sampTemp);
                         end
                     else
                         disp(parsedData)
@@ -439,11 +445,10 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                 end
             end
 
-            save(matfileName, 'startDateTime', 'elapsedTime', 'targetTemp', ...
-                'refTemp', 'sampTemp', ...
-                'refCurrent', 'sampCurrent', ...
-                'refHeatFlow', 'sampHeatFlow', ...
-                'refDutyCycle', 'sampDutyCycle', 'dataLength')
+            app.Data.dataLength = dataLength;
+
+            saveData = app.Data;
+            save(matfileName,'-struct','saveData')
             if isfile(matfileName)
                 beep
                 message = sprintf("Autosave file created: '%s'\n", matfileName);
@@ -451,16 +456,17 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             end
 
             updateLiveData(app, ...
-                elapsedTime(dataLength), ...
-                targetTemp(dataLength), ...
-                refTemp(dataLength), ...
-                sampTemp(dataLength), ...
-                refCurrent(dataLength), ...
-                sampCurrent(dataLength), ...
-                refDutyCycle(dataLength), ...
-                sampDutyCycle(dataLength));
+                app.Data.elapsedTime(dataLength), ...
+                app.Data.targetTemp(dataLength), ...
+                app.Data.refTemp(dataLength), ...
+                app.Data.sampTemp(dataLength), ...
+                app.Data.refCurrent(dataLength), ...
+                app.Data.sampCurrent(dataLength), ...
+                app.Data.refDutyCycle(dataLength), ...
+                app.Data.sampDutyCycle(dataLength));
 
-            refreshLivePlot(app, elapsedTime, targetTemp, refTemp, sampTemp);
+            refreshLivePlot(app, app.Data.elapsedTime, app.Data.targetTemp, ...
+                app.Data.refTemp, app.Data.sampTemp);
 
             setIdleUI(app);
         end
@@ -497,7 +503,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             drawnow limitrate nocallbacks
 
             % Convert from milliseconds to seconds
-            app.ElapsedTimesecEditField.Value = elapsedTime / 1000;
+            app.ElapsedTimesecEditField.Value = elapsedTime;
 
             app.TargetTempCEditField.Value = targetTemp;
 
@@ -512,11 +518,8 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             drawnow limitrate
         end
 
-        function refreshLivePlot(app, elapsedTimeArray,...
+        function refreshLivePlot(app, elapsedTimeArray, ...
                 targetTempArray, refTempArray, sampTempArray)
-
-            % Convert from milliseconds to seconds
-            timeInSeconds = elapsedTimeArray ./ 1000;
 
             drawnow limitrate nocallbacks
 
@@ -525,9 +528,9 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             clearpoints(app.TestSampleLine)
 
             % Update the plots
-            addpoints(app.TargetLine, timeInSeconds, targetTempArray)
-            addpoints(app.RefSampleLine, timeInSeconds, refTempArray)
-            addpoints(app.TestSampleLine, timeInSeconds, sampTempArray)
+            addpoints(app.TargetLine, elapsedTimeArray, targetTempArray)
+            addpoints(app.RefSampleLine, elapsedTimeArray, refTempArray)
+            addpoints(app.TestSampleLine, elapsedTimeArray, sampTempArray)
 
             legend(app.UIAxes, 'Location', 'best')
 
@@ -617,7 +620,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             loadConfigFile(app);
 
             % Create and display the progress bar
-            app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino',...
+            app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino', ...
                 'Indeterminate','on');
             drawnow
 
@@ -638,7 +641,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             app.ApplyExperimentParametersButton.Enable = 'off';
 
             % Create and display the progress bar
-            app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino',...
+            app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino', ...
                 'Indeterminate','on');
             drawnow
 
