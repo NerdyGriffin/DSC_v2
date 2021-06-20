@@ -281,9 +281,7 @@ void autotunePID()
   // Send the char 'a' to indicate the start of autotune
   Serial.println('a');
 
-  // Stop PID controller during autotuning
-  refPID.stop();
-  sampPID.stop();
+  stopPID(blue);
 
   PIDAutotuner tuner = PIDAutotuner();
 
@@ -315,24 +313,19 @@ void autotunePID()
   // Must be called with the current time in microseconds
   tuner.startTuningLoop(micros());
 
-  unsigned long startTime = millis();
   // Run a loop until tuner.isFinished() returns true
-  unsigned long microseconds;
-  unsigned long milliseconds;
+  static unsigned long startTime = micros();
+  static unsigned long latestTime = startTime;
   autotuneInProgress = true;
-  while (!tuner.isFinished())
+  while (autotuneInProgress)
   {
-    // This loop must run at the same speed as the PID control loop being tuned
-    microseconds = micros();
-    milliseconds = millis();
-
     digitalWrite(13, LOW);
 
-    neopixel.fill(green);
+    neopixel.fill(blue);
     neopixel.show();
 
-    // Record the time
-    elapsedTime = milliseconds - startTime;
+    // Record the time (convert to milliseconds)
+    elapsedTime = (latestTime - startTime) / 1000UL;
 
     // Read the measurements from the sensors
     updateSensorData();
@@ -341,12 +334,18 @@ void autotunePID()
     calculateHeatFlow();
 
     // Call tunePID() with the input value and current time in microseconds
-    double output = tuner.tunePID(refTemperature, microseconds);
+    double output = tuner.tunePID(refTemperature, latestTime);
     digitalWrite(Ref_Heater_PIN, output);
     digitalWrite(Samp_Heater_PIN, LOW);
 
     // Send data out via Serial bus
     sendData();
+
+    if (tuner.isFinished())
+      endAutotune(&tuner, green);
+
+    if (checkSafetyLimits())
+      endAutotune(&tuner, yellow);
 
     // Check for interupts from the UI
     if (Serial.available())
@@ -360,23 +359,7 @@ void autotunePID()
       {
       case 'x':
         // Received stop commmand
-
-        // Stop PID calculations and reset internal PID calculation values
-        refPID.stop();
-        sampPID.stop();
-
-        // Turn off the PWM Relay output
-        digitalWrite(Ref_Heater_PIN, LOW);
-        digitalWrite(Samp_Heater_PIN, LOW);
-
-        neopixel.fill(red);
-        neopixel.show();
-        // Confirm by sending the same command back
-        Serial.println('x');
-
-        // Send the old PID gain constants via the serial bus
-        sendPIDGains();
-        return;
+        endAutotune(&tuner, red);
         break;
       default:
         break;
@@ -384,32 +367,17 @@ void autotunePID()
     }
 
     // This loop must run at the same speed as the PID control loop being tuned
-    while (micros() - microseconds < LOOP_INTERVAL)
-      delayMicroseconds(1);
+    while (micros() - latestTime < LOOP_INTERVAL)
+      ; // busy wait
+
+    latestTime += LOOP_INTERVAL;
+
+    if (latestTime - startTime < 0)
+    {
+      // Time overflow error, experiment exceeded 70 minutes
+      endAutotune(&tuner, red);
+    }
   }
-
-  // Stop PID calculations and reset internal PID calculation values
-  refPID.stop();
-  sampPID.stop();
-
-  // Turn off the PWM Relay output
-  digitalWrite(Ref_Heater_PIN, LOW);
-  digitalWrite(Samp_Heater_PIN, LOW);
-
-  neopixel.fill(magenta);
-  neopixel.show();
-  // Send the char 'x' to indicate the end of the autotune
-  Serial.println("x");
-
-  // Get PID gains - set your PID controller's gains to these
-  Kp = tuner.getKp();
-  Ki = tuner.getKi();
-  Kd = tuner.getKd();
-
-  neopixel.fill(cyan);
-  neopixel.show();
-  // Send the new PID gain constants via the serial bus
-  sendPIDGains();
 }
 
 /**
@@ -686,24 +654,20 @@ void controlLoop()
 
   startCounter = 0;
   endCounter = 0;
-  unsigned long startTime = millis();
+  unsigned long startTime = micros();
   rampUpStartTime = startTime;
   holdStartTime = startTime;
-  unsigned long microseconds;
-  unsigned long milliseconds;
+  static unsigned long latestTime = startTime;
   bool controlLoopState = true;
   while (controlLoopState)
   {
-    microseconds = micros();
-    milliseconds = millis();
-
     digitalWrite(13, LOW);
 
-    neopixel.fill(green);
+    neopixel.fill(blue);
     neopixel.show();
 
-    // Record the time
-    elapsedTime = milliseconds - startTime;
+    // Record the time (convert to milliseconds)
+    elapsedTime = (latestTime - startTime) / 1000UL;
 
     // Read the measurements from the sensors
     updateSensorData();
@@ -716,38 +680,6 @@ void controlLoop()
 
     // Send data out via Serial bus
     sendData();
-
-    // Check for interupts from the UI
-    if (Serial.available())
-    {
-      digitalWrite(13, HIGH);
-
-      // Read the incoming data as a char
-      int inByte = Serial.read();
-
-      switch (inByte)
-      {
-      case 'x':
-        // Received stop commmand
-
-        // Stop PID calculations and reset internal PID calculation values
-        refPID.stop();
-        sampPID.stop();
-
-        // Turn off the PWM Relay output
-        digitalWrite(Ref_Heater_PIN, LOW);
-        digitalWrite(Samp_Heater_PIN, LOW);
-
-        neopixel.fill(red);
-        neopixel.show();
-        // Confirm by sending the same command back
-        Serial.println('x');
-        return;
-        break;
-      default:
-        break;
-      }
-    }
 
     // Check loop exit conditions
     if (targetTemp == endTemp)
@@ -767,31 +699,49 @@ void controlLoop()
       }
       else if ((millis() - holdStartTime) > (holdTime * 1000))
       {
+        stopPID(green);
         controlLoopState = false;
       }
     }
 
-    if (DEBUG_MODE && (elapsedTime > DEBUG_TIME_LIMIT))
+    if (checkSafetyLimits())
     {
+      stopPID(yellow);
       controlLoopState = false;
     }
 
-    while (micros() - microseconds < LOOP_INTERVAL)
-      delayMicroseconds(1);
+    // Check for interupts from the UI
+    if (Serial.available())
+    {
+      digitalWrite(13, HIGH);
+
+      // Read the incoming data as a char
+      int inByte = Serial.read();
+
+      switch (inByte)
+      {
+      case 'x':
+        // Received stop commmand
+        stopPID(red);
+        controlLoopState = false;
+        break;
+      default:
+        break;
+      }
+    }
+
+    while (micros() - latestTime < LOOP_INTERVAL)
+      ; // busy wait
+
+    latestTime += LOOP_INTERVAL;
+
+    if (latestTime - startTime < 0)
+    {
+      // Time overflow error, experiment exceeded 70 minutes
+      stopPID(red);
+      controlLoopState = false;
+    }
   }
-
-  // Stop PID calculations and reset internal PID calculation values
-  refPID.stop();
-  sampPID.stop();
-
-  // Turn off the PWM Relay output
-  digitalWrite(Ref_Heater_PIN, LOW);
-  digitalWrite(Samp_Heater_PIN, LOW);
-
-  neopixel.fill(magenta);
-  neopixel.show();
-  // Send the char 'x' to indicate the end of the control loop
-  Serial.println("x");
 }
 
 /**
@@ -813,13 +763,7 @@ void standbyData()
   // Set standby target temp
   targetTemp = 20;
 
-  // Stop PID calculations and reset internal PID calculation values
-  refPID.stop();
-  sampPID.stop();
-
-  // Turn off the PWM Relay output
-  digitalWrite(Ref_Heater_PIN, LOW);
-  digitalWrite(Samp_Heater_PIN, LOW);
+  stopPID(black);
 
   // Send data out via Serial bus
   sendData();
@@ -902,7 +846,7 @@ void loop()
     {
     case 'a':
       // Received autotuner command
-      neopixel.fill(green);
+      neopixel.fill(blue);
       neopixel.show();
       autotuneInProgress = true;
       // Run the PID autotuner
@@ -940,7 +884,7 @@ void loop()
       break;
     case 's':
       // Received start commmand
-      neopixel.fill(green);
+      neopixel.fill(blue);
       neopixel.show();
       // Run the temperature control loop
       controlLoop();
