@@ -18,28 +18,28 @@ V ?= 0
 VERBOSE=
 
 # Build path -- used to store built binary and object files
-BUILD_DIR=_build
-BUILD_PATH=$(PWD)/$(DSC_ARDUINO_BASE)/$(BUILD_DIR)
+# BUILD_DIR=_build
+# BUILD_PATH=$(PWD)/$(DSC_ARDUINO_BASE)/$(BUILD_DIR)
 
 ifneq ($(V), 0)
 	VERBOSE=-v
 endif
 
-.PHONY: build build-debug-script program program-debug-script clean
+.PHONY: build build-debug-script program program-debug-script
 
 build:
-	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) --warnings all $(DSC_ARDUINO_BASE)
+	arduino-cli compile $(VERBOSE) --clean -b $(BOARD_TYPE) --warnings all $(DSC_ARDUINO_BASE)
 
 build-debug-script:
-	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) --warnings all $(DSC_DEBUG_BASE)
+	arduino-cli compile $(VERBOSE) --clean -b $(BOARD_TYPE) --warnings all $(DSC_DEBUG_BASE)
 
 program: build
-	arduino-cli upload $(VERBOSE) -p $(SERIAL_PORT) --fqbn $(BOARD_TYPE) $(DSC_ARDUINO_BASE)
+	arduino-cli upload $(VERBOSE) -b $(BOARD_TYPE) -p $(SERIAL_PORT) -t $(DSC_ARDUINO_BASE)
 
 program-debug-script: build-debug-script
-	arduino-cli upload $(VERBOSE) -p $(SERIAL_PORT) --fqbn $(BOARD_TYPE) $(DSC_DEBUG_BASE)
+	arduino-cli upload $(VERBOSE) -b $(BOARD_TYPE) -p $(SERIAL_PORT) -t $(DSC_DEBUG_BASE)
 
-clean:
-	@rm -rf $(BUILD_PATH)
-	@rm $(DSC_ARDUINO_BASE)/*.elf
-	@rm $(DSC_ARDUINO_BASE)/*.hex
+# clean:
+# 	@rm -rf $(BUILD_PATH)
+# 	@rm $(DSC_ARDUINO_BASE)/*.elf
+# 	@rm $(DSC_ARDUINO_BASE)/*.hex
