@@ -56,11 +56,11 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
  *
  * For 12-bit analog res, this max is 256 samples.
  */
-#define AVG_SAMPLES 200
+#define AVG_SAMPLES 200UL
 
 // Wait 2 milliseconds before the next loop for the analog-to-digital converter
 // to settle after the last reading
-#define AVG_SAMPLE_DELAY 2 // Sample delay in milliseconds
+#define AVG_SAMPLE_DELAY 2000UL // Sample delay in milliseconds
 
 // Loop interval in microseconds
 #define LOOP_INTERVAL 500000UL // 500,000 microseconds = 0.5 seconds
@@ -69,14 +69,14 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
 unsigned long sensorValues[4];
 
 // PID settings and gains
-#define PULSE_WIDTH 100 // Pulse width in milliseconds
+#define PULSE_WIDTH 100UL // Pulse width in milliseconds
 double Kp = 0.36;
 double Ki = 0.03;
 double Kd = 1.09;
-#define BANG_RANGE 20
 // When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
 // is deactivated, and the output is set to max
-#define PID_UPDATE_INTERVAL PULSE_WIDTH
+#define BANG_RANGE 20.0
+#define PID_UPDATE_INTERVAL PULSE_WIDTH // Interval in milliseconds
 
 // The max voltage of analog input readings
 #define ANALOG_REF_VOLTAGE 3.3
@@ -134,17 +134,17 @@ double endTemp;
 double rampUpRate;
 double holdTime;
 
-#define MIN_TO_MILLIS 60000.0
+#define MIN_TO_MICROS 60000000UL
+#define SEC_TO_MICROS 1000000UL
 
-unsigned long elapsedTime; // tracks clock time
+unsigned long microseconds; // tracks clock time in microseconds
 unsigned long rampUpStartTime;
 unsigned long holdStartTime;
 
-// Counter used to hold samples at start temperature before beginning to ramp up
-// the target temperature
 unsigned long standbyCounter, startCounter, endCounter;
 
 // global variables for holding temperature and current sensor readings
+double elapsedTime; // Time in seconds
 double refTemperature, sampTemperature;
 double refCurrent, sampCurrent;
 double refHeatFlow, sampHeatFlow;
@@ -320,8 +320,7 @@ void autotunePID()
   tuner.startTuningLoop(micros());
 
   // Run a loop until tuner.isFinished() returns true
-  static unsigned long startTime = micros();
-  static unsigned long latestTime = startTime;
+  static unsigned long startTime = microseconds = micros();
   autotuneInProgress = true;
   while (autotuneInProgress)
   {
@@ -330,8 +329,8 @@ void autotunePID()
     neopixel.fill(blue);
     neopixel.show();
 
-    // Record the time (convert to milliseconds)
-    elapsedTime = (latestTime - startTime) / 1000UL;
+    // Record the time (convert microseconds to seconds)
+    elapsedTime = (microseconds - startTime) / SEC_TO_MICROS;
 
     // Read the measurements from the sensors
     updateSensorData();
@@ -340,7 +339,7 @@ void autotunePID()
     calculateHeatFlow();
 
     // Call tunePID() with the input value and current time in microseconds
-    double output = tuner.tunePID(refTemperature, latestTime);
+    double output = tuner.tunePID(refTemperature, (microseconds - startTime));
     refDutyCycle = output;
     sampDutyCycle = 0;
     digitalWrite(Ref_Heater_PIN, output);
@@ -375,12 +374,13 @@ void autotunePID()
     }
 
     // This loop must run at the same speed as the PID control loop being tuned
-    while (micros() - latestTime < LOOP_INTERVAL)
+    while ((micros() - microseconds) < LOOP_INTERVAL)
       ; // busy wait
 
-    latestTime += LOOP_INTERVAL;
+    unsigned long prevMicroseconds = microseconds;
+    microseconds += LOOP_INTERVAL;
 
-    if (latestTime - startTime < 0)
+    if ((microseconds - startTime) < (prevMicroseconds - startTime))
     {
       // Time overflow error, experiment exceeded 70 minutes
       endAutotune(&tuner, red);
@@ -426,16 +426,13 @@ void receiveControlParameters()
  */
 void readSensorValues()
 {
-  unsigned long latestSampleTime;
-
   // Zero the array before taking samples
   memset(sensorValues, 0, sizeof(sensorValues));
 
   // Read the analog signals from the sensors
+  unsigned long latestSampleTime = micros();
   for (int i = 0; i < AVG_SAMPLES; i++)
   {
-    latestSampleTime = millis();
-
     sensorValues[0] += analogRead(REF_TEMP_PROBE_PIN);
     sensorValues[1] += analogRead(SAMP_TEMP_PROBE_PIN);
 
@@ -448,8 +445,10 @@ void readSensorValues()
 
     // Wait 2 milliseconds before the next loop for the analog-to-digital
     // converter to settle after the last reading
-    while ((millis() - latestSampleTime) < AVG_SAMPLE_DELAY)
-      delayMicroseconds(1);
+    while ((micros() - latestSampleTime) < AVG_SAMPLE_DELAY)
+      ; // busy wait
+
+    latestSampleTime += AVG_SAMPLE_DELAY;
   }
 
   // Calculate the average of the samples
@@ -550,9 +549,10 @@ void updateSensorData()
  */
 void calculateHeatFlow()
 {
-  // Convert current from milliAmps to Amps
-  double refCurrentAmps = refCurrent / 1000.0;
-  double sampCurrentAmps = sampCurrent / 1000.0;
+  // // Convert current from milliAmps to Amps
+  // double refCurrentAmps = refCurrent / 1000.0;
+  // double sampCurrentAmps = sampCurrent / 1000.0;
+
   // Calculate the heat flow as Watts per gram
   refHeatFlow = refCurrent * HEATING_COIL_VOLTAGE / refMass;
   sampHeatFlow = sampCurrent * HEATING_COIL_VOLTAGE / sampMass;
@@ -578,13 +578,13 @@ void updateTargetTemperature()
     {
       startCounter = 0;
     }
-    rampUpStartTime = millis();
+    rampUpStartTime = microseconds;
   }
   else
   {
     if (endTemp > startTemp)
     {
-      targetTemp = startTemp + (millis() - rampUpStartTime) * rampUpRate / MIN_TO_MILLIS;
+      targetTemp = startTemp + (microseconds - rampUpStartTime) * rampUpRate / MIN_TO_MICROS;
       if (targetTemp > endTemp)
       {
         targetTemp = endTemp;
@@ -592,7 +592,7 @@ void updateTargetTemperature()
     }
     else if (endTemp < startTemp)
     {
-      targetTemp = startTemp - (millis() - rampUpStartTime) * rampUpRate / MIN_TO_MILLIS;
+      targetTemp = startTemp - (microseconds - rampUpStartTime) * rampUpRate / MIN_TO_MICROS;
       if (targetTemp < endTemp)
       {
         targetTemp = endTemp;
@@ -602,8 +602,6 @@ void updateTargetTemperature()
     {
       targetTemp = endTemp;
     }
-    // //! DEBUG: Ramp up has been disabled for PID tuning
-    // targetTemp = endTemp;
   }
 
   // Prevent the target temp from exceeding the maximum
@@ -660,12 +658,8 @@ void controlLoop()
   refPID.reset();
   sampPID.reset();
 
-  startCounter = 0;
-  endCounter = 0;
-  unsigned long startTime = micros();
-  rampUpStartTime = startTime;
-  holdStartTime = startTime;
-  static unsigned long latestTime = startTime;
+  startCounter = endCounter = 0;
+  static unsigned long startTime = rampUpStartTime = holdStartTime = microseconds = micros();
   bool controlLoopState = true;
   while (controlLoopState)
   {
@@ -675,7 +669,7 @@ void controlLoop()
     neopixel.show();
 
     // Record the time (convert to milliseconds)
-    elapsedTime = (latestTime - startTime) / 1000UL;
+    elapsedTime = (microseconds - startTime) / SEC_TO_MICROS;
 
     // Read the measurements from the sensors
     updateSensorData();
@@ -703,9 +697,9 @@ void controlLoop()
         {
           endCounter = 0;
         }
-        holdStartTime = millis();
+        holdStartTime = microseconds;
       }
-      else if ((millis() - holdStartTime) > (holdTime * 1000))
+      else if ((microseconds - holdStartTime) > (holdTime * SEC_TO_MICROS))
       {
         stopPID(green);
         controlLoopState = false;
@@ -738,12 +732,13 @@ void controlLoop()
       }
     }
 
-    while (micros() - latestTime < LOOP_INTERVAL)
+    while ((micros() - microseconds) < LOOP_INTERVAL)
       ; // busy wait
 
-    latestTime += LOOP_INTERVAL;
+    unsigned long prevMicroseconds = microseconds;
+    microseconds += LOOP_INTERVAL;
 
-    if (latestTime - startTime < 0)
+    if ((microseconds - startTime) < (prevMicroseconds - startTime))
     {
       // Time overflow error, experiment exceeded 70 minutes
       stopPID(red);
@@ -776,8 +771,7 @@ void standbyData()
   digitalWrite(Samp_Heater_PIN, LOW);
 
   // Set duty cycle to zero
-  refDutyCycle = 0;
-  sampDutyCycle = 0;
+  refDutyCycle = sampDutyCycle = 0;
 
   // Send data out via Serial bus
   sendData();
@@ -814,9 +808,9 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.27;
-  Ki = 0.02;
-  Kd = 0.85;
+  Kp = 0.40; // 0.27;
+  Ki = 0.03; // 0.02;
+  Kd = 1.00; // 0.85;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
@@ -862,8 +856,8 @@ void loop()
       // Received autotuner command
       neopixel.fill(blue);
       neopixel.show();
-      autotuneInProgress = true;
       // Run the PID autotuner
+      autotuneInProgress = true;
       autotunePID();
       autotuneInProgress = false;
       break;
