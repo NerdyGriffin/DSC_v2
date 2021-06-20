@@ -168,9 +168,15 @@ bool autotuneInProgress;
 // The mass (in grams) of each of the material samples
 double refMass = 1, sampMass = 1;
 
-// Debug variables used to override the control loop end conditions
-#define DEBUG_MODE false
-#define DEBUG_TIME_LIMIT 3600000
+/**
+ * Returns true if anything violates the safety limits
+ */
+bool checkSafetyLimits()
+{
+  bool exceededTempLimit = (refTemperature > MAX_TEMPERATURE) || (sampTemperature > MAX_TEMPERATURE);
+  // More complicated checks will be added in the future
+  return exceededTempLimit;
+}
 
 /**
  * Send the PID gain constants via the serial bus
