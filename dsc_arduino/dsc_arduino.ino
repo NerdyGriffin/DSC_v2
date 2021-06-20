@@ -240,13 +240,16 @@ void stopPID(uint32_t color)
   refPID.stop();
   sampPID.stop();
 
-  // Turn off the PWM Relay output
-  digitalWrite(Ref_Heater_PIN, LOW);
-  digitalWrite(Samp_Heater_PIN, LOW);
+  // Reset the target temp to the standby state
+  targetTemp = 20;
 
   // Set duty cycle to zero
   refDutyCycle = 0;
   sampDutyCycle = 0;
+
+  // Turn off the PWM Relay output
+  digitalWrite(Ref_Heater_PIN, LOW);
+  digitalWrite(Samp_Heater_PIN, LOW);
 
   neopixel.fill(color);
   neopixel.show();
@@ -281,7 +284,12 @@ void autotunePID()
   // Send the char 'a' to indicate the start of autotune
   Serial.println('a');
 
-  stopPID(blue);
+  // Stop PID calculations and reset internal PID calculation values
+  refPID.stop();
+  sampPID.stop();
+
+  // Set the target temperature for PID tuning
+  targetTemp = 120;
 
   PIDAutotuner tuner = PIDAutotuner();
 
@@ -290,7 +298,7 @@ void autotunePID()
   // the usual range of the setpoint. For low-inertia systems, values at the lower
   // end of this range usually give better results. For anything else, start with a
   // value at the middle of the range.
-  tuner.setTargetInputValue(120);
+  tuner.setTargetInputValue(targetTemp);
 
   // Set the loop interval in microseconds
   // This must be the same as the interval the PID control loop will run at
@@ -763,7 +771,13 @@ void standbyData()
   // Set standby target temp
   targetTemp = 20;
 
-  stopPID(black);
+  // Turn off the PWM Relay output
+  digitalWrite(Ref_Heater_PIN, LOW);
+  digitalWrite(Samp_Heater_PIN, LOW);
+
+  // Set duty cycle to zero
+  refDutyCycle = 0;
+  sampDutyCycle = 0;
 
   // Send data out via Serial bus
   sendData();
