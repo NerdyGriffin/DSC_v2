@@ -220,44 +220,57 @@ void refreshPID()
   {
     // Run the PID algorithm
     refPID.run();
-
-    if (refTemperature > MAX_TEMPERATURE)
-    {
-      neopixel.fill(yellow);
-      neopixel.show();
-      // Override the PID controller if the sample temp exceed the max temp
-      digitalWrite(Ref_Heater_PIN, LOW);
-      // Set duty cycle to zero
-      refDutyCycle = 0;
-    }
-    else
-    {
-      // Update the PWM Relay output
-      digitalWrite(Ref_Heater_PIN, refRelayState);
-      // Store the latest duty cycle
-      refDutyCycle = refPID.getPulseValue();
-    }
+    // Update the PWM Relay output
+    digitalWrite(Ref_Heater_PIN, refRelayState);
+    // Store the latest duty cycle
+    refDutyCycle = refPID.getPulseValue();
 
     // Run the PID algorithm
     sampPID.run();
-
-    if (sampTemperature > MAX_TEMPERATURE)
-    {
-      neopixel.fill(yellow);
-      neopixel.show();
-      // Override the PID controller if the sample temp exceed the max temp
-      digitalWrite(Samp_Heater_PIN, LOW);
-      // Set duty cycle to zero
-      sampDutyCycle = 0;
-    }
-    else
-    {
-      // Update the PWM Relay output
-      digitalWrite(Samp_Heater_PIN, sampRelayState);
-      // Store the latest duty cycle
-      sampDutyCycle = sampPID.getPulseValue();
-    }
+    // Update the PWM Relay output
+    digitalWrite(Samp_Heater_PIN, sampRelayState);
+    // Store the latest duty cycle
+    sampDutyCycle = sampPID.getPulseValue();
   }
+}
+
+void stopPID(uint32_t color)
+{
+  // Stop PID calculations and reset internal PID calculation values
+  refPID.stop();
+  sampPID.stop();
+
+  // Turn off the PWM Relay output
+  digitalWrite(Ref_Heater_PIN, LOW);
+  digitalWrite(Samp_Heater_PIN, LOW);
+
+  // Set duty cycle to zero
+  refDutyCycle = 0;
+  sampDutyCycle = 0;
+
+  neopixel.fill(color);
+  neopixel.show();
+
+  // Send the char 'x' to indicate that PID was stopped
+  Serial.println("x");
+}
+
+void endAutotune(PIDAutotuner *tuner, uint32_t color)
+{
+  stopPID(color);
+
+  // Force the tuner to stop on the next
+  tuner->setTuningCycles(1);
+
+  // Get PID gains - set your PID controller's gains to these
+  Kp = tuner->getKp();
+  Ki = tuner->getKi();
+  Kd = tuner->getKd();
+
+  // Send the old PID gain constants via the serial bus
+  sendPIDGains();
+
+  autotuneInProgress = false;
 }
 
 /**
