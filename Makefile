@@ -28,10 +28,10 @@ endif
 .PHONY: build build-debug-script program program-debug-script clean
 
 build:
-	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) $(DSC_ARDUINO_BASE)
+	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) --warnings all $(DSC_ARDUINO_BASE)
 
 build-debug-script:
-	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) $(DSC_DEBUG_BASE)
+	arduino-cli compile $(VERBOSE) -b $(BOARD_TYPE) --warnings all $(DSC_DEBUG_BASE)
 
 program: build
 	arduino-cli upload $(VERBOSE) -p $(SERIAL_PORT) --fqbn $(BOARD_TYPE) $(DSC_ARDUINO_BASE)
