@@ -70,9 +70,9 @@ unsigned long sensorValues[4];
 
 // PID settings and gains
 #define PULSE_WIDTH 100 // Pulse width in milliseconds
-double Kp = 4.14;
-double Ki = 3.67;
-double Kd = 3.62;
+double Kp = 0.36;
+double Ki = 0.03;
+double Kd = 1.09;
 #define BANG_RANGE 20
 // When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
 // is deactivated, and the output is set to max
@@ -814,9 +814,9 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.36;
-  Ki = 0.03;
-  Kd = 1.09;
+  Kp = 0.27;
+  Ki = 0.02;
+  Kd = 0.85;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
