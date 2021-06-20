@@ -315,8 +315,6 @@ void autotunePID()
   // safest option.
   tuner.setZNMode(PIDAutotuner::ZNModeBasicPID);
 
-  tuner.setTuningCycles(100);
-
   // This must be called immediately before the tuning loop
   // Must be called with the current time in microseconds
   tuner.startTuningLoop(micros());
@@ -343,6 +341,8 @@ void autotunePID()
 
     // Call tunePID() with the input value and current time in microseconds
     double output = tuner.tunePID(refTemperature, latestTime);
+    refDutyCycle = output;
+    sampDutyCycle = 0;
     digitalWrite(Ref_Heater_PIN, output);
     digitalWrite(Samp_Heater_PIN, LOW);
 
@@ -814,9 +814,9 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 4.46;
-  Ki = 4.03;
-  Kd = 3.43;
+  Kp = 0.36;
+  Ki = 0.03;
+  Kd = 1.09;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
