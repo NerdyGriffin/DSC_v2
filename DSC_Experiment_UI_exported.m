@@ -183,17 +183,17 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     PIDSection = 'PID Settings';
                     if ini.IsSections(PIDSection)
                         if ini.IsKeys(PIDSection,'Kp')
-                            app.Data.Kp = ...
+                            app.Data(1).Kp = ...
                                 ini.GetValues('PID Settings','Kp');
                         end
 
                         if ini.IsKeys(PIDSection,'Ki')
-                            app.Data.Ki = ...
+                            app.Data(1).Ki = ...
                                 ini.GetValues('PID Settings','Ki');
                         end
 
                         if ini.IsKeys(PIDSection,'Kd')
-                            app.Data.Kd = ...
+                            app.Data(1).Kd = ...
                                 ini.GetValues('PID Settings','Kd');
                         end
 
@@ -302,9 +302,9 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                             serialData = strip(readline(app.Arduino));
                             [parsedData, dataIsNum] = str2num(serialData);
                             if dataIsNum && length(parsedData) == 3
-                                app.Data.Kp = parsedData(1); %double(readline(app.Arduino));
-                                app.Data.Ki = parsedData(2); %double(readline(app.Arduino));
-                                app.Data.Kd = parsedData(3); %double(readline(app.Arduino));
+                                app.Data(1).Kp = parsedData(1); %double(readline(app.Arduino));
+                                app.Data(1).Ki = parsedData(2); %double(readline(app.Arduino));
+                                app.Data(1).Kd = parsedData(3); %double(readline(app.Arduino));
                             end
                             awaitResponse = false;
                         case 'x'
@@ -369,12 +369,12 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         end
 
         function receiveSerialData(app)
-            app.Data.startTemp = app.StartTempCEditField.Value;
-            app.Data.endTemp = app.EndTempCEditField.Value;
-            app.Data.rampUpRate = app.RateCminEditField.Value;
-            app.Data.holdTime = app.HoldTimesecEditField.Value;
+            app.Data(1).startTemp = app.StartTempCEditField.Value;
+            app.Data(1).endTemp = app.EndTempCEditField.Value;
+            app.Data(1).rampUpRate = app.RateCminEditField.Value;
+            app.Data(1).holdTime = app.HoldTimesecEditField.Value;
 
-            app.Data.startDateTime = datetime;
+            app.Data(1).startDateTime = datetime;
 
             if not(isfolder('autosave'))
                 mkdir('autosave');
@@ -382,16 +382,16 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             currentDataString = datestr(app.Data.startDateTime, 'yyyy-mm-dd-HHMM');
             matfileName = ['autosave/autoSaveData-',currentDataString,'.mat'];
 
-            app.Data.elapsedTime = zeros(1,app.PlotRefreshDelay);
-            app.Data.targetTemp = zeros(1,app.PlotRefreshDelay);
-            app.Data.refTemp = zeros(1,app.PlotRefreshDelay);
-            app.Data.sampTemp = zeros(1,app.PlotRefreshDelay);
-            app.Data.refCurrent = zeros(1,app.PlotRefreshDelay);
-            app.Data.sampCurrent = zeros(1,app.PlotRefreshDelay);
-            app.Data.refHeatFlow = zeros(1,app.PlotRefreshDelay);
-            app.Data.sampHeatFlow = zeros(1,app.PlotRefreshDelay);
-            app.Data.refDutyCycle = zeros(1,app.PlotRefreshDelay);
-            app.Data.sampDutyCycle = zeros(1,app.PlotRefreshDelay);
+            app.Data(1).elapsedTime = zeros(1,app.PlotRefreshDelay);
+            app.Data(1).targetTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data(1).refTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data(1).sampTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data(1).refCurrent = zeros(1,app.PlotRefreshDelay);
+            app.Data(1).sampCurrent = zeros(1,app.PlotRefreshDelay);
+            app.Data(1).refHeatFlow = zeros(1,app.PlotRefreshDelay);
+            app.Data(1).sampHeatFlow = zeros(1,app.PlotRefreshDelay);
+            app.Data(1).refDutyCycle = zeros(1,app.PlotRefreshDelay);
+            app.Data(1).sampDutyCycle = zeros(1,app.PlotRefreshDelay);
 
             dataLength = 0;
 
@@ -547,6 +547,11 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             app.SerialPortEditField.Value = '';
 
             initializeSerialPort(app);
+
+            % Initialize the struct to prevent errors
+            app.Data = struct('Kp', 0, 'Ki', 0, 'Kd', 0, ...
+                'startTemp', 0, 'endTemp', 0, 'rampUpRate', 0, ...
+                'holdTime', 0, 'startDateTime', datetime);
 
             % Create the animatedline objects
             app.TargetLine = animatedline(app.UIAxes, 'Color', 'black', ...
