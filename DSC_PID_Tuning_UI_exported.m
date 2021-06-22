@@ -221,22 +221,22 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     TempControlSection = 'Temperature Control';
                     if ini.IsSections(TempControlSection)
                         if ini.IsKeys(TempControlSection,'startTemp')
-                            app.Data(1).startTemp = ...
+                            app.Data.startTemp = ...
                                 ini.GetValues(TempControlSection,'startTemp');
                         end
 
                         if ini.IsKeys(TempControlSection,'endTemp')
-                            app.Data(1).endTemp = ...
+                            app.Data.endTemp = ...
                                 ini.GetValues(TempControlSection,'endTemp');
                         end
 
                         if ini.IsKeys(TempControlSection,'rampUpRate')
-                            app.Data(1).rampUpRate = ...
+                            app.Data.rampUpRate = ...
                                 ini.GetValues(TempControlSection,'rampUpRate');
                         end
 
                         if ini.IsKeys(TempControlSection,'holdTime')
-                            app.Data(1).holdTime = ...
+                            app.Data.holdTime = ...
                                 ini.GetValues(TempControlSection,'holdTime');
                         end
 
@@ -323,10 +323,10 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 receivePIDGains(app);
 
                 % Set the control parameters for PID tuning
-                app.Data(1).startTemp = 40;
-                app.Data(1).endTemp = 42;
-                app.Data(1).rampUpRate = 60000;
-                app.Data(1).holdTime = 0;
+                app.Data.startTemp = 30;
+                app.Data.endTemp = 120;
+                app.Data.rampUpRate = 20;
+                app.Data.holdTime = 0;
 
                 % Sync control parameters with arduino
                 sendControlParameters(app);
@@ -504,12 +504,13 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         case 'c'
                             readline(app.Arduino);
                             serialData = strip(readline(app.Arduino));
+                            disp(serialData)
                             [parsedData, dataIsNum] = str2num(serialData);
                             if dataIsNum && length(parsedData) == 4
-                                app.Data(1).startTemp = parsedData(1); %double(readline(app.Arduino));
-                                app.Data(1).endTemp = parsedData(2); %double(readline(app.Arduino));
-                                app.Data(1).rampUpRate = parsedData(3); %double(readline(app.Arduino));
-                                app.Data(1).holdTime = parsedData(4); %double(readline(app.Arduino));
+                                app.Data.startTemp = parsedData(1); %double(readline(app.Arduino));
+                                app.Data.endTemp = parsedData(2); %double(readline(app.Arduino));
+                                app.Data.rampUpRate = parsedData(3); %double(readline(app.Arduino));
+                                app.Data.holdTime = parsedData(4); %double(readline(app.Arduino));
                             end
                             awaitResponse = false;
                         case 'x'
@@ -525,11 +526,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function receiveSerialData(app)
-            app.Data(1).Kp = app.KpEditField.Value;
-            app.Data(1).Ki = app.KiEditField.Value;
-            app.Data(1).Kd = app.KdEditField.Value;
+            app.Data.Kp = app.KpEditField.Value;
+            app.Data.Ki = app.KiEditField.Value;
+            app.Data.Kd = app.KdEditField.Value;
 
-            app.Data(1).startDateTime = datetime;
+            app.Data.startDateTime = datetime;
 
             if not(isfolder('autosave'))
                 mkdir('autosave');
@@ -542,16 +543,16 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 matfileName = ['autosave/autoSaveData-',currentDataString,'.mat'];
             end
 
-            app.Data(1).elapsedTime = zeros(1,app.PlotRefreshDelay);
-            app.Data(1).targetTemp = zeros(1,app.PlotRefreshDelay);
-            app.Data(1).refTemp = zeros(1,app.PlotRefreshDelay);
-            app.Data(1).sampTemp = zeros(1,app.PlotRefreshDelay);
-            app.Data(1).refCurrent = zeros(1,app.PlotRefreshDelay);
-            app.Data(1).sampCurrent = zeros(1,app.PlotRefreshDelay);
-            app.Data(1).refHeatFlow = zeros(1,app.PlotRefreshDelay);
-            app.Data(1).sampHeatFlow = zeros(1,app.PlotRefreshDelay);
-            app.Data(1).refDutyCycle = zeros(1,app.PlotRefreshDelay);
-            app.Data(1).sampDutyCycle = zeros(1,app.PlotRefreshDelay);
+            app.Data.elapsedTime = zeros(1,app.PlotRefreshDelay);
+            app.Data.targetTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data.refTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data.refCurrent = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampCurrent = zeros(1,app.PlotRefreshDelay);
+            app.Data.refHeatFlow = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampHeatFlow = zeros(1,app.PlotRefreshDelay);
+            app.Data.refDutyCycle = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampDutyCycle = zeros(1,app.PlotRefreshDelay);
 
             dataLength = 0;
 
@@ -738,14 +739,14 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         % Code that executes after component creation
         function startupFcn(app)
-            app.SerialPortEditField.Value = '';
-
-            initializeSerialPort(app);
-
             % Initialize the struct to prevent errors
             app.Data = struct('Kp', 0, 'Ki', 0, 'Kd', 0, ...
                 'startTemp', 0, 'endTemp', 0, 'rampUpRate', 0, ...
                 'holdTime', 0, 'startDateTime', datetime);
+
+            app.SerialPortEditField.Value = '';
+
+            initializeSerialPort(app);
 
             % Create the animatedline objects
             app.BangOffLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
