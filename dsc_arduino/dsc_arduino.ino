@@ -317,7 +317,7 @@ void autotunePID()
   // Set it to either PIDAutotuner::ZNModeBasicPID, PIDAutotuner::ZNModeLessOvershoot,
   // or PIDAutotuner::ZNModeNoOvershoot. Defaults to ZNModeNoOvershoot as it is the
   // safest option.
-  tuner.setZNMode(PIDAutotuner::ZNModeBasicPID);
+  tuner.setZNMode(PIDAutotuner::ZNModeNoOvershoot);
 
   // This must be called immediately before the tuning loop
   // Must be called with the current time in microseconds
