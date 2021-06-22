@@ -140,7 +140,7 @@ double rampUpRate;
 double holdTime;
 
 #define MIN_TO_MICROS 60000000UL
-#define SEC_TO_MICROS 1000000UL
+#define SEC_TO_MICROS 1000000.0
 
 // tracks clock time in microseconds
 unsigned long microseconds, rampUpStartTime, holdStartTime;
