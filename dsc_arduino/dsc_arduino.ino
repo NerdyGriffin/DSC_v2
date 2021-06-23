@@ -133,7 +133,7 @@ const double idealHeatingCoilCurrent = (HEATING_COIL_VOLTAGE / HEATING_COIL_RESI
 
 // The number of the consecutive samples within the MINIMUM_ACCEPTABLE_ERROR
 // that are required before the program considers the target to be satisfied
-#define TARGET_COUNTER_THRESHOLD 100UL // Default: 200
+#define TARGET_COUNTER_THRESHOLD 100 // Default: 100
 
 // target temperature and temp control parameters
 double targetTemp;
@@ -148,7 +148,8 @@ double holdTime;
 // tracks clock time in microseconds
 unsigned long microseconds, rampUpStartTime, holdStartTime;
 
-unsigned long standbyCounter, startCounter, endCounter;
+unsigned long standbyCounter;
+int startCounter, endCounter;
 
 // global variables for holding temperature and current sensor readings
 double elapsedTime; // Time in seconds
@@ -590,6 +591,8 @@ void updateTargetTemperature()
     rampUpStartTime = microseconds;
     if (startCounter == TARGET_COUNTER_THRESHOLD)
     {
+      // Reset the PID when transitioning from constant target temperature to
+      // ramp-up heating
       refPID.reset();
       sampPID.reset();
     }
