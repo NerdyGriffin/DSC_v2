@@ -11,6 +11,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         SetSerialPortButton           matlab.ui.control.Button
         PIDParametersPanel            matlab.ui.container.Panel
         GridLayout7                   matlab.ui.container.GridLayout
+        PIDAutotunerButton            matlab.ui.control.Button
+        AutomatedKdSweepButton        matlab.ui.control.Button
+        AutomatedKiSweepButton        matlab.ui.control.Button
+        AbortSweepButton              matlab.ui.control.Button
+        AutomatedKpSweepButton        matlab.ui.control.Button
         KdEditField                   matlab.ui.control.NumericEditField
         KdEditFieldLabel              matlab.ui.control.Label
         KiEditField                   matlab.ui.control.NumericEditField
@@ -98,13 +103,79 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         % the plots
         PlotRefreshDelay = 10;
 
-        StartTemp
-        EndTemp
-        RampUpRate
-        HoldTime
+        Data struct
+
+        SharedProgressDlg matlab.ui.dialog.ProgressDialog
+
+        AutomatedTestIsRunning
+        PIDAutotunerIsRunning
     end
 
     methods (Access = public)
+
+        function updateProgressDlg(app, message)
+            if isvalid(app.SharedProgressDlg)
+                app.SharedProgressDlg.Message = message;
+            else
+                % Create and display the progress bar
+                app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino', ...
+                    'Message',message,'Indeterminate','on');
+            end
+            drawnow
+        end
+
+        function initializeSerialPort(app)
+            % Get the list of available serial ports
+            app.SerialPortList = serialportlist("available");
+            disp('Available serial ports:')
+            disp(app.SerialPortList)
+            app.StartExperimentButton.Enable = 'off';
+
+            if (isempty(app.SerialPortList))
+                % Display a warning if no serial ports found
+                message = 'No available serial ports were found. Make sure the arduino device is plugged into this computer via USB, and that it is not in use by another program (such as Arduino IDE).';
+                uialert(app.UIFigure,message,'No Serial Device');
+            else
+                if (isempty(app.SerialPortEditField.Value))
+                    % Set the default serial port to the last port in the list
+                    app.SerialPortEditField.Value = app.SerialPortList(end);
+                end
+
+                if ~any(contains(app.SerialPortList, app.SerialPortEditField.Value))
+                    message = sprintf("%s is not in the list of available serial ports", app.SerialPortEditField.Value);
+                    uialert(app.UIFigure,message,'Invalid Serial Port')
+                else
+                    app.SerialPort = app.SerialPortEditField.Value;
+
+                    if exist(app.Arduino,"var") && isvalid(app.Arduino)
+                        delele(app.Arduino)
+                    end
+                    % Create an serial port object where you specify the USB port
+                    % (look in Arduino->tools -> port and the baud rate (9600)
+                    app.Arduino = serialport(app.SerialPort, 9600);
+
+                    % Create and display the progress bar
+                    updateProgressDlg(app, 'Awaiting response from Arduino...');
+
+                    if isempty(readline(app.Arduino))
+                        message = sprintf("There was no response from the device on '%s'. Make sure that this is the correct serial port, and that the 'dsc_arduino' sketch has been upload onto the Arduino.", app.SerialPort);
+                        uialert(app.UIFigure,message,'Failed to communicate with Arduino');
+                    else
+                        % Request the temperature control parameters from the arduino
+                        flush(app.Arduino);
+                        write(app.Arduino, 'i', 'char');
+                        receivePIDGains(app);
+                        receiveControlParameters(app);
+                        app.StartExperimentButton.Enable = 'on';
+                    end
+
+                    % Close the progress bar
+                    if isvalid(app.SharedProgressDlg)
+                        close(app.SharedProgressDlg)
+                    end
+                end
+            end
+        end
 
         function configLoadStatus = loadConfigFile(app)
             %   Load control parameters from a .ini file
@@ -122,6 +193,10 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     return
 
                 otherwise
+                    % Create and display the progress bar
+                    updateProgressDlg(app, 'Loading config file...');
+                    app.SharedProgressDlg.Title = 'Loading Config';
+
                     % Create fully-formed filename as a string
                     configFullPath = fullfile(configFilePath, configFileName);
 
@@ -131,24 +206,31 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     PIDSection = 'PID Settings';
                     if ini.IsSections(PIDSection)
                         if ini.IsKeys(PIDSection,'Kp')
-                            app.KpEditField.Value = ...
+                            app.Data.Kp = ...
                                 ini.GetValues('PID Settings','Kp');
+                            app.KpEditField.Value = app.Data.Kp;
                         end
 
                         if ini.IsKeys(PIDSection,'Ki')
-                            app.KiEditField.Value = ...
+                            app.Data.Ki = ...
                                 ini.GetValues('PID Settings','Ki');
+                            app.KiEditField.Value = app.Data.Ki;
                         end
 
                         if ini.IsKeys(PIDSection,'Kd')
-                            app.KdEditField.Value = ...
+                            app.Data.Kd = ...
                                 ini.GetValues('PID Settings','Kd');
+                            app.KdEditField.Value = app.Data.Kd;
                         end
 
                     else
+                        % Close the progress bar
+                        if isvalid(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg)
+                        end
+
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", PIDSection);
-                        warndlg(warningMessage)
-                        warning("The selected .ini file does not contain a [%s] section", PIDSection)
+                        uialert(app.UIFigure,warningMessage,'Invalid File');
                         configLoadStatus = false;
                         return
                     end
@@ -156,36 +238,225 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     TempControlSection = 'Temperature Control';
                     if ini.IsSections(TempControlSection)
                         if ini.IsKeys(TempControlSection,'startTemp')
-                            app.StartTemp = ...
+                            app.Data.startTemp = ...
                                 ini.GetValues(TempControlSection,'startTemp');
                         end
 
                         if ini.IsKeys(TempControlSection,'endTemp')
-                            app.EndTemp = ...
+                            app.Data.endTemp = ...
                                 ini.GetValues(TempControlSection,'endTemp');
                         end
 
                         if ini.IsKeys(TempControlSection,'rampUpRate')
-                            app.RampUpRate = ...
+                            app.Data.rampUpRate = ...
                                 ini.GetValues(TempControlSection,'rampUpRate');
                         end
 
                         if ini.IsKeys(TempControlSection,'holdTime')
-                            app.HoldTime = ...
+                            app.Data.holdTime = ...
                                 ini.GetValues(TempControlSection,'holdTime');
                         end
 
                     else
+                        % Close the progress bar
+                        if isvalid(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg)
+                        end
+
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", TempControlSection);
-                        warndlg(warningMessage)
-                        warning("The selected .ini file does not contain a [%s] section", TempControlSection)
+                        uialert(app.UIFigure,warningMessage,'Invalid File');
                         configLoadStatus = false;
                         return
                     end
             end
+
+            % Close the progress bar
+            if isvalid(app.SharedProgressDlg)
+                close(app.SharedProgressDlg)
+            end
+        end
+
+        function automatedPIDSweep(app, sweepType)
+            app.AbortSweepButton.Enable = 'on';
+            app.AutomatedKpSweepButton.Enable = 'off';
+            app.AutomatedKiSweepButton.Enable = 'off';
+            app.AutomatedKdSweepButton.Enable = 'off';
+            app.ApplyPIDParametersButton.Enable = 'off';
+            app.LoadConfigFileButton.Enable = 'off';
+            app.StartExperimentButton.Enable = 'off';
+
+            Kp = app.KpEditField.Value;
+            Ki = app.KiEditField.Value;
+            Kd = app.KdEditField.Value;
+
+            switch sweepType
+                case 'P'
+                    sweepVal = Kp;
+                case 'I'
+                    sweepVal = Ki;
+                case 'D'
+                    sweepVal = Kd;
+                otherwise
+                    message = sprintf("Invalid sweepType: '%s'\nPlease report this bug to the developer.", sweepType);
+                    uialert(app.UIFigure,message,'Internal Error');
+                    app.AutomatedTestIsRunning = false;
+                    return
+            end
+
+            n = floor(log10(sweepVal));
+            if n < -1
+                kMin = 1e-2;
+                kStep = 1e-2;
+                kMax = 1e-1;
+            else
+                kMin = (10^n);
+                kStep = (10^(n-1));
+                kMax = (10^(n+1));
+
+            end
+
+            app.AutomatedTestIsRunning = true;
+            for kVar = kMin:kStep:kMax
+                switch sweepType
+                    case 'P'
+                        Kp = kVar;
+                    case 'I'
+                        Ki = kVar;
+                    case 'D'
+                        Kd = kVar;
+                    otherwise
+                        message = sprintf("Invalid sweepType: '%s'\nPlease report this bug to the developer.", sweepType);
+                        uialert(app.UIFigure,message,'Internal Error');
+                        app.AutomatedTestIsRunning = false;
+                        return
+                end
+
+                % Set the PID gain values for the next trial
+                app.KpEditField.Value = Kp;
+                app.KiEditField.Value = Ki;
+                app.KdEditField.Value = Kd;
+
+                % Create and display the progress bar
+                updateProgressDlg(app, 'Awaiting response from Arduino...');
+
+                % Sync PID gains with Arduino
+                sendPIDGains(app);
+                receivePIDGains(app);
+
+                % Set the control parameters for PID tuning
+                app.Data.startTemp = 30;
+                app.Data.endTemp = 120;
+                app.Data.rampUpRate = 20;
+                app.Data.holdTime = 0;
+
+                % Sync control parameters with arduino
+                sendControlParameters(app);
+                receiveControlParameters(app);
+
+                % Close the progress bar
+                if isvalid(app.SharedProgressDlg)
+                    close(app.SharedProgressDlg)
+                end
+
+                % Start the experiment
+                startExperiment(app);
+
+                if ~app.AutomatedTestIsRunning
+                    app.AutomatedTestIsRunning = false;
+                    break
+                end
+
+                pauseDuration = 5*60; % Duration in minutes
+                d = uiprogressdlg(app.UIFigure,'Title','Please Wait while the samples cool to room temperature.', ...
+                    'Message','Time remaining: ','Cancelable','on');
+                drawnow
+
+                tStart = tic;
+                pause(0.5)
+                tProgress = toc(tStart);
+                while tProgress < pauseDuration
+                    % Check for Cancel button press
+                    if d.CancelRequested
+                        app.AutomatedTestIsRunning = false;
+                        break
+                    end
+                    % Update the progress bar, report time remaining
+                    d.Value = tProgress/pauseDuration;
+                    d.Message = sprintf("Time remaining: %s (approximate).", datestr(seconds(pauseDuration-tProgress),'HH:MM:SS'));
+                    pause(0.5);
+                    tProgress = toc(tStart);
+                end
+
+                % Close dialog box
+                close(d)
+
+                if ~app.AutomatedTestIsRunning
+                    app.AutomatedTestIsRunning = false;
+                    break
+                end
+            end
+
+            app.AutomatedKpSweepButton.Enable = 'on';
+            app.AutomatedKiSweepButton.Enable = 'on';
+            app.AutomatedKdSweepButton.Enable = 'on';
+            app.AbortSweepButton.Enable = 'off';
+            app.AutomatedTestIsRunning = false;
+        end
+
+        function startPIDAutotuner(app)
+            flush(app.Arduino);
+            write(app.Arduino, 'a', 'char');
+
+            awaitStart = true;
+            while awaitStart
+                serialData = strip(readline(app.Arduino));
+                if strlength(serialData) == 1
+                    switch strip(serialData)
+                        case 'a'
+                            app.PIDAutotunerIsRunning = true;
+                            setRunningUI(app);
+                            receiveSerialData(app);
+                            awaitStart = false;
+                        case 'x'
+                            setIdleUI(app);
+                            disp('Received end signal')
+                            awaitStart = false;
+                        otherwise
+                            disp('Unrecognized data flag while awaiting start response:')
+                            disp(serialData);
+                    end
+                end
+            end
+        end
+
+        function startExperiment(app)
+            flush(app.Arduino);
+            write(app.Arduino, 's', 'char');
+
+            awaitStart = true;
+            while awaitStart
+                serialData = strip(readline(app.Arduino));
+                if strlength(serialData) == 1
+                    switch strip(serialData)
+                        case 's'
+                            setRunningUI(app);
+                            receiveSerialData(app);
+                            awaitStart = false;
+                        case 'x'
+                            setIdleUI(app);
+                            disp('Received end signal')
+                            awaitStart = false;
+                        otherwise
+                            disp('Unrecognized data flag while awaiting start response:')
+                            disp(serialData);
+                    end
+                end
+            end
         end
 
         function sendPIDGains(app)
+            updateProgressDlg(app, 'Sending PID Gains to Arduino...');
+
             % Send the PID gain constants via the serial bus
             flush(app.Arduino);
             write(app.Arduino, 'p', 'char');
@@ -199,6 +470,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         function receivePIDGains(app)
             % Receive the PID gain constants via the serial bus
+            updateProgressDlg(app, 'Receiving PID Gains from Arduino...');
             awaitResponse = true;
             while awaitResponse
                 serialData = strip(readline(app.Arduino));
@@ -207,6 +479,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         case 'k'
                             readline(app.Arduino);
                             serialData = strip(readline(app.Arduino));
+                            disp(serialData)
                             [parsedData, dataIsNum] = str2num(serialData);
                             if dataIsNum && length(parsedData) == 3
                                 app.KpEditField.Value = parsedData(1); %double(readline(app.Arduino));
@@ -227,19 +500,22 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function sendControlParameters(app)
+            updateProgressDlg(app, 'Sending temperature control parameters to Arduino...');
+
             flush(app.Arduino);
             write(app.Arduino, 'l', 'char');
 
-            write(app.Arduino, string(app.StartTemp), 'string');
+            write(app.Arduino, string(app.Data.startTemp), 'string');
             write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.EndTemp), 'string');
+            write(app.Arduino, string(app.Data.endTemp), 'string');
             write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.RampUpRate), 'string');
+            write(app.Arduino, string(app.Data.rampUpRate), 'string');
             write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.HoldTime), 'string');
+            write(app.Arduino, string(app.Data.holdTime), 'string');
         end
 
         function receiveControlParameters(app)
+            updateProgressDlg(app, 'Receiving temperature control parameters from Arduino...');
             awaitResponse = true;
             while awaitResponse
                 serialData = strip(readline(app.Arduino));
@@ -248,14 +524,14 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         case 'c'
                             readline(app.Arduino);
                             serialData = strip(readline(app.Arduino));
+                            disp(serialData)
                             [parsedData, dataIsNum] = str2num(serialData);
                             if dataIsNum && length(parsedData) == 4
-                                app.StartTemp = parsedData(1); %double(readline(app.Arduino));
-                                app.EndTemp = parsedData(2); %double(readline(app.Arduino));
-                                app.RampUpRate = parsedData(3); %double(readline(app.Arduino));
-                                app.HoldTime = parsedData(4); %double(readline(app.Arduino));
+                                app.Data.startTemp = parsedData(1); %double(readline(app.Arduino));
+                                app.Data.endTemp = parsedData(2); %double(readline(app.Arduino));
+                                app.Data.rampUpRate = parsedData(3); %double(readline(app.Arduino));
+                                app.Data.holdTime = parsedData(4); %double(readline(app.Arduino));
                             end
-
                             awaitResponse = false;
                         case 'x'
                             setIdleUI(app);
@@ -270,22 +546,28 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function receiveSerialData(app)
-            startDateTime = datetime;
+            updateProgressDlg(app, 'Awaiting initial data...');
+
+            app.Data.Kp = app.KpEditField.Value;
+            app.Data.Ki = app.KiEditField.Value;
+            app.Data.Kd = app.KdEditField.Value;
+
+            app.Data.startDateTime = datetime;
+
             if not(isfolder('autosave'))
                 mkdir('autosave');
             end
-            matfileName = ['autosave/autoSaveData-',datestr(startDateTime, 'yyyy-mm-dd-HHMM'),'.mat'];
 
-            elapsedTime = zeros(1,app.PlotRefreshDelay);
-            targetTemp = zeros(1,app.PlotRefreshDelay);
-            refTemp = zeros(1,app.PlotRefreshDelay);
-            sampTemp = zeros(1,app.PlotRefreshDelay);
-            refCurrent = zeros(1,app.PlotRefreshDelay);
-            sampCurrent = zeros(1,app.PlotRefreshDelay);
-            refHeatFlow = zeros(1,app.PlotRefreshDelay);
-            sampHeatFlow = zeros(1,app.PlotRefreshDelay);
-            refDutyCycle = zeros(1,app.PlotRefreshDelay);
-            sampDutyCycle = zeros(1,app.PlotRefreshDelay);
+            app.Data.elapsedTime = zeros(1,app.PlotRefreshDelay);
+            app.Data.targetTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data.refTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data.refCurrent = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampCurrent = zeros(1,app.PlotRefreshDelay);
+            app.Data.refHeatFlow = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampHeatFlow = zeros(1,app.PlotRefreshDelay);
+            app.Data.refDutyCycle = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampDutyCycle = zeros(1,app.PlotRefreshDelay);
 
             dataLength = 0;
 
@@ -297,6 +579,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         case 'x'
                             experimentIsRunning = false;
                             disp('Received end signal')
+                            updateProgressDlg(app, 'Awaiting response from Arduino...');
+                            receivePIDGains(app);
+                            receiveControlParameters(app);
                         otherwise
                             disp('Unrecognized data flag while awaiting data:')
                             disp(serialData)
@@ -305,33 +590,38 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     [parsedData, dataIsNum] = str2num(serialData);
                     if dataIsNum && length(parsedData) == 10
                         dataLength = dataLength + 1;
-                        elapsedTime(dataLength) = parsedData(1); %str2double(parsedData{1});
-                        targetTemp(dataLength) = parsedData(2); %str2double(parsedData{2});
-                        refTemp(dataLength) = parsedData(3); %str2double(parsedData{3});
-                        sampTemp(dataLength) = parsedData(4); %str2double(parsedData{4});
-                        refCurrent(dataLength) = parsedData(5); %str2double(parsedData{5});
-                        sampCurrent(dataLength) = parsedData(6); %str2double(parsedData{6});
-                        refHeatFlow(dataLength) = parsedData(7); %str2double(parsedData{7});
-                        sampHeatFlow(dataLength) = parsedData(8); %str2double(parsedData{8});
-                        refDutyCycle(dataLength) = parsedData(9); %str2double(parsedData{9});
-                        sampDutyCycle(dataLength) = parsedData(10); %str2double(parsedData{10});
+                        app.Data.elapsedTime(dataLength) = parsedData(1);
+                        app.Data.targetTemp(dataLength) = parsedData(2);
+                        app.Data.refTemp(dataLength) = parsedData(3);
+                        app.Data.sampTemp(dataLength) = parsedData(4);
+                        app.Data.refCurrent(dataLength) = parsedData(5);
+                        app.Data.sampCurrent(dataLength) = parsedData(6);
+                        app.Data.refHeatFlow(dataLength) = parsedData(7);
+                        app.Data.sampHeatFlow(dataLength) = parsedData(8);
+                        app.Data.refDutyCycle(dataLength) = parsedData(9);
+                        app.Data.sampDutyCycle(dataLength) = parsedData(10);
 
                         if ~mod(dataLength, app.DataRefreshDelay)
                             updateLiveData(app, ...
-                                elapsedTime(dataLength), ...
-                                targetTemp(dataLength), ...
-                                refTemp(dataLength), ...
-                                sampTemp(dataLength), ...
-                                refCurrent(dataLength), ...
-                                sampCurrent(dataLength), ...
-                                refDutyCycle(dataLength), ...
-                                sampDutyCycle(dataLength));
+                                app.Data.elapsedTime(dataLength), ...
+                                app.Data.targetTemp(dataLength), ...
+                                app.Data.refTemp(dataLength), ...
+                                app.Data.sampTemp(dataLength), ...
+                                app.Data.refCurrent(dataLength), ...
+                                app.Data.sampCurrent(dataLength), ...
+                                app.Data.refDutyCycle(dataLength), ...
+                                app.Data.sampDutyCycle(dataLength));
                         end
 
                         if ~mod(dataLength, app.PlotRefreshDelay)
-                            refreshLivePlot(app, elapsedTime,...
-                                targetTemp, refTemp, sampTemp,...
-                                refDutyCycle, sampDutyCycle);
+                            refreshLivePlot(app, ...
+                                app.Data.elapsedTime, app.Data.targetTemp, ...
+                                app.Data.refTemp, app.Data.sampTemp, ...
+                                app.Data.refDutyCycle, app.Data.sampDutyCycle);
+                            % Close the progress bar
+                            if isvalid(app.SharedProgressDlg)
+                                close(app.SharedProgressDlg)
+                            end
                         end
                     else
                         disp(parsedData)
@@ -339,30 +629,60 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 end
             end
 
-            save(matfileName, 'startDateTime', 'elapsedTime', 'targetTemp', ...
-                'refTemp', 'sampTemp', ...
-                'refCurrent', 'sampCurrent', ...
-                'refHeatFlow', 'sampHeatFlow', ...
-                'refDutyCycle', 'sampDutyCycle', 'dataLength')
-            if isfile(matfileName)
-                fprintf("Autosave file created: './%s'\n", matfileName)
+            app.Data.dataLength = dataLength;
+
+            if app.PIDAutotunerIsRunning
+                % Recieve the PID gains which are sent automatically after
+                % the autotuner is complete.
+                disp('PID Autotuner results:')
+                receivePIDGains(app);
+                app.PIDAutotunerIsRunning = false;
+                % This also updates the app.Data struct so that the new
+                % PID gains will be included in the autosave file.
             end
 
-            updateLiveData(app, ...
-                elapsedTime(dataLength), ...
-                targetTemp(dataLength), ...
-                refTemp(dataLength), ...
-                sampTemp(dataLength), ...
-                refCurrent(dataLength), ...
-                sampCurrent(dataLength), ...
-                refDutyCycle(dataLength), ...
-                sampDutyCycle(dataLength));
+            % Close the progress bar
+            if isvalid(app.SharedProgressDlg)
+                close(app.SharedProgressDlg)
+            end
+            
+            saveData(app, app.Data);
 
-            refreshLivePlot(app, elapsedTime, targetTemp,...
-                refTemp, sampTemp,...
-                refDutyCycle, sampDutyCycle);
+            updateLiveData(app, ...
+                app.Data.elapsedTime(dataLength), ...
+                app.Data.targetTemp(dataLength), ...
+                app.Data.refTemp(dataLength), ...
+                app.Data.sampTemp(dataLength), ...
+                app.Data.refCurrent(dataLength), ...
+                app.Data.sampCurrent(dataLength), ...
+                app.Data.refDutyCycle(dataLength), ...
+                app.Data.sampDutyCycle(dataLength));
+
+            refreshLivePlot(app, app.Data.elapsedTime, app.Data.targetTemp, ...
+                app.Data.refTemp, app.Data.sampTemp, ...
+                app.Data.refDutyCycle, app.Data.sampDutyCycle);
 
             setIdleUI(app);
+        end
+        
+        function saveData(app, saveData)
+            formatSpec = '%.2f';
+            Kp_str = strrep(num2str(saveData.Kp,formatSpec), '.', 'P');
+            Ki_str = strrep(num2str(saveData.Ki,formatSpec), '.', 'I');
+            Kd_str = strrep(num2str(saveData.Kd,formatSpec), '.', 'D');
+            
+            date_str = datestr(saveData.startDateTime, 'yyyy-mm-dd-HHMM');
+            
+            matfileName = ['autosave/autoSavePIDData-', ...
+                Kp_str,'-',Ki_str,'-',Kd_str,'-',date_str,'.mat'];
+
+            save(matfileName,'-struct','saveData')
+            if isfile(matfileName)
+                beep
+                message = sprintf("Save file created: '%s'\n", matfileName);
+                disp(message)
+                uialert(app.UIFigure,message,'Data Saved Successfully','Icon','success');
+            end
         end
 
         function setRunningUI(app)
@@ -373,6 +693,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.KpEditField.Editable = 'off';
             app.KiEditField.Editable = 'off';
             app.KdEditField.Editable = 'off';
+            app.AutomatedKpSweepButton.Enable = 'off';
+            app.AutomatedKiSweepButton.Enable = 'off';
+            app.AutomatedKdSweepButton.Enable = 'off';
+            app.AbortSweepButton.Enable = 'off';
+            app.PIDAutotunerButton.Enable = 'off';
             app.SetSerialPortButton.Enable = 'off';
             app.SerialPortEditField.Editable = 'off';
         end
@@ -385,6 +710,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.KpEditField.Editable = 'on';
             app.KiEditField.Editable = 'on';
             app.KdEditField.Editable = 'on';
+            app.AutomatedKpSweepButton.Enable = 'on';
+            app.AutomatedKiSweepButton.Enable = 'on';
+            app.AutomatedKdSweepButton.Enable = 'on';
+            app.AbortSweepButton.Enable = 'off';
+            app.PIDAutotunerButton.Enable = 'on';
             app.SetSerialPortButton.Enable = 'on';
             app.SerialPortEditField.Editable = 'on';
         end
@@ -395,7 +725,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             drawnow limitrate nocallbacks
 
             % Convert from milliseconds to seconds
-            app.ElapsedTimesecEditField.Value = elapsedTime / 1000;
+            app.ElapsedTimesecEditField.Value = elapsedTime;
 
             app.TargetTempCEditField.Value = targetTemp;
 
@@ -410,12 +740,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             drawnow limitrate
         end
 
-        function refreshLivePlot(app, elapsedTimeArray,...
-                targetTempArray, refTempArray, sampTempArray,...
+        function refreshLivePlot(app, elapsedTimeArray, ...
+                targetTempArray, refTempArray, sampTempArray, ...
                 refDutyCycleArray, sampDutyCycleArray)
-
-            % Convert from milliseconds to seconds
-            timeInSeconds = elapsedTimeArray ./ 1000;
 
             drawnow limitrate nocallbacks
 
@@ -432,20 +759,20 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % When the temperature is less than {TargetTemp - BANG_RANGE},
             % the PID control is deactivated, and the output is set to max
-            BANG_RANGE = 10;
+            BANG_RANGE = 20;
             MINIMUM_ACCEPTABLE_ERROR = 5;
 
             % Update the plots
-            addpoints(app.BangOffLine, timeInSeconds, targetTempArray + BANG_RANGE)
-            addpoints(app.TargetMaxLine, timeInSeconds, targetTempArray + MINIMUM_ACCEPTABLE_ERROR)
-            addpoints(app.TargetLine, timeInSeconds, targetTempArray)
-            addpoints(app.TargetMinLine, timeInSeconds, targetTempArray - MINIMUM_ACCEPTABLE_ERROR)
-            addpoints(app.BangOnLine, timeInSeconds, targetTempArray - BANG_RANGE)
-            addpoints(app.RefSampleLine, timeInSeconds, refTempArray)
-            addpoints(app.TestSampleLine, timeInSeconds, sampTempArray)
+            addpoints(app.BangOffLine, elapsedTimeArray, targetTempArray + BANG_RANGE)
+            addpoints(app.TargetMaxLine, elapsedTimeArray, targetTempArray + MINIMUM_ACCEPTABLE_ERROR)
+            addpoints(app.TargetLine, elapsedTimeArray, targetTempArray)
+            addpoints(app.TargetMinLine, elapsedTimeArray, targetTempArray - MINIMUM_ACCEPTABLE_ERROR)
+            addpoints(app.BangOnLine, elapsedTimeArray, targetTempArray - BANG_RANGE)
+            addpoints(app.RefSampleLine, elapsedTimeArray, refTempArray)
+            addpoints(app.TestSampleLine, elapsedTimeArray, sampTempArray)
 
-            addpoints(app.RefDutyCycleLine, timeInSeconds, refDutyCycleArray)
-            addpoints(app.SampDutyCycleLine, timeInSeconds, sampDutyCycleArray)
+            addpoints(app.RefDutyCycleLine, elapsedTimeArray, refDutyCycleArray)
+            addpoints(app.SampDutyCycleLine, elapsedTimeArray, sampDutyCycleArray)
 
             legend(app.UIAxes, 'Location', 'best')
 
@@ -463,50 +790,35 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         % Code that executes after component creation
         function startupFcn(app)
-            % Get the list of available serial ports
-            app.SerialPortList = serialportlist("available");
+            % Initialize the struct to prevent errors
+            app.Data = struct('Kp', 0, 'Ki', 0, 'Kd', 0, ...
+                'startTemp', 0, 'endTemp', 0, 'rampUpRate', 0, ...
+                'holdTime', 0, 'startDateTime', datetime);
 
-            if (isempty(app.SerialPortList))
-                % Display a warning if no serial ports found
-                warndlg('No available serial ports were found. Make sure the arduino device is plugged into this computer via USB')
-            else
-                % Set the default serial port to the last port in the list
-                app.SerialPort = app.SerialPortList(end);
+            app.SerialPortEditField.Value = '';
 
-                % Update the serial port edit field
-                app.SerialPortEditField.Value = app.SerialPort;
-
-                % Create an serial port object where you specify the USB port
-                % (look in Arduino->tools -> port and the baud rate (9600)
-                app.Arduino = serialport(app.SerialPort, 9600);
-
-                % Request the temperature control parameters from the arduino
-                flush(app.Arduino);
-                write(app.Arduino, 'i', 'char');
-                receivePIDGains(app);
-                receiveControlParameters(app);
-            end
+            initializeSerialPort(app);
 
             % Create the animatedline objects
             app.BangOffLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
-                'LineStyle', ':');
+                'LineStyle', '-.');
             app.TargetMaxLine = animatedline(app.UIAxes, 'Color', 'green', ...
-                'LineStyle', ':');
+                'LineStyle', '--');
             app.TargetLine = animatedline(app.UIAxes, 'Color', 'black', ...
                 'LineStyle', ':');
             app.TargetMinLine = animatedline(app.UIAxes, 'Color', 'green', ...
-                'LineStyle', ':');
-            app.BangOnLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
-                'LineStyle', ':');
-            app.RefSampleLine = animatedline(app.UIAxes, 'Color', 'blue', ...
                 'LineStyle', '--');
-            app.TestSampleLine = animatedline(app.UIAxes, 'Color', 'red', ...
+            app.BangOnLine = animatedline(app.UIAxes, 'Color', 'yellow', ...
                 'LineStyle', '-.');
+            app.RefSampleLine = animatedline(app.UIAxes, 'Color', 'blue', ...
+                'LineStyle', '-');
+            app.TestSampleLine = animatedline(app.UIAxes, 'Color', 'red', ...
+                'LineStyle', '-');
 
             app.RefDutyCycleLine = animatedline(app.UIAxes2, 'Color', 'blue', ...
-                'LineStyle', '--');
+                'LineStyle', '-');
             app.SampDutyCycleLine = animatedline(app.UIAxes2, 'Color', 'red', ...
-                'LineStyle', '-.');
+                'LineStyle', '-');
 
             % Create a legend for the temperature plot
             legend(app.UIAxes, 'PID Upper Bound', 'Target Upper Bound', ...
@@ -561,28 +873,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         function StartExperimentButtonPushed(app, event)
             app.StartExperimentButton.Enable = 'off';
 
-            flush(app.Arduino);
-            write(app.Arduino, 's', 'char');
-
-            awaitStart = true;
-            while awaitStart
-                serialData = strip(readline(app.Arduino));
-                if strlength(serialData) == 1
-                    switch strip(serialData)
-                        case 's'
-                            setRunningUI(app);
-                            receiveSerialData(app);
-                            awaitStart = false;
-                        case 'x'
-                            setIdleUI(app);
-                            disp('Received end signal')
-                            awaitStart = false;
-                        otherwise
-                            disp('Unrecognized data flag while awaiting start response:')
-                            disp(serialData);
-                    end
-                end
-            end
+            startExperiment(app);
         end
 
         % Button pushed function: StopExperimentButton
@@ -598,11 +889,19 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             loadConfigFile(app);
 
+            % Create and display the progress bar
+            updateProgressDlg(app, 'Awaiting response from Arduino...');
+
             sendPIDGains(app);
             receivePIDGains(app);
 
             sendControlParameters(app);
             receiveControlParameters(app);
+
+            % Close the progress bar
+            if isvalid(app.SharedProgressDlg)
+                close(app.SharedProgressDlg)
+            end
 
             app.LoadConfigFileButton.Enable = 'on';
         end
@@ -611,11 +910,19 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         function ApplyPIDParametersButtonPushed(app, event)
             app.ApplyPIDParametersButton.Enable = 'off';
 
+            % Create and display the progress bar
+            updateProgressDlg(app, 'Awaiting response from Arduino...');
+
             sendPIDGains(app);
             receivePIDGains(app);
 
             sendControlParameters(app);
             receiveControlParameters(app);
+
+            % Close the progress bar
+            if isvalid(app.SharedProgressDlg)
+                close(app.SharedProgressDlg)
+            end
 
             app.ApplyPIDParametersButton.Enable = 'on';
         end
@@ -624,27 +931,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         function SetSerialPortButtonPushed(app, event)
             app.SetSerialPortButton.Enable = 'off';
 
-            delete(app.Arduino);
-
-            % Get the list of available serial ports
-            app.SerialPortList = serialportlist("available");
-
-            if any(contains(app.SerialPortList, app.SerialPortEditField.Value))
-                app.SerialPort = app.SerialPortEditField.Value;
-
-                % Create an serial port object where you specify the USB port
-                % (look in Arduino->tools -> port and the baud rate (9600)
-                app.Arduino = serialport(app.SerialPort, 9600);
-
-                % Request the temperature control parameters from the arduino
-                write(app.Arduino, 'i', 'char');
-                receivePIDGains(app);
-                receiveControlParameters(app);
-            else
-                warndlg(sprintf("%s is not in the list of available serial ports", app.SerialPortEditField.Value));
-                disp(app.SerialPortList)
-                disp(app.SerialPortEditField.Value)
-            end
+            initializeSerialPort(app)
 
             app.SetSerialPortButton.Enable = 'on';
         end
@@ -652,6 +939,46 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         % Close request function: UIFigure
         function UIFigureCloseRequest(app, event)
             delete(app)
+        end
+
+        % Button pushed function: AutomatedKpSweepButton
+        function AutomatedKpSweepButtonPushed(app, event)
+            app.AutomatedKdSweepButton.Enable = 'off';
+
+            automatedPIDSweep(app, 'P');
+        end
+
+        % Button pushed function: AbortSweepButton
+        function AbortSweepButtonPushed(app, event)
+            app.AbortSweepButton.Enable = 'off';
+            app.StopExperimentButton.Enable = 'off';
+
+            app.AutomatedTestIsRunning = false;
+
+            write(app.Arduino, 'x', 'char');
+
+            app.AbortSweepButton.Enable = 'on';
+        end
+
+        % Button pushed function: AutomatedKiSweepButton
+        function AutomatedKiSweepButtonPushed(app, event)
+            app.AutomatedKdSweepButton.Enable = 'off';
+
+            automatedPIDSweep(app, 'I');
+        end
+
+        % Button pushed function: AutomatedKdSweepButton
+        function AutomatedKdSweepButtonPushed(app, event)
+            app.AutomatedKdSweepButton.Enable = 'off';
+
+            automatedPIDSweep(app, 'D');
+        end
+
+        % Button pushed function: PIDAutotunerButton
+        function PIDAutotunerButtonPushed(app, event)
+            app.PIDAutotunerButton.Enable = 'off';
+
+            startPIDAutotuner(app);
         end
     end
 
@@ -728,44 +1055,94 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % Create GridLayout7
             app.GridLayout7 = uigridlayout(app.PIDParametersPanel);
-            app.GridLayout7.ColumnWidth = {'2x', '1x'};
+            app.GridLayout7.ColumnWidth = {'1x', '1x', '1x'};
             app.GridLayout7.RowHeight = {'1x', '1x', '1x', '1x'};
 
             % Create KpEditFieldLabel
             app.KpEditFieldLabel = uilabel(app.GridLayout7);
             app.KpEditFieldLabel.HorizontalAlignment = 'right';
             app.KpEditFieldLabel.Layout.Row = 1;
-            app.KpEditFieldLabel.Layout.Column = 1;
+            app.KpEditFieldLabel.Layout.Column = 2;
             app.KpEditFieldLabel.Text = 'Kp';
 
             % Create KpEditField
             app.KpEditField = uieditfield(app.GridLayout7, 'numeric');
+            app.KpEditField.Limits = [0 Inf];
+            app.KpEditField.ValueDisplayFormat = '%.2f';
             app.KpEditField.Layout.Row = 1;
-            app.KpEditField.Layout.Column = 2;
+            app.KpEditField.Layout.Column = 3;
 
             % Create KiEditFieldLabel
             app.KiEditFieldLabel = uilabel(app.GridLayout7);
             app.KiEditFieldLabel.HorizontalAlignment = 'right';
             app.KiEditFieldLabel.Layout.Row = 2;
-            app.KiEditFieldLabel.Layout.Column = 1;
+            app.KiEditFieldLabel.Layout.Column = 2;
             app.KiEditFieldLabel.Text = 'Ki';
 
             % Create KiEditField
             app.KiEditField = uieditfield(app.GridLayout7, 'numeric');
+            app.KiEditField.Limits = [0 Inf];
+            app.KiEditField.ValueDisplayFormat = '%.2f';
             app.KiEditField.Layout.Row = 2;
-            app.KiEditField.Layout.Column = 2;
+            app.KiEditField.Layout.Column = 3;
 
             % Create KdEditFieldLabel
             app.KdEditFieldLabel = uilabel(app.GridLayout7);
             app.KdEditFieldLabel.HorizontalAlignment = 'right';
             app.KdEditFieldLabel.Layout.Row = 3;
-            app.KdEditFieldLabel.Layout.Column = 1;
+            app.KdEditFieldLabel.Layout.Column = 2;
             app.KdEditFieldLabel.Text = 'Kd';
 
             % Create KdEditField
             app.KdEditField = uieditfield(app.GridLayout7, 'numeric');
+            app.KdEditField.Limits = [0 Inf];
+            app.KdEditField.ValueDisplayFormat = '%.2f';
             app.KdEditField.Layout.Row = 3;
-            app.KdEditField.Layout.Column = 2;
+            app.KdEditField.Layout.Column = 3;
+
+            % Create AutomatedKpSweepButton
+            app.AutomatedKpSweepButton = uibutton(app.GridLayout7, 'push');
+            app.AutomatedKpSweepButton.ButtonPushedFcn = createCallbackFcn(app, @AutomatedKpSweepButtonPushed, true);
+            app.AutomatedKpSweepButton.WordWrap = 'on';
+            app.AutomatedKpSweepButton.BackgroundColor = [0.3922 0.8314 0.0745];
+            app.AutomatedKpSweepButton.Layout.Row = 1;
+            app.AutomatedKpSweepButton.Layout.Column = 1;
+            app.AutomatedKpSweepButton.Text = 'Automated Kp Sweep';
+
+            % Create AbortSweepButton
+            app.AbortSweepButton = uibutton(app.GridLayout7, 'push');
+            app.AbortSweepButton.ButtonPushedFcn = createCallbackFcn(app, @AbortSweepButtonPushed, true);
+            app.AbortSweepButton.WordWrap = 'on';
+            app.AbortSweepButton.BackgroundColor = [0.851 0.3255 0.098];
+            app.AbortSweepButton.Layout.Row = 4;
+            app.AbortSweepButton.Layout.Column = 1;
+            app.AbortSweepButton.Text = 'Abort Sweep';
+
+            % Create AutomatedKiSweepButton
+            app.AutomatedKiSweepButton = uibutton(app.GridLayout7, 'push');
+            app.AutomatedKiSweepButton.ButtonPushedFcn = createCallbackFcn(app, @AutomatedKiSweepButtonPushed, true);
+            app.AutomatedKiSweepButton.WordWrap = 'on';
+            app.AutomatedKiSweepButton.BackgroundColor = [0.3922 0.8314 0.0745];
+            app.AutomatedKiSweepButton.Layout.Row = 2;
+            app.AutomatedKiSweepButton.Layout.Column = 1;
+            app.AutomatedKiSweepButton.Text = 'Automated Ki Sweep';
+
+            % Create AutomatedKdSweepButton
+            app.AutomatedKdSweepButton = uibutton(app.GridLayout7, 'push');
+            app.AutomatedKdSweepButton.ButtonPushedFcn = createCallbackFcn(app, @AutomatedKdSweepButtonPushed, true);
+            app.AutomatedKdSweepButton.WordWrap = 'on';
+            app.AutomatedKdSweepButton.BackgroundColor = [0.3922 0.8314 0.0745];
+            app.AutomatedKdSweepButton.Layout.Row = 3;
+            app.AutomatedKdSweepButton.Layout.Column = 1;
+            app.AutomatedKdSweepButton.Text = 'Automated Kd Sweep';
+
+            % Create PIDAutotunerButton
+            app.PIDAutotunerButton = uibutton(app.GridLayout7, 'push');
+            app.PIDAutotunerButton.ButtonPushedFcn = createCallbackFcn(app, @PIDAutotunerButtonPushed, true);
+            app.PIDAutotunerButton.BackgroundColor = [0 1 0];
+            app.PIDAutotunerButton.Layout.Row = 4;
+            app.PIDAutotunerButton.Layout.Column = [2 3];
+            app.PIDAutotunerButton.Text = 'PID Autotuner';
 
             % Create SetSerialPortButton
             app.SetSerialPortButton = uibutton(app.GridLayout2, 'push');
@@ -785,7 +1162,6 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.SerialPortEditField = uieditfield(app.GridLayout2, 'text');
             app.SerialPortEditField.Layout.Row = 10;
             app.SerialPortEditField.Layout.Column = 2;
-            app.SerialPortEditField.Value = 'COM3';
 
             % Create CenterPanel
             app.CenterPanel = uipanel(app.GridLayout);
@@ -837,7 +1213,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % Create ElapsedTimesecEditField
             app.ElapsedTimesecEditField = uieditfield(app.GridLayout4, 'numeric');
-            app.ElapsedTimesecEditField.ValueDisplayFormat = '%.3f';
+            app.ElapsedTimesecEditField.ValueDisplayFormat = '%.2f';
             app.ElapsedTimesecEditField.Editable = 'off';
             app.ElapsedTimesecEditField.Layout.Row = 1;
             app.ElapsedTimesecEditField.Layout.Column = 2;
@@ -851,7 +1227,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % Create TargetTempCEditField
             app.TargetTempCEditField = uieditfield(app.GridLayout4, 'numeric');
-            app.TargetTempCEditField.ValueDisplayFormat = '%.3f';
+            app.TargetTempCEditField.ValueDisplayFormat = '%.2f';
             app.TargetTempCEditField.Editable = 'off';
             app.TargetTempCEditField.Layout.Row = 2;
             app.TargetTempCEditField.Layout.Column = 2;
@@ -876,7 +1252,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % Create TemperatureCEditField
             app.TemperatureCEditField = uieditfield(app.GridLayout5, 'numeric');
-            app.TemperatureCEditField.ValueDisplayFormat = '%.3f';
+            app.TemperatureCEditField.ValueDisplayFormat = '%.2f';
             app.TemperatureCEditField.Editable = 'off';
             app.TemperatureCEditField.Layout.Row = 1;
             app.TemperatureCEditField.Layout.Column = 2;
@@ -929,7 +1305,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % Create TemperatureCEditField_2
             app.TemperatureCEditField_2 = uieditfield(app.GridLayout6, 'numeric');
-            app.TemperatureCEditField_2.ValueDisplayFormat = '%.3f';
+            app.TemperatureCEditField_2.ValueDisplayFormat = '%.2f';
             app.TemperatureCEditField_2.Editable = 'off';
             app.TemperatureCEditField_2.Layout.Row = 1;
             app.TemperatureCEditField_2.Layout.Column = 2;

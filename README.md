@@ -142,8 +142,9 @@ For this program, I have taken advantage of the built-in NeoPixel LED on the Fea
 
 - **NeoPixel off, with pin 13 LED flashing**: Standby mode; the Arduino is awaiting instructions from the UI to be received via the serial bus.
 - **Cyan**: Received a command to send/receive configuration parameters to/from the UI. These "configuration parameters" include the PID gain constants and/or temperature control parameters.
-- **Green**: Currently running the temperature control loop (i.e., the experiment procedure is in progress).
-- **Magenta**: The temperature control loop has been completed successfully. This means the experiment procedure was successful,
+- **Blue**: Currently running the temperature control loop (i.e., the experiment procedure is in progress).
+- **Green**: The temperature control loop has been completed successfully. This means the experiment procedure was successful,
+- **Yellow**: The temperature of one or more sample(s) exceeded the max safety limit, so the system aborted the temperature control loop.
 - **Red**: Received a "stop" command from the UI and successfully interrupted and aborted the temperature control loop.
 - **Blue**: Received a newline char via the serial bus (meaningless command, no special action performed in response).
 

@@ -31,7 +31,7 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
         onePanelWidth = 576;
     end
 
-    
+
     %   DSC_v2: UI and control systems for prototype DSC system
     %       Copyright (C) 2020  Christian Kunis
     %
@@ -49,38 +49,44 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
     %       along with this program. If not, see <https://www.gnu.org/licenses/>.
     %
     %       You may contact the author at ckunis.contact@gmail.com
-    
+
     properties (Access = private)
-        MatObj % Description
+        MatObj % MatFile object used to interact with the data
     end
-    
+
     methods (Access = private)
-        
+
         function dataLoadStatus = loadMATFile(app)
             %   Load data from a .mat file for analysis
-            
+
             % Prompt the user to select a file
             [dataFileName, dataFilePath] = uigetfile('*.mat');
-            
+
             switch dataFileName
                 case 0
                     % Cancel the read operation and return an empty array
                     % if the user closes the file selection window
                     dataLoadStatus = false;
                     return
-                    
+
                 otherwise
                     % Create fully-formed filename as a string
                     dataFullPath = fullfile(dataFilePath, dataFileName);
-                    
+
                     % Load the .mat files into a MatFile object
                     temporaryMatObj = matfile(dataFullPath,'Writable',false);
-                    
+
                     varlist = who(temporaryMatObj);
-                    
+
                     expectedVarlist = ...
-                        {'dataLength'; ...
+                        {'Kd'; ...
+                        'Ki'; ...
+                        'Kp'; ...
+                        'dataLength'; ...
                         'elapsedTime'; ...
+                        'endTemp'; ...
+                        'holdTime'; ...
+                        'rampUpRate'; ...
                         'refCurrent'; ...
                         'refDutyCycle'; ...
                         'refHeatFlow'; ...
@@ -90,8 +96,9 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
                         'sampHeatFlow'; ...
                         'sampTemp'; ...
                         'startDateTime'; ...
+                        'startTemp'; ...
                         'targetTemp'};
-                    
+
                     if contains(varlist, expectedVarlist)
                         app.MatObj = temporaryMatObj;
                         dataLoadStatus = true;
@@ -104,24 +111,24 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
                     end
             end
         end
-        
+
         function updateUIStates(app)
             % Update the states of the data selection buttons
             drawnow nocallbacks
-            
+
             if (app.MatObj.dataLength > 0)
                 % Enable the UI once data has been loaded
                 app.DifferentialButton.Enable = 'on';
                 app.TargetTempButton.Enable = 'on';
                 app.ReferenceButton.Enable = 'on';
                 app.TestSampButton.Enable = 'on';
-                
+
                 app.TimesecButton.Enable = 'on';
                 app.TemperatureCButton_X.Enable = 'on';
-                
+
                 app.HeatFlowRateWgButton.Enable = 'on';
                 app.TemperatureCButton_Y.Enable = 'on';
-                
+
                 if app.DifferentialButton.Value
                     app.HeatFlowRateWgButton.Enable = 'on';
                 elseif app.TargetTempButton.Value
@@ -132,42 +139,42 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
                 elseif app.ReferenceButton.Value || app.TestSampButton.Value
                     app.HeatFlowRateWgButton.Enable = 'on';
                 end
-                
+
                 redrawPlot(app)
             end
-            
+
             drawnow
         end
-        
+
         function redrawPlot(app)
             drawnow nocallbacks
-            
+
             % Clear the previous plot so that the new plot may be drawn
             cla(app.UIAxes)
-            
+
             % Turn on "hold" for the plot axes
             hold(app.UIAxes, 'on')
-            
+
             if app.TimesecButton.Value
                 app.TemperatureCButton_Y.Enable = 'on';
-                
+
                 if app.HeatFlowRateWgButton.Value
                     app.TemperatureCButton_X.Enable = 'on';
                     title(app.UIAxes, 'Heat Flow Rate vs. Time')
                     xlabel(app.UIAxes, 'Time (sec)')
                     ylabel(app.UIAxes, 'Heat Flow Rate (W/g)')
-                    
+
                     % Check whether there is any data before attempting to
                     % plot
                     if (app.MatObj.dataLength > 0)
                         % Calculate the range of the time data
                         [minTime, maxTime] = bounds(app.MatObj.elapsedTime);
                         timeDataRange = [floor(minTime), ceil(maxTime)];
-                        
+
                         if app.DifferentialButton.Value
                             % Calculate the Differential Heat Flow
                             diffHeatFlow = app.MatObj.sampHeatFlow - app.MatObj.refHeatFlow;
-                            
+
                             % Plot the Differential data as Heat Flow Rate
                             % vs. Time
                             line(app.UIAxes, app.MatObj.elapsedTime, diffHeatFlow,...
@@ -178,37 +185,37 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
                                     'DisplayName', 'Zero');
                             end
                         end
-                        
+
                         if app.ReferenceButton.Value
                             % Plot the Reference Sample data as Heat Flow
                             % Rate vs. Time
                             line(app.UIAxes, app.MatObj.elapsedTime, app.MatObj.refHeatFlow,...
-                                'Color', 'blue', 'LineStyle', '--', ...
+                                'Color', 'blue', 'LineStyle', '-', ...
                                 'DisplayName', 'Reference');
                         end
-                        
+
                         if app.TestSampButton.Value
                             % Plot the Test Sample data as Heat Flow Rate
                             % vs. Time
                             line(app.UIAxes, app.MatObj.elapsedTime, app.MatObj.sampHeatFlow,...
-                                'Color', 'red', 'LineStyle', '-.', ...
+                                'Color', 'red', 'LineStyle', '-', ...
                                 'DisplayName', 'Test Sample');
                         end
                     end
-                    
+
                 elseif app.TemperatureCButton_Y.Value
                     app.TemperatureCButton_X.Enable = 'off';
                     title(app.UIAxes, 'Temperature vs. Time')
                     xlabel(app.UIAxes, 'Time (sec)')
                     ylabel(app.UIAxes, 'Temperature (\circC)')
-                    
+
                     % Check whether there is any data before attempting to
                     % plot
                     if (app.MatObj.dataLength > 0)
                         % Calculate the range of the time data
                         [minTime, maxTime] = bounds(app.MatObj.elapsedTime);
                         timeDataRange = [floor(minTime), ceil(maxTime)];
-                        
+
                         if app.DifferentialButton.Value
                             % Plot the Differential data as Temperature vs.
                             % Time
@@ -220,57 +227,57 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
                                     'DisplayName', 'Zero');
                             end
                         end
-                        
+
                         if app.ReferenceButton.Value
                             % Plot the Reference Sample data as Temperature
                             % vs. Time
                             line(app.UIAxes, app.MatObj.elapsedTime, app.MatObj.refTemp,...
-                                'Color', 'blue', 'LineStyle', '--', ...
+                                'Color', 'blue', 'LineStyle', '-', ...
                                 'DisplayName', 'Reference');
-                            
+
                         end
-                        
+
                         if app.TestSampButton.Value
                             % Plot the Test Sample data as Temperature vs.
                             % Time
                             line(app.UIAxes, app.MatObj.elapsedTime, app.MatObj.sampTemp,...
-                                'Color', 'red', 'LineStyle', '-.', ...
+                                'Color', 'red', 'LineStyle', '-', ...
                                 'DisplayName', 'Test Sample');
-                            
+
                         end
-                        
+
                         if app.TargetTempButton.Value
                             % Plot the Target Temp data as Temperature vs.
                             % Time
                             line(app.UIAxes, app.MatObj.elapsedTime, app.MatObj.targetTemp,...
                                 'Color', 'black', 'LineStyle', ':', ...
                                 'DisplayName', 'Target Temp');
-                            
+
                         end
                     end
                 end
-                
+
             elseif app.TemperatureCButton_X.Value
                 app.TemperatureCButton_Y.Enable = 'off';
-                
+
                 app.HeatFlowRateWgButton.Value = true;
                 app.TemperatureCButton_Y.Value = false;
                 title(app.UIAxes, 'Heat Flow Rate vs. Temperature')
                 xlabel(app.UIAxes, 'Temperature (\circC)')
                 ylabel(app.UIAxes, 'Heat Flow Rate (W/g)')
-                
+
                 % Check whether there is any data before attempting to plot
                 if (app.MatObj.dataLength > 0)
                     % Calculate the range of the temperature data
                     tempData_Combined = [app.MatObj.refTemp, app.MatObj.sampTemp];
                     [minTemp, maxTemp] = bounds(tempData_Combined);
                     tempDataRange = [floor(minTemp), ceil(maxTemp)];
-                    
+
                     % Calculate the range of the heat flow rate data
                     [minRefHeatFlow, maxRefHeatFlow] = bounds(app.MatObj.refHeatFlow);
                     [minSampHeatFlow, maxSampHeatFlow] = bounds(app.MatObj.sampHeatFlow);
-                    
-                    
+
+
                     switch app.MatObj.dataLength
                         case 0
                             % This case should never be executed
@@ -282,38 +289,38 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
                             interpolatedTemp = tempDataRange;
                             interpolatedRefHeatFlow = app.MatObj.refHeatFlow;
                             interpolatedSampHeatFlow = app.MatObj.sampHeatFlow;
-                            
+
                         otherwise
                             % Interpolate the temperature data
                             interpolatedTemp = linspace(minTemp, maxTemp,...
                                 2 * app.MatObj.dataLength);
-                            
+
                             % Interpolation requires that sample points
                             % must be unique and sorted in ascending order
-                            
+
                             % Store corresponding temperature and heat flow
                             % data
                             unsortedRefData = [app.MatObj.refTemp', app.MatObj.refHeatFlow'];
                             unsortedSampData = [app.MatObj.sampTemp', app.MatObj.sampHeatFlow'];
-                            
+
                             % Sort the data by temperature
                             sortedRefData = sortrows(unsortedRefData);
                             sortedSampData = sortrows(unsortedSampData);
-                            
+
                             % Find unique x values
                             [~,refIdx] = unique(sortedRefData(:,1));
                             [~,sampIdx] = unique(sortedSampData(:,1));
-                            
+
                             % Remove rows with duplicate x values
                             uniqueRefData = sortedRefData(refIdx,:);
                             uniqueSampData = sortedSampData(sampIdx,:);
-                            
+
                             % Store the sorted data in separate arrays
                             sortedRefTemp = uniqueRefData(:,1);
                             sortedRefHeatFlow = uniqueRefData(:,2);
                             sortedSampTemp = uniqueSampData(:,1);
                             sortedSampHeatFlow = uniqueSampData(:,2);
-                            
+
                             % Interpolate the heat flow data
                             interpolatedRefHeatFlow = ...
                                 spline(sortedRefTemp, sortedRefHeatFlow,...
@@ -322,12 +329,12 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
                                 spline(sortedSampTemp, sortedSampHeatFlow,...
                                 interpolatedTemp);
                     end
-                    
-                    
+
+
                     interpolatedDiffHeatFlow = ...
                         interpolatedSampHeatFlow - interpolatedRefHeatFlow;
-                    
-                    
+
+
                     if app.DifferentialButton.Value
                         % Plot the Differential data as Heat Flow Rate vs. Temperature
                         line(app.UIAxes, interpolatedTemp, interpolatedDiffHeatFlow,...
@@ -338,35 +345,35 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
                                 'DisplayName', 'Zero');
                         end
                     end
-                    
+
                     if app.ReferenceButton.Value
                         % Plot the Reference Sample data as Heat Flow Rate vs. Temperature
                         line(app.UIAxes, app.MatObj.refTemp, app.MatObj.refHeatFlow,...
-                            'Color', 'blue', 'LineStyle', '--', ...
+                            'Color', 'blue', 'LineStyle', '-', ...
                             'DisplayName', 'Reference');
-                        
+
                     end
-                    
+
                     if app.TestSampButton.Value
                         % Plot the Test Sample data as Heat Flow Rate vs. Temperature
                         line(app.UIAxes, app.MatObj.sampTemp, app.MatObj.sampHeatFlow,...
-                            'Color', 'red', 'LineStyle', '-.', ...
+                            'Color', 'red', 'LineStyle', '-', ...
                             'DisplayName', 'Test Sample');
-                        
+
                     end
                 end
             end
-            
+
             legend(app.UIAxes, 'Location', 'best')
-            
+
             % Turn off "hold" for the plot
             hold(app.UIAxes, 'off')
-            
+
             drawnow
-            
+
         end
     end
-    
+
 
     % Callbacks that handle component events
     methods (Access = private)
@@ -374,13 +381,13 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
         % Button pushed function: LoadMATfileButton
         function LoadMATfileButtonPushed(app, event)
             app.LoadMATfileButton.Enable = 'off';
-            
+
             loadMATFile(app);
-            
+
             updateUIStates(app);
-            
+
             app.LoadMATfileButton.Enable = 'on';
-            
+
         end
 
         % Value changed function: DifferentialButton
@@ -390,16 +397,16 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
                 app.TargetTempButton.Value = false;
                 app.ReferenceButton.Value = false;
                 app.TestSampButton.Value = false;
-                
+
                 app.TimesecButton.Value = false;
                 app.TemperatureCButton_X.Value = true;
-                
+
                 app.HeatFlowRateWgButton.Value = true;
                 app.TemperatureCButton_Y.Value = false;
             end
-            
+
             updateUIStates(app);
-            
+
         end
 
         % Value changed function: TargetTempButton
@@ -407,16 +414,16 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
             value = app.TargetTempButton.Value;
             if value
                 app.DifferentialButton.Value = false;
-                
+
                 app.TimesecButton.Value = true;
                 app.TemperatureCButton_X.Value = false;
-                
+
                 app.HeatFlowRateWgButton.Value = false;
                 app.TemperatureCButton_Y.Value = true;
             end
-            
+
             updateUIStates(app);
-            
+
         end
 
         % Value changed function: ReferenceButton
@@ -425,9 +432,9 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
             if value
                 app.DifferentialButton.Value = false;
             end
-            
+
             updateUIStates(app);
-            
+
         end
 
         % Value changed function: TestSampButton
@@ -436,9 +443,9 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
             if value
                 app.DifferentialButton.Value = false;
             end
-            
+
             updateUIStates(app);
-            
+
         end
 
         % Value changed function: TimesecButton
@@ -449,9 +456,9 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
             else
                 app.TemperatureCButton_X.Value = true;
             end
-            
+
             updateUIStates(app);
-            
+
         end
 
         % Value changed function: TemperatureCButton_X
@@ -462,9 +469,9 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
             else
                 app.TimesecButton.Value = true;
             end
-            
+
             updateUIStates(app);
-            
+
         end
 
         % Value changed function: HeatFlowRateWgButton
@@ -475,9 +482,9 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
             else
                 app.TemperatureCButton_Y.Value = true;
             end
-            
+
             updateUIStates(app);
-            
+
         end
 
         % Value changed function: TemperatureCButton_Y
@@ -488,9 +495,9 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
             else
                 app.HeatFlowRateWgButton.Value = true;
             end
-            
+
             updateUIStates(app);
-            
+
         end
 
         % Changes arrangement of the app based on UIFigure width

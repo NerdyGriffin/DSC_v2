@@ -92,12 +92,78 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         % the plots
         PlotRefreshDelay = 10;
 
-        Kp
-        Ki
-        Kd
+        Data struct
+
+        SharedProgressDlg matlab.ui.dialog.ProgressDialog
+
+        AutomatedTestIsRunning
     end
 
     methods (Access = public)
+
+        function updateProgressDlg(app, message)
+            if isvalid(app.SharedProgressDlg)
+                app.SharedProgressDlg.Message = message;
+            else
+                % Create and display the progress bar
+                app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino', ...
+                    'Message',message,'Indeterminate','on');
+            end
+            drawnow
+        end
+
+        function initializeSerialPort(app)
+            % Get the list of available serial ports
+            app.SerialPortList = serialportlist("available");
+            disp('Available serial ports:')
+            disp(app.SerialPortList)
+            app.StartExperimentButton.Enable = 'off';
+
+            if (isempty(app.SerialPortList))
+                % Display a warning if no serial ports found
+                message = 'No available serial ports were found. Make sure the arduino device is plugged into this computer via USB, and that it is not in use by another program (such as Arduino IDE).';
+                uialert(app.UIFigure,message,'No Serial Device');
+            else
+                if (isempty(app.SerialPortEditField.Value))
+                    % Set the default serial port to the last port in the list
+                    app.SerialPortEditField.Value = app.SerialPortList(end);
+                end
+
+                if ~any(contains(app.SerialPortList, app.SerialPortEditField.Value))
+                    message = sprintf("%s is not in the list of available serial ports", app.SerialPortEditField.Value);
+                    uialert(app.UIFigure,message,'Invalid Serial Port')
+                else
+                    app.SerialPort = app.SerialPortEditField.Value;
+
+                    if exist(app.Arduino,"var") && isvalid(app.Arduino)
+                        delele(app.Arduino)
+                    end
+                    % Create an serial port object where you specify the USB port
+                    % (look in Arduino->tools -> port and the baud rate (9600)
+                    app.Arduino = serialport(app.SerialPort, 9600);
+
+                    % Create and display the progress bar
+                    updateProgressDlg(app, 'Awaiting response from Arduino...');
+
+                    if isempty(readline(app.Arduino))
+                        message = sprintf("There was no response from the device on '%s'. Make sure that this is the correct serial port, and that the 'dsc_arduino' sketch has been upload onto the Arduino.", app.SerialPort);
+                        uialert(app.UIFigure,message,'Failed to communicate with Arduino');
+                    else
+                        % Request the temperature control parameters from the arduino
+                        flush(app.Arduino);
+                        write(app.Arduino, 'i', 'char');
+                        receivePIDGains(app);
+                        receiveControlParameters(app);
+                        app.StartExperimentButton.Enable = 'on';
+                    end
+
+                    % Close the progress bar
+                    if isvalid(app.SharedProgressDlg)
+                        close(app.SharedProgressDlg)
+                    end
+                end
+            end
+        end
 
         function configLoadStatus = loadConfigFile(app)
             %   Load control parameters from a .ini file
@@ -115,6 +181,10 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     return
 
                 otherwise
+                    % Create and display the progress bar
+                    updateProgressDlg(app, 'Loading config file...');
+                    app.SharedProgressDlg.Title = 'Loading Config';
+
                     % Create fully-formed filename as a string
                     configFullPath = fullfile(configFilePath, configFileName);
 
@@ -124,24 +194,28 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     PIDSection = 'PID Settings';
                     if ini.IsSections(PIDSection)
                         if ini.IsKeys(PIDSection,'Kp')
-                            app.Kp = ...
+                            app.Data.Kp = ...
                                 ini.GetValues('PID Settings','Kp');
                         end
 
                         if ini.IsKeys(PIDSection,'Ki')
-                            app.Ki = ...
+                            app.Data.Ki = ...
                                 ini.GetValues('PID Settings','Ki');
                         end
 
                         if ini.IsKeys(PIDSection,'Kd')
-                            app.Kd = ...
+                            app.Data.Kd = ...
                                 ini.GetValues('PID Settings','Kd');
                         end
 
                     else
+                        % Close the progress bar
+                        if isvalid(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg)
+                        end
+
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", PIDSection);
-                        warndlg(warningMessage)
-                        warning("The selected .ini file does not contain a [%s] section", PIDSection)
+                        uialert(app.UIFigure,warningMessage,'Invalid File');
                         configLoadStatus = false;
                         return
                     end
@@ -149,49 +223,90 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     TempControlSection = 'Temperature Control';
                     if ini.IsSections(TempControlSection)
                         if ini.IsKeys(TempControlSection,'startTemp')
-                            app.StartTempCEditField.Value = ...
+                            app.Data.startTemp = ...
                                 ini.GetValues(TempControlSection,'startTemp');
+                            app.StartTempCEditField.Value = app.Data.startTemp;
                         end
 
                         if ini.IsKeys(TempControlSection,'endTemp')
-                            app.EndTempCEditField.Value = ...
+                            app.Data.endTemp = ...
                                 ini.GetValues(TempControlSection,'endTemp');
+                            app.EndTempCEditField.Value = app.Data.endTemp;
                         end
 
                         if ini.IsKeys(TempControlSection,'rampUpRate')
-                            app.RateCminEditField.Value = ...
+                            app.Data.rampUpRate = ...
                                 ini.GetValues(TempControlSection,'rampUpRate');
+                            app.RateCminEditField.Value = app.Data.rampUpRate;
                         end
 
                         if ini.IsKeys(TempControlSection,'holdTime')
-                            app.HoldTimesecEditField.Value = ...
+                            app.Data.holdTime = ...
                                 ini.GetValues(TempControlSection,'holdTime');
+                            app.HoldTimesecEditField.Value = app.Data.holdTime;
                         end
 
                     else
+                        % Close the progress bar
+                        if isvalid(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg)
+                        end
+
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", TempControlSection);
-                        warndlg(warningMessage)
-                        warning("The selected .ini file does not contain a [%s] section", TempControlSection)
+                        uialert(app.UIFigure,warningMessage,'Invalid File');
                         configLoadStatus = false;
                         return
                     end
             end
+
+            % Close the progress bar
+            if isvalid(app.SharedProgressDlg)
+                close(app.SharedProgressDlg)
+            end
+        end
+
+        function startExperiment(app)
+            flush(app.Arduino);
+            write(app.Arduino, 's', 'char');
+
+            awaitStart = true;
+            while awaitStart
+                serialData = strip(readline(app.Arduino));
+                if strlength(serialData) == 1
+                    switch strip(serialData)
+                        case 's'
+                            setRunningUI(app);
+                            receiveSerialData(app);
+                            awaitStart = false;
+                        case 'x'
+                            setIdleUI(app);
+                            disp('Received end signal')
+                            awaitStart = false;
+                        otherwise
+                            disp('Unrecognized data flag while awaiting start response:')
+                            disp(serialData);
+                    end
+                end
+            end
         end
 
         function sendPIDGains(app)
+            updateProgressDlg(app, 'Sending PID Gains to Arduino...');
+
             % Send the PID gain constants via the serial bus
             flush(app.Arduino);
             write(app.Arduino, 'p', 'char');
 
-            write(app.Arduino, string(app.Kp), 'string');
+            write(app.Arduino, string(app.Data.Kp), 'string');
             write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.Ki), 'string');
+            write(app.Arduino, string(app.Data.Ki), 'string');
             write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.Kd), 'string');
+            write(app.Arduino, string(app.Data.Kd), 'string');
         end
 
         function receivePIDGains(app)
             % Receive the PID gain constants via the serial bus
+            updateProgressDlg(app, 'Receiving PID Gains from Arduino...');
             awaitResponse = true;
             while awaitResponse
                 serialData = strip(readline(app.Arduino));
@@ -202,9 +317,9 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                             serialData = strip(readline(app.Arduino));
                             [parsedData, dataIsNum] = str2num(serialData);
                             if dataIsNum && length(parsedData) == 3
-                                app.Kp = parsedData(1); %double(readline(app.Arduino));
-                                app.Ki = parsedData(2); %double(readline(app.Arduino));
-                                app.Kd = parsedData(3); %double(readline(app.Arduino));
+                                app.Data.Kp = parsedData(1); %double(readline(app.Arduino));
+                                app.Data.Ki = parsedData(2); %double(readline(app.Arduino));
+                                app.Data.Kd = parsedData(3); %double(readline(app.Arduino));
                             end
                             awaitResponse = false;
                         case 'x'
@@ -220,6 +335,8 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         end
 
         function sendControlParameters(app)
+            updateProgressDlg(app, 'Sending temperature control parameters to Arduino...');
+
             flush(app.Arduino);
             write(app.Arduino, 'l', 'char');
 
@@ -233,6 +350,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         end
 
         function receiveControlParameters(app)
+            updateProgressDlg(app, 'Receiving temperature control parameters from Arduino...');
             awaitResponse = true;
             while awaitResponse
                 serialData = strip(readline(app.Arduino));
@@ -241,6 +359,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                         case 'c'
                             readline(app.Arduino);
                             serialData = strip(readline(app.Arduino));
+                            disp(serialData)
                             [parsedData, dataIsNum] = str2num(serialData);
                             if dataIsNum && length(parsedData) == 4
                                 app.StartTempCEditField.Value = parsedData(1); %double(readline(app.Arduino));
@@ -248,7 +367,6 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                                 app.RateCminEditField.Value = parsedData(3); %double(readline(app.Arduino));
                                 app.HoldTimesecEditField.Value = parsedData(4); %double(readline(app.Arduino));
                             end
-
                             awaitResponse = false;
                         case 'x'
                             setIdleUI(app);
@@ -263,22 +381,29 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         end
 
         function receiveSerialData(app)
-            startDateTime = datetime;
+            updateProgressDlg(app, 'Awaiting initial data...');
+
+            app.Data.startTemp = app.StartTempCEditField.Value;
+            app.Data.endTemp = app.EndTempCEditField.Value;
+            app.Data.rampUpRate = app.RateCminEditField.Value;
+            app.Data.holdTime = app.HoldTimesecEditField.Value;
+
+            app.Data.startDateTime = datetime;
+
             if not(isfolder('autosave'))
                 mkdir('autosave');
             end
-            matfileName = ['autosave/autoSaveData-',datestr(startDateTime, 'yyyy-mm-dd-HHMM'),'.mat'];
 
-            elapsedTime = zeros(1,app.PlotRefreshDelay);
-            targetTemp = zeros(1,app.PlotRefreshDelay);
-            refTemp = zeros(1,app.PlotRefreshDelay);
-            sampTemp = zeros(1,app.PlotRefreshDelay);
-            refCurrent = zeros(1,app.PlotRefreshDelay);
-            sampCurrent = zeros(1,app.PlotRefreshDelay);
-            refHeatFlow = zeros(1,app.PlotRefreshDelay);
-            sampHeatFlow = zeros(1,app.PlotRefreshDelay);
-            refDutyCycle = zeros(1,app.PlotRefreshDelay);
-            sampDutyCycle = zeros(1,app.PlotRefreshDelay);
+            app.Data.elapsedTime = zeros(1,app.PlotRefreshDelay);
+            app.Data.targetTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data.refTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data.refCurrent = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampCurrent = zeros(1,app.PlotRefreshDelay);
+            app.Data.refHeatFlow = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampHeatFlow = zeros(1,app.PlotRefreshDelay);
+            app.Data.refDutyCycle = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampDutyCycle = zeros(1,app.PlotRefreshDelay);
 
             dataLength = 0;
 
@@ -290,6 +415,9 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                         case 'x'
                             experimentIsRunning = false;
                             disp('Received end signal')
+                            updateProgressDlg(app, 'Awaiting response from Arduino...');
+                            receivePIDGains(app);
+                            receiveControlParameters(app);
                         otherwise
                             disp('Unrecognized data flag while awaiting data:')
                             disp(serialData)
@@ -298,32 +426,37 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     [parsedData, dataIsNum] = str2num(serialData);
                     if dataIsNum && length(parsedData) == 10
                         dataLength = dataLength + 1;
-                        elapsedTime(dataLength) = parsedData(1); %str2double(parsedData{1});
-                        targetTemp(dataLength) = parsedData(2); %str2double(parsedData{2});
-                        refTemp(dataLength) = parsedData(3); %str2double(parsedData{3});
-                        sampTemp(dataLength) = parsedData(4); %str2double(parsedData{4});
-                        refCurrent(dataLength) = parsedData(5); %str2double(parsedData{5});
-                        sampCurrent(dataLength) = parsedData(6); %str2double(parsedData{6});
-                        refHeatFlow(dataLength) = parsedData(7); %str2double(parsedData{7});
-                        sampHeatFlow(dataLength) = parsedData(8); %str2double(parsedData{8});
-                        refDutyCycle(dataLength) = parsedData(9); %str2double(parsedData{9});
-                        sampDutyCycle(dataLength) = parsedData(10); %str2double(parsedData{10});
+                        app.Data.elapsedTime(dataLength) = parsedData(1); %str2double(parsedData{1});
+                        app.Data.targetTemp(dataLength) = parsedData(2); %str2double(parsedData{2});
+                        app.Data.refTemp(dataLength) = parsedData(3); %str2double(parsedData{3});
+                        app.Data.sampTemp(dataLength) = parsedData(4); %str2double(parsedData{4});
+                        app.Data.refCurrent(dataLength) = parsedData(5); %str2double(parsedData{5});
+                        app.Data.sampCurrent(dataLength) = parsedData(6); %str2double(parsedData{6});
+                        app.Data.refHeatFlow(dataLength) = parsedData(7); %str2double(parsedData{7});
+                        app.Data.sampHeatFlow(dataLength) = parsedData(8); %str2double(parsedData{8});
+                        app.Data.refDutyCycle(dataLength) = parsedData(9); %str2double(parsedData{9});
+                        app.Data.sampDutyCycle(dataLength) = parsedData(10); %str2double(parsedData{10});
 
                         if ~mod(dataLength, app.DataRefreshDelay)
                             updateLiveData(app, ...
-                                elapsedTime(dataLength), ...
-                                targetTemp(dataLength), ...
-                                refTemp(dataLength), ...
-                                sampTemp(dataLength), ...
-                                refCurrent(dataLength), ...
-                                sampCurrent(dataLength), ...
-                                refDutyCycle(dataLength), ...
-                                sampDutyCycle(dataLength));
+                                app.Data.elapsedTime(dataLength), ...
+                                app.Data.targetTemp(dataLength), ...
+                                app.Data.refTemp(dataLength), ...
+                                app.Data.sampTemp(dataLength), ...
+                                app.Data.refCurrent(dataLength), ...
+                                app.Data.sampCurrent(dataLength), ...
+                                app.Data.refDutyCycle(dataLength), ...
+                                app.Data.sampDutyCycle(dataLength));
                         end
 
                         if ~mod(dataLength, app.PlotRefreshDelay)
-                            refreshLivePlot(app, elapsedTime,...
-                                targetTemp, refTemp, sampTemp);
+                            refreshLivePlot(app, ...
+                                app.Data.elapsedTime, app.Data.targetTemp, ...
+                                app.Data.refTemp, app.Data.sampTemp);
+                            % Close the progress bar
+                            if isvalid(app.SharedProgressDlg)
+                                close(app.SharedProgressDlg)
+                            end
                         end
                     else
                         disp(parsedData)
@@ -331,28 +464,43 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                 end
             end
 
-            save(matfileName, 'startDateTime', 'elapsedTime', 'targetTemp', ...
-                'refTemp', 'sampTemp', ...
-                'refCurrent', 'sampCurrent', ...
-                'refHeatFlow', 'sampHeatFlow', ...
-                'refDutyCycle', 'sampDutyCycle', 'dataLength')
-            if isfile(matfileName)
-                fprintf("Autosave file created: './%s'\n", matfileName)
+            app.Data.dataLength = dataLength;
+
+            % Close the progress bar
+            if isvalid(app.SharedProgressDlg)
+                close(app.SharedProgressDlg)
             end
 
-            updateLiveData(app, ...
-                elapsedTime(dataLength), ...
-                targetTemp(dataLength), ...
-                refTemp(dataLength), ...
-                sampTemp(dataLength), ...
-                refCurrent(dataLength), ...
-                sampCurrent(dataLength), ...
-                refDutyCycle(dataLength), ...
-                sampDutyCycle(dataLength));
+            saveData(app, app.Data);
 
-            refreshLivePlot(app, elapsedTime, targetTemp, refTemp, sampTemp);
+            updateLiveData(app, ...
+                app.Data.elapsedTime(dataLength), ...
+                app.Data.targetTemp(dataLength), ...
+                app.Data.refTemp(dataLength), ...
+                app.Data.sampTemp(dataLength), ...
+                app.Data.refCurrent(dataLength), ...
+                app.Data.sampCurrent(dataLength), ...
+                app.Data.refDutyCycle(dataLength), ...
+                app.Data.sampDutyCycle(dataLength));
+
+            refreshLivePlot(app, app.Data.elapsedTime, app.Data.targetTemp, ...
+                app.Data.refTemp, app.Data.sampTemp);
 
             setIdleUI(app);
+        end
+
+        function saveData(app, saveData)
+            date_str = datestr(saveData.startDateTime, 'yyyy-mm-dd-HHMM');
+
+            matfileName = ['autosave/autoSaveData-',date_str,'.mat'];
+
+            save(matfileName,'-struct','saveData')
+            if isfile(matfileName)
+                beep
+                message = sprintf("Save file created: '%s'\n", matfileName);
+                disp(message)
+                uialert(app.UIFigure,message,'Data Saved Successfully','Icon','success');
+            end
         end
 
         function setRunningUI(app)
@@ -387,7 +535,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             drawnow limitrate nocallbacks
 
             % Convert from milliseconds to seconds
-            app.ElapsedTimesecEditField.Value = elapsedTime / 1000;
+            app.ElapsedTimesecEditField.Value = elapsedTime;
 
             app.TargetTempCEditField.Value = targetTemp;
 
@@ -402,11 +550,8 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             drawnow limitrate
         end
 
-        function refreshLivePlot(app, elapsedTimeArray,...
+        function refreshLivePlot(app, elapsedTimeArray, ...
                 targetTempArray, refTempArray, sampTempArray)
-
-            % Convert from milliseconds to seconds
-            timeInSeconds = elapsedTimeArray ./ 1000;
 
             drawnow limitrate nocallbacks
 
@@ -415,9 +560,9 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             clearpoints(app.TestSampleLine)
 
             % Update the plots
-            addpoints(app.TargetLine, timeInSeconds, targetTempArray)
-            addpoints(app.RefSampleLine, timeInSeconds, refTempArray)
-            addpoints(app.TestSampleLine, timeInSeconds, sampTempArray)
+            addpoints(app.TargetLine, elapsedTimeArray, targetTempArray)
+            addpoints(app.RefSampleLine, elapsedTimeArray, refTempArray)
+            addpoints(app.TestSampleLine, elapsedTimeArray, sampTempArray)
 
             legend(app.UIAxes, 'Location', 'best')
 
@@ -431,37 +576,22 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
         % Code that executes after component creation
         function startupFcn(app)
-            % Get the list of available serial ports
-            app.SerialPortList = serialportlist("available");
+            % Initialize the struct to prevent errors
+            app.Data = struct('Kp', 0, 'Ki', 0, 'Kd', 0, ...
+                'startTemp', 0, 'endTemp', 0, 'rampUpRate', 0, ...
+                'holdTime', 0, 'startDateTime', datetime);
 
-            if (isempty(app.SerialPortList))
-                % Display a warning if no serial ports found
-                warndlg('No available serial ports were found. Make sure the arduino device is plugged into this computer via USB')
-            else
-                % Set the default serial port to the last port in the list
-                app.SerialPort = app.SerialPortList(end);
+            app.SerialPortEditField.Value = '';
 
-                % Update the serial port edit field
-                app.SerialPortEditField.Value = app.SerialPort;
-
-                % Create an serial port object where you specify the USB port
-                % (look in Arduino->tools -> port and the baud rate (9600)
-                app.Arduino = serialport(app.SerialPort, 9600);
-
-                % Request the temperature control parameters from the arduino
-                flush(app.Arduino);
-                write(app.Arduino, 'i', 'char');
-                receivePIDGains(app);
-                receiveControlParameters(app);
-            end
+            initializeSerialPort(app);
 
             % Create the animatedline objects
             app.TargetLine = animatedline(app.UIAxes, 'Color', 'black', ...
                 'LineStyle', ':');
             app.RefSampleLine = animatedline(app.UIAxes, 'Color', 'blue', ...
-                'LineStyle', '--');
+                'LineStyle', '-');
             app.TestSampleLine = animatedline(app.UIAxes, 'Color', 'red', ...
-                'LineStyle', '-.');
+                'LineStyle', '-');
 
             % Create a legend for the temperature plot
             legend(app.UIAxes, 'Target Temperature', 'Reference Sample', ...
@@ -510,28 +640,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         function StartExperimentButtonPushed(app, event)
             app.StartExperimentButton.Enable = 'off';
 
-            flush(app.Arduino);
-            write(app.Arduino, 's', 'char');
-
-            awaitStart = true;
-            while awaitStart
-                serialData = strip(readline(app.Arduino));
-                if strlength(serialData) == 1
-                    switch strip(serialData)
-                        case 's'
-                            setRunningUI(app);
-                            receiveSerialData(app);
-                            awaitStart = false;
-                        case 'x'
-                            setIdleUI(app);
-                            disp('Received end signal')
-                            awaitStart = false;
-                        otherwise
-                            disp('Unrecognized data flag while awaiting start response:')
-                            disp(serialData);
-                    end
-                end
-            end
+            startExperiment(app);
         end
 
         % Button pushed function: StopExperimentButton
@@ -547,11 +656,19 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             loadConfigFile(app);
 
+            % Create and display the progress bar
+            updateProgressDlg(app, 'Awaiting response from Arduino...');
+
             sendPIDGains(app);
             receivePIDGains(app);
 
             sendControlParameters(app);
             receiveControlParameters(app);
+
+            % Close the progress bar
+            if isvalid(app.SharedProgressDlg)
+                close(app.SharedProgressDlg)
+            end
 
             app.LoadConfigFileButton.Enable = 'on';
         end
@@ -560,11 +677,19 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         function ApplyExperimentParametersButtonPushed(app, event)
             app.ApplyExperimentParametersButton.Enable = 'off';
 
+            % Create and display the progress bar
+            updateProgressDlg(app, 'Awaiting response from Arduino...');
+
             sendPIDGains(app);
             receivePIDGains(app);
 
             sendControlParameters(app);
             receiveControlParameters(app);
+
+            % Close the progress bar
+            if isvalid(app.SharedProgressDlg)
+                close(app.SharedProgressDlg)
+            end
 
             app.ApplyExperimentParametersButton.Enable = 'on';
         end
@@ -573,27 +698,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         function SetSerialPortButtonPushed(app, event)
             app.SetSerialPortButton.Enable = 'off';
 
-            delete(app.Arduino);
-
-            % Get the list of available serial ports
-            app.SerialPortList = serialportlist("available");
-
-            if any(contains(app.SerialPortList, app.SerialPortEditField.Value))
-                app.SerialPort = app.SerialPortEditField.Value;
-
-                % Create an serial port object where you specify the USB port
-                % (look in Arduino->tools -> port and the baud rate (9600)
-                app.Arduino = serialport(app.SerialPort, 9600);
-
-                % Request the temperature control parameters from the arduino
-                write(app.Arduino, 'i', 'char');
-                receivePIDGains(app);
-                receiveControlParameters(app);
-            else
-                warndlg(sprintf("%s is not in the list of available serial ports", app.SerialPortEditField.Value));
-                disp(app.SerialPortList)
-                disp(app.SerialPortEditField.Value)
-            end
+            initializeSerialPort(app)
 
             app.SetSerialPortButton.Enable = 'on';
         end
@@ -689,7 +794,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create StartTempCEditField
             app.StartTempCEditField = uieditfield(app.GridLayout7, 'numeric');
-            app.StartTempCEditField.Limits = [-300 300];
+            app.StartTempCEditField.Limits = [-200 300];
             app.StartTempCEditField.Layout.Row = 1;
             app.StartTempCEditField.Layout.Column = 2;
 
@@ -702,7 +807,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create EndTempCEditField
             app.EndTempCEditField = uieditfield(app.GridLayout7, 'numeric');
-            app.EndTempCEditField.Limits = [-300 300];
+            app.EndTempCEditField.Limits = [-200 300];
             app.EndTempCEditField.Layout.Row = 2;
             app.EndTempCEditField.Layout.Column = 2;
 
@@ -750,7 +855,6 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             app.SerialPortEditField = uieditfield(app.GridLayout2, 'text');
             app.SerialPortEditField.Layout.Row = 10;
             app.SerialPortEditField.Layout.Column = 2;
-            app.SerialPortEditField.Value = 'COM1';
 
             % Create CenterPanel
             app.CenterPanel = uipanel(app.GridLayout);
@@ -792,7 +896,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create ElapsedTimesecEditField
             app.ElapsedTimesecEditField = uieditfield(app.GridLayout4, 'numeric');
-            app.ElapsedTimesecEditField.ValueDisplayFormat = '%.3f';
+            app.ElapsedTimesecEditField.ValueDisplayFormat = '%.2f';
             app.ElapsedTimesecEditField.Editable = 'off';
             app.ElapsedTimesecEditField.Layout.Row = 1;
             app.ElapsedTimesecEditField.Layout.Column = 2;
@@ -806,7 +910,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create TargetTempCEditField
             app.TargetTempCEditField = uieditfield(app.GridLayout4, 'numeric');
-            app.TargetTempCEditField.ValueDisplayFormat = '%.3f';
+            app.TargetTempCEditField.ValueDisplayFormat = '%.2f';
             app.TargetTempCEditField.Editable = 'off';
             app.TargetTempCEditField.Layout.Row = 2;
             app.TargetTempCEditField.Layout.Column = 2;
@@ -831,7 +935,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create TemperatureCEditField
             app.TemperatureCEditField = uieditfield(app.GridLayout5, 'numeric');
-            app.TemperatureCEditField.ValueDisplayFormat = '%.3f';
+            app.TemperatureCEditField.ValueDisplayFormat = '%.2f';
             app.TemperatureCEditField.Editable = 'off';
             app.TemperatureCEditField.Layout.Row = 1;
             app.TemperatureCEditField.Layout.Column = 2;
@@ -884,7 +988,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create TemperatureCEditField_2
             app.TemperatureCEditField_2 = uieditfield(app.GridLayout6, 'numeric');
-            app.TemperatureCEditField_2.ValueDisplayFormat = '%.3f';
+            app.TemperatureCEditField_2.ValueDisplayFormat = '%.2f';
             app.TemperatureCEditField_2.Editable = 'off';
             app.TemperatureCEditField_2.Layout.Row = 1;
             app.TemperatureCEditField_2.Layout.Column = 2;
