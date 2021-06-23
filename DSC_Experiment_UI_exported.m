@@ -223,23 +223,27 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     TempControlSection = 'Temperature Control';
                     if ini.IsSections(TempControlSection)
                         if ini.IsKeys(TempControlSection,'startTemp')
-                            app.StartTempCEditField.Value = ...
+                            app.Data.startTemp = ...
                                 ini.GetValues(TempControlSection,'startTemp');
+                            app.StartTempCEditField.Value = app.Data.startTemp;
                         end
 
                         if ini.IsKeys(TempControlSection,'endTemp')
-                            app.EndTempCEditField.Value = ...
+                            app.Data.endTemp = ...
                                 ini.GetValues(TempControlSection,'endTemp');
+                            app.EndTempCEditField.Value = app.Data.endTemp;
                         end
 
                         if ini.IsKeys(TempControlSection,'rampUpRate')
-                            app.RateCminEditField.Value = ...
+                            app.Data.rampUpRate = ...
                                 ini.GetValues(TempControlSection,'rampUpRate');
+                            app.RateCminEditField.Value = app.Data.rampUpRate;
                         end
 
                         if ini.IsKeys(TempControlSection,'holdTime')
-                            app.HoldTimesecEditField.Value = ...
+                            app.Data.holdTime = ...
                                 ini.GetValues(TempControlSection,'holdTime');
+                            app.HoldTimesecEditField.Value = app.Data.holdTime;
                         end
 
                     else

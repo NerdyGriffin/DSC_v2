@@ -206,18 +206,21 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     PIDSection = 'PID Settings';
                     if ini.IsSections(PIDSection)
                         if ini.IsKeys(PIDSection,'Kp')
-                            app.KpEditField.Value = ...
+                            app.Data.Kp = ...
                                 ini.GetValues('PID Settings','Kp');
+                            app.KpEditField.Value = app.Data.Kp;
                         end
 
                         if ini.IsKeys(PIDSection,'Ki')
-                            app.KiEditField.Value = ...
+                            app.Data.Ki = ...
                                 ini.GetValues('PID Settings','Ki');
+                            app.KiEditField.Value = app.Data.Ki;
                         end
 
                         if ini.IsKeys(PIDSection,'Kd')
-                            app.KdEditField.Value = ...
+                            app.Data.Kd = ...
                                 ini.GetValues('PID Settings','Kd');
+                            app.KdEditField.Value = app.Data.Kd;
                         end
 
                     else
