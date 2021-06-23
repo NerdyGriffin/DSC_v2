@@ -817,9 +817,9 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.40; // 0.27;
-  Ki = 0.03; // 0.02;
-  Kd = 1.00; // 0.85;
+  Kp = 0.08;
+  Ki = 0.01;
+  Kd = 0.68;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
