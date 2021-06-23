@@ -819,7 +819,7 @@ void setup()
   // Set PID gain constants to default values
   Kp = 0.08;
   Ki = 0.01;
-  Kd = 0.68;
+  Kd = 0.70;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
