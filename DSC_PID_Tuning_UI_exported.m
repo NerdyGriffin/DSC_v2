@@ -108,7 +108,6 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         SharedProgressDlg matlab.ui.dialog.ProgressDialog
 
         AutomatedTestIsRunning
-
         PIDAutotunerIsRunning
     end
 
@@ -555,13 +554,6 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             if not(isfolder('autosave'))
                 mkdir('autosave');
             end
-            currentDataString = datestr(app.Data.startDateTime, 'yyyy-mm-dd-HHMM');
-            if app.AutomatedTestIsRunning
-                Kp_str = strrep(num2str(app.KpEditField.Value),'.','');
-                matfileName = ['autosave/autoPIDTestData-',Kp_str,'-P-',currentDataString,'.mat'];
-            else
-                matfileName = ['autosave/autoSaveData-',currentDataString,'.mat'];
-            end
 
             app.Data.elapsedTime = zeros(1,app.PlotRefreshDelay);
             app.Data.targetTemp = zeros(1,app.PlotRefreshDelay);
@@ -650,6 +642,13 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             if isvalid(app.SharedProgressDlg)
                 close(app.SharedProgressDlg)
             end
+
+            Kp_str = strrep(num2str(app.Data.Kp),'.','');
+            Ki_str = strrep(num2str(app.Data.Ki),'.','');
+            Kd_str = strrep(num2str(app.Data.Kd),'.','');
+            date_str = datestr(app.Data.startDateTime, 'yyyy-mm-dd-HHMM');
+            matfileName = ['autosave/autoSavePIDData-', ...
+                Kp_str,'P-',Ki_str,'I-',Kd_str,'D-',date_str,'.mat'];
 
             saveData = app.Data;
             save(matfileName,'-struct','saveData')

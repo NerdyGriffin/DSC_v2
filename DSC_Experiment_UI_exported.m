@@ -389,8 +389,6 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             if not(isfolder('autosave'))
                 mkdir('autosave');
             end
-            currentDataString = datestr(app.Data.startDateTime, 'yyyy-mm-dd-HHMM');
-            matfileName = ['autosave/autoSaveData-',currentDataString,'.mat'];
 
             app.Data.elapsedTime = zeros(1,app.PlotRefreshDelay);
             app.Data.targetTemp = zeros(1,app.PlotRefreshDelay);
@@ -468,6 +466,9 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             if isvalid(app.SharedProgressDlg)
                 close(app.SharedProgressDlg)
             end
+
+            date_str = datestr(app.Data.startDateTime, 'yyyy-mm-dd-HHMM');
+            matfileName = ['autosave/autoSaveData-',date_str,'.mat'];
 
             saveData = app.Data;
             save(matfileName,'-struct','saveData')
