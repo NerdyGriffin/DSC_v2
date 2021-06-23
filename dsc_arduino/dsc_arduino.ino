@@ -73,9 +73,9 @@ unsigned long sensorValues[4];
 
 // PID settings and gains
 #define PULSE_WIDTH 100UL // Pulse width in milliseconds
-double Kp = 0.36;
-double Ki = 0.03;
-double Kd = 1.09;
+double Kp = 0.10;
+double Ki = 0.01;
+double Kd = 1.00;
 /**
  * When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
  * is deactivated, and the output is set to max
@@ -121,16 +121,16 @@ double Ref_Current_Sensor_VRef = 0.0, Samp_Current_Sensor_VRef = 0.0;
 
 // Max allowable temperature. If the either temperature exceeds this value, the
 // PWM duty cycle will be set set to zero
-#define MAX_TEMPERATURE 300
+#define MAX_TEMPERATURE 300.0
 
 // The minimum acceptable error between the sample temperatures and the target
 // temperature. The error for both samples must be less than this value before
 // the stage controller will continue to the next stage. Units: [degrees C]
-#define MINIMUM_ACCEPTABLE_ERROR 5
+#define MINIMUM_ACCEPTABLE_ERROR 5.0
 
 // The number of the consecutive samples within the MINIMUM_ACCEPTABLE_ERROR
 // that are required before the program considers the target to be satisfied
-#define TARGET_COUNTER_THRESHOLD 200 //200
+#define TARGET_COUNTER_THRESHOLD 200UL // Default: 200
 
 // target temperature and temp control parameters
 double targetTemp;
@@ -588,11 +588,6 @@ void updateTargetTemperature()
       startCounter = 0;
     }
     rampUpStartTime = microseconds;
-    // if (startCounter == TARGET_COUNTER_THRESHOLD)
-    // {
-    //   refPID.reset();
-    //   sampPID.reset();
-    // }
   }
   else
   {
@@ -824,7 +819,7 @@ void setup()
   // Set PID gain constants to default values
   Kp = 0.08;
   Ki = 0.01;
-  Kd = 0.80;
+  Kd = 1.00;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
