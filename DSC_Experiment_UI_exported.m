@@ -101,6 +101,17 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
     methods (Access = public)
 
+        function updateProgressDlg(app, message)
+            if isvalid(app.SharedProgressDlg)
+                app.SharedProgressDlg.Message = message;
+            else
+                % Create and display the progress bar
+                app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino', ...
+                    'Message',message,'Indeterminate','on');
+            end
+            drawnow
+        end
+
         function initializeSerialPort(app)
             % Get the list of available serial ports
             app.SerialPortList = serialportlist("available");
@@ -132,9 +143,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     app.Arduino = serialport(app.SerialPort, 9600);
 
                     % Create and display the progress bar
-                    app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino', ...
-                        'Indeterminate','on');
-                    drawnow
+                    updateProgressDlg(app, 'Awaiting response from Arduino...');
 
                     if isempty(readline(app.Arduino))
                         message = sprintf("There was no response from the device on '%s'. Make sure that this is the correct serial port, and that the 'dsc_arduino' sketch has been upload onto the Arduino.", app.SerialPort);
@@ -148,7 +157,10 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                         app.StartExperimentButton.Enable = 'on';
                     end
 
-                    close(app.SharedProgressDlg)
+                    % Close the progress bar
+                    if isvalid(app.SharedProgressDlg)
+                        close(app.SharedProgressDlg)
+                    end
                 end
             end
         end
@@ -170,9 +182,8 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
                 otherwise
                     % Create and display the progress bar
-                    app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Loading Config', ...
-                        'Indeterminate','on');
-                    drawnow
+                    updateProgressDlg(app, 'Loading config file...');
+                    app.SharedProgressDlg.Title = 'Loading Config';
 
                     % Create fully-formed filename as a string
                     configFullPath = fullfile(configFilePath, configFileName);
@@ -199,7 +210,9 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
                     else
                         % Close the progress bar
-                        close(app.SharedProgressDlg)
+                        if isvalid(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg)
+                        end
 
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", PIDSection);
                         uialert(app.UIFigure,warningMessage,'Invalid File');
@@ -231,7 +244,9 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
                     else
                         % Close the progress bar
-                        close(app.SharedProgressDlg)
+                        if isvalid(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg)
+                        end
 
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", TempControlSection);
                         uialert(app.UIFigure,warningMessage,'Invalid File');
@@ -240,8 +255,8 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     end
             end
 
+            % Close the progress bar
             if isvalid(app.SharedProgressDlg)
-                % Close the progress bar
                 close(app.SharedProgressDlg)
             end
         end
@@ -272,9 +287,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         end
 
         function sendPIDGains(app)
-            if isvalid(app.SharedProgressDlg)
-                app.SharedProgressDlg.Message = 'Sending PID Gains to Arduino...';
-            end
+            updateProgressDlg(app, 'Sending PID Gains to Arduino...');
 
             % Send the PID gain constants via the serial bus
             flush(app.Arduino);
@@ -289,9 +302,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
         function receivePIDGains(app)
             % Receive the PID gain constants via the serial bus
-            if isvalid(app.SharedProgressDlg)
-                app.SharedProgressDlg.Message = 'Receiving PID Gains from Arduino...';
-            end
+            updateProgressDlg(app, 'Receiving PID Gains from Arduino...');
             awaitResponse = true;
             while awaitResponse
                 serialData = strip(readline(app.Arduino));
@@ -320,9 +331,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         end
 
         function sendControlParameters(app)
-            if isvalid(app.SharedProgressDlg)
-                app.SharedProgressDlg.Message = 'Sending temperature control parameters to Arduino...';
-            end
+            updateProgressDlg(app, 'Sending temperature control parameters to Arduino...');
 
             flush(app.Arduino);
             write(app.Arduino, 'l', 'char');
@@ -337,9 +346,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         end
 
         function receiveControlParameters(app)
-            if isvalid(app.SharedProgressDlg)
-                app.SharedProgressDlg.Message = 'Receiving temperature control parameters from Arduino...';
-            end
+            updateProgressDlg(app, 'Receiving temperature control parameters from Arduino...');
             awaitResponse = true;
             while awaitResponse
                 serialData = strip(readline(app.Arduino));
@@ -348,6 +355,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                         case 'c'
                             readline(app.Arduino);
                             serialData = strip(readline(app.Arduino));
+                            disp(serialData)
                             [parsedData, dataIsNum] = str2num(serialData);
                             if dataIsNum && length(parsedData) == 4
                                 app.StartTempCEditField.Value = parsedData(1); %double(readline(app.Arduino));
@@ -369,6 +377,8 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         end
 
         function receiveSerialData(app)
+            updateProgressDlg(app, 'Awaiting initial data...');
+
             app.Data.startTemp = app.StartTempCEditField.Value;
             app.Data.endTemp = app.EndTempCEditField.Value;
             app.Data.rampUpRate = app.RateCminEditField.Value;
@@ -403,6 +413,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                         case 'x'
                             experimentIsRunning = false;
                             disp('Received end signal')
+                            updateProgressDlg(app, 'Awaiting response from Arduino...');
                             receivePIDGains(app);
                             receiveControlParameters(app);
                         otherwise
@@ -440,6 +451,10 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                             refreshLivePlot(app, ...
                                 app.Data.elapsedTime, app.Data.targetTemp, ...
                                 app.Data.refTemp, app.Data.sampTemp);
+                            % Close the progress bar
+                            if isvalid(app.SharedProgressDlg)
+                                close(app.SharedProgressDlg)
+                            end
                         end
                     else
                         disp(parsedData)
@@ -448,6 +463,11 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             end
 
             app.Data.dataLength = dataLength;
+
+            % Close the progress bar
+            if isvalid(app.SharedProgressDlg)
+                close(app.SharedProgressDlg)
+            end
 
             saveData = app.Data;
             save(matfileName,'-struct','saveData')
@@ -628,9 +648,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             loadConfigFile(app);
 
             % Create and display the progress bar
-            app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino', ...
-                'Indeterminate','on');
-            drawnow
+            updateProgressDlg(app, 'Awaiting response from Arduino...');
 
             sendPIDGains(app);
             receivePIDGains(app);
@@ -639,7 +657,9 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             receiveControlParameters(app);
 
             % Close the progress bar
-            close(app.SharedProgressDlg)
+            if isvalid(app.SharedProgressDlg)
+                close(app.SharedProgressDlg)
+            end
 
             app.LoadConfigFileButton.Enable = 'on';
         end
@@ -649,9 +669,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             app.ApplyExperimentParametersButton.Enable = 'off';
 
             % Create and display the progress bar
-            app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino', ...
-                'Indeterminate','on');
-            drawnow
+            updateProgressDlg(app, 'Awaiting response from Arduino...');
 
             sendPIDGains(app);
             receivePIDGains(app);
@@ -660,7 +678,9 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             receiveControlParameters(app);
 
             % Close the progress bar
-            close(app.SharedProgressDlg)
+            if isvalid(app.SharedProgressDlg)
+                close(app.SharedProgressDlg)
+            end
 
             app.ApplyExperimentParametersButton.Enable = 'on';
         end

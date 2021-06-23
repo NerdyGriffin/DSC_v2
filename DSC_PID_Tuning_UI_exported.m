@@ -170,7 +170,10 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         app.StartExperimentButton.Enable = 'on';
                     end
 
-                    close(app.SharedProgressDlg)
+                    % Close the progress bar
+                    if isvalid(app.SharedProgressDlg)
+                        close(app.SharedProgressDlg)
+                    end
                 end
             end
         end
@@ -192,9 +195,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
                 otherwise
                     % Create and display the progress bar
-                    app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Loading Config', ...
-                        'Indeterminate','on');
-                    drawnow
+                    updateProgressDlg(app, 'Loading config file...');
+                    app.SharedProgressDlg.Title = 'Loading Config';
 
                     % Create fully-formed filename as a string
                     configFullPath = fullfile(configFilePath, configFileName);
@@ -221,7 +223,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
                     else
                         % Close the progress bar
-                        close(app.SharedProgressDlg)
+                        if isvalid(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg)
+                        end
 
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", PIDSection);
                         uialert(app.UIFigure,warningMessage,'Invalid File');
@@ -253,7 +257,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
                     else
                         % Close the progress bar
-                        close(app.SharedProgressDlg)
+                        if isvalid(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg)
+                        end
 
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", TempControlSection);
                         uialert(app.UIFigure,warningMessage,'Invalid File');
@@ -262,8 +268,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     end
             end
 
+            % Close the progress bar
             if isvalid(app.SharedProgressDlg)
-                % Close the progress bar
                 close(app.SharedProgressDlg)
             end
         end
@@ -345,8 +351,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 sendControlParameters(app);
                 receiveControlParameters(app);
 
+                % Close the progress bar
                 if isvalid(app.SharedProgressDlg)
-                    % Close the progress bar
                     close(app.SharedProgressDlg)
                 end
 
@@ -617,8 +623,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                                 app.Data.elapsedTime, app.Data.targetTemp, ...
                                 app.Data.refTemp, app.Data.sampTemp, ...
                                 app.Data.refDutyCycle, app.Data.sampDutyCycle);
+                            % Close the progress bar
                             if isvalid(app.SharedProgressDlg)
-                                % Close the progress bar
                                 close(app.SharedProgressDlg)
                             end
                         end
@@ -640,8 +646,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 % PID gains will be included in the autosave file.
             end
 
+            % Close the progress bar
             if isvalid(app.SharedProgressDlg)
-                % Close the progress bar
                 close(app.SharedProgressDlg)
             end
 
@@ -885,7 +891,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             receiveControlParameters(app);
 
             % Close the progress bar
-            close(app.SharedProgressDlg)
+            if isvalid(app.SharedProgressDlg)
+                close(app.SharedProgressDlg)
+            end
 
             app.LoadConfigFileButton.Enable = 'on';
         end
@@ -904,7 +912,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             receiveControlParameters(app);
 
             % Close the progress bar
-            close(app.SharedProgressDlg)
+            if isvalid(app.SharedProgressDlg)
+                close(app.SharedProgressDlg)
+            end
 
             app.ApplyPIDParametersButton.Enable = 'on';
         end
