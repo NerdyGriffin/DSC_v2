@@ -329,7 +329,7 @@ void autotunePID()
   tuner.startTuningLoop(micros());
 
   // Run a loop until tuner.isFinished() returns true
-  static unsigned long startTime = microseconds = micros();
+  unsigned long startTime = microseconds = micros();
   autotuneInProgress = true;
   while (autotuneInProgress)
   {
@@ -673,7 +673,7 @@ void controlLoop()
   sampPID.reset();
 
   startCounter = endCounter = 0;
-  static unsigned long startTime = rampUpStartTime = holdStartTime = microseconds = micros();
+  unsigned long startTime = rampUpStartTime = holdStartTime = microseconds = micros();
   bool controlLoopState = true;
   while (controlLoopState)
   {
