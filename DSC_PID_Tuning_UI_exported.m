@@ -274,51 +274,50 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             switch sweepType
                 case 'P'
-                    n = floor(log(abs(Kp))./log(10));
-                    kSign = sign(Kp);
+                    sweepVal = Kp;
                 case 'I'
-                    n = floor(log(abs(Ki))./log(10));
-                    kSign = sign(Kp);
+                    sweepVal = Ki;
                 case 'D'
-                    n = floor(log(abs(Kd))./log(10));
-                    kSign = sign(Kp);
+                    sweepVal = Kd;
                 otherwise
                     message = sprintf("Invalid sweepType: '%s'\nPlease report this bug to the developer.", sweepType);
                     uialert(app.UIFigure,message,'Internal Error');
+                    app.AutomatedTestIsRunning = false;
                     return
             end
 
-            if kSign == 0
-                kMin = -1;
-                kStep = 0.1;
-                kMax = 1;
+            n = floor(log10(sweepVal));
+            if n < -1
+                kMin = 1e-2;
+                kStep = 1e-2;
+                kMax = 1e-1;
             else
-                kMin = kSign*(10^n);
-                kStep = kSign*(10^(n-1));
-                kMax = kSign*(10^(n+1));
+                kMin = (10^n);
+                kStep = (10^(n-1));
+                kMax = (10^(n+1));
+
             end
 
             app.AutomatedTestIsRunning = true;
             for kVar = kMin:kStep:kMax
-                % Set the PID gain values for the next trial
                 switch sweepType
                     case 'P'
-                        app.KpEditField.Value = kVar;
-                        app.KiEditField.Value = Ki;
-                        app.KdEditField.Value = Kd;
+                        Kp = kVar;
                     case 'I'
-                        app.KpEditField.Value = Kp;
-                        app.KiEditField.Value = kVar;
-                        app.KdEditField.Value = Kd;
+                        Ki = kVar;
                     case 'D'
-                        app.KpEditField.Value = Kp;
-                        app.KiEditField.Value = Ki;
-                        app.KdEditField.Value = kVar;
+                        Kd = kVar;
                     otherwise
                         message = sprintf("Invalid sweepType: '%s'\nPlease report this bug to the developer.", sweepType);
                         uialert(app.UIFigure,message,'Internal Error');
+                        app.AutomatedTestIsRunning = false;
                         return
                 end
+
+                % Set the PID gain values for the next trial
+                app.KpEditField.Value = Kp;
+                app.KiEditField.Value = Ki;
+                app.KdEditField.Value = Kd;
 
                 % Sync PID gains with Arduino
                 sendPIDGains(app);
@@ -1032,6 +1031,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % Create KpEditField
             app.KpEditField = uieditfield(app.GridLayout7, 'numeric');
+            app.KpEditField.Limits = [0 Inf];
             app.KpEditField.ValueDisplayFormat = '%.2f';
             app.KpEditField.Layout.Row = 1;
             app.KpEditField.Layout.Column = 3;
@@ -1045,6 +1045,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % Create KiEditField
             app.KiEditField = uieditfield(app.GridLayout7, 'numeric');
+            app.KiEditField.Limits = [0 Inf];
             app.KiEditField.ValueDisplayFormat = '%.2f';
             app.KiEditField.Layout.Row = 2;
             app.KiEditField.Layout.Column = 3;
@@ -1058,6 +1059,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % Create KdEditField
             app.KdEditField = uieditfield(app.GridLayout7, 'numeric');
+            app.KdEditField.Limits = [0 Inf];
             app.KdEditField.ValueDisplayFormat = '%.2f';
             app.KdEditField.Layout.Row = 3;
             app.KdEditField.Layout.Column = 3;

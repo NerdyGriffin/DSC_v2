@@ -764,7 +764,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create StartTempCEditField
             app.StartTempCEditField = uieditfield(app.GridLayout7, 'numeric');
-            app.StartTempCEditField.Limits = [-300 300];
+            app.StartTempCEditField.Limits = [-200 300];
             app.StartTempCEditField.Layout.Row = 1;
             app.StartTempCEditField.Layout.Column = 2;
 
@@ -777,7 +777,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create EndTempCEditField
             app.EndTempCEditField = uieditfield(app.GridLayout7, 'numeric');
-            app.EndTempCEditField.Limits = [-300 300];
+            app.EndTempCEditField.Limits = [-200 300];
             app.EndTempCEditField.Layout.Row = 2;
             app.EndTempCEditField.Layout.Column = 2;
 
