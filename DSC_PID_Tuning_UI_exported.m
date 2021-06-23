@@ -107,7 +107,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         SharedProgressDlg matlab.ui.dialog.ProgressDialog
 
-        AutomatedTestIsRunning
+        AutomatedLoopIsRunning
         PIDAutotunerIsRunning
     end
 
@@ -299,7 +299,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 otherwise
                     message = sprintf("Invalid sweepType: '%s'\nPlease report this bug to the developer.", sweepType);
                     uialert(app.UIFigure,message,'Internal Error');
-                    app.AutomatedTestIsRunning = false;
+                    app.AutomatedLoopIsRunning = false;
                     return
             end
 
@@ -315,7 +315,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             end
 
-            app.AutomatedTestIsRunning = true;
+            app.AutomatedLoopIsRunning = true;
             for kVar = kMin:kStep:kMax
                 switch sweepType
                     case 'P'
@@ -327,7 +327,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     otherwise
                         message = sprintf("Invalid sweepType: '%s'\nPlease report this bug to the developer.", sweepType);
                         uialert(app.UIFigure,message,'Internal Error');
-                        app.AutomatedTestIsRunning = false;
+                        app.AutomatedLoopIsRunning = false;
                         return
                 end
 
@@ -361,12 +361,13 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 % Start the experiment
                 startExperiment(app);
 
-                if ~app.AutomatedTestIsRunning
-                    app.AutomatedTestIsRunning = false;
+                if ~app.AutomatedLoopIsRunning
+                    app.AutomatedLoopIsRunning = false;
                     break
                 end
 
-                pauseDuration = 15*60; % Duration in minutes
+                pauseDuration = 15*60; % Duration in seconds
+                pauseMinuteStr = datestr(seconds(pauseDuration),'MM');
                 d = uiprogressdlg(app.UIFigure,'Title','Please Wait', ...
                     'Message','Time remaining: ','Cancelable','on');
                 drawnow
@@ -377,13 +378,13 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 while tProgress < pauseDuration
                     % Check for Cancel button press
                     if d.CancelRequested
-                        app.AutomatedTestIsRunning = false;
+                        app.AutomatedLoopIsRunning = false;
                         break
                     end
                     % Update the progress bar, report time remaining
                     d.Value = tProgress/pauseDuration;
-                    d.Message = sprintf("Pausing to allow the heaters to cool and settle before starting the next trial run.\nTime remaining: %s (approximate).",...
-                        datestr(seconds(pauseDuration-tProgress),'HH:MM:SS'));
+                    d.Message = sprintf("The system will pause for %s minutes to allow the heaters to cool before starting the next trial run.\nTime remaining: %s (approximate).", ...
+                        pauseMinuteStr, datestr(seconds(pauseDuration-tProgress),'HH:MM:SS'));
                     pause(0.5);
                     tProgress = toc(tStart);
                 end
@@ -391,8 +392,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 % Close dialog box
                 close(d)
 
-                if ~app.AutomatedTestIsRunning
-                    app.AutomatedTestIsRunning = false;
+                if ~app.AutomatedLoopIsRunning
+                    app.AutomatedLoopIsRunning = false;
                     break
                 end
             end
@@ -401,7 +402,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.AutomatedKiSweepButton.Enable = 'on';
             app.AutomatedKdSweepButton.Enable = 'on';
             app.AbortSweepButton.Enable = 'off';
-            app.AutomatedTestIsRunning = false;
+            app.AutomatedLoopIsRunning = false;
         end
 
         function startPIDAutotuner(app)
@@ -682,7 +683,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 beep
                 message = sprintf("Save file created: '%s'\n", matfileName);
                 disp(message)
-                uialert(app.UIFigure,message,'Data Saved Successfully','Icon','success');
+                if ~app.AutomatedLoopIsRunning
+                    uialert(app.UIFigure,message,'Data Saved Successfully','Icon','success');
+                end
             end
         end
 
@@ -954,7 +957,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.AbortSweepButton.Enable = 'off';
             app.StopExperimentButton.Enable = 'off';
 
-            app.AutomatedTestIsRunning = false;
+            app.AutomatedLoopIsRunning = false;
 
             write(app.Arduino, 'x', 'char');
 
