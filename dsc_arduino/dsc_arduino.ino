@@ -119,6 +119,9 @@ double Ref_Current_Sensor_VRef = 0.0, Samp_Current_Sensor_VRef = 0.0;
 // the total resistance around the heating coil circuit, not just the resistance
 // of the heating components alone.
 
+// The expected current through the heating coils (in mA)
+const double idealHeatingCoilCurrent = (HEATING_COIL_VOLTAGE / HEATING_COIL_RESISTANCE) * 1000;
+
 // Max allowable temperature. If the either temperature exceeds this value, the
 // PWM duty cycle will be set set to zero
 #define MAX_TEMPERATURE 300.0
@@ -513,9 +516,6 @@ void calibrateCurrentSensors()
   // The current sensor voltage is in millivolts
   double refCurrentVoltage = sensorValues[2] * byteToMillivolts;
   double sampCurrentVoltage = sensorValues[3] * byteToMillivolts;
-
-  // Calculate the expected current through the heating coils (in mA)
-  double idealHeatingCoilCurrent = (HEATING_COIL_VOLTAGE / HEATING_COIL_RESISTANCE) * 1000;
 
   // Calculate the ideal SENS using the max current measurement
   Ref_Current_Sensor_Sens = idealHeatingCoilCurrent / (refCurrentVoltage - Ref_Current_Sensor_VRef);
