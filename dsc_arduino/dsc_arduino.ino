@@ -96,8 +96,8 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 #define AMPLIFIER_VOLTAGE_OFFSET 1250.0 // 1250 mV = 1.25 V
 #define AMPLIFIER_CONVERSION_FACTOR 5.0 // 5 mV/C = 0.005 V/C
 
-#define REF_TEMP_CALIBRATION_OFFSET 6.666666666666666
-#define SAMP_TEMP_CALIBRATION_OFFSET 3.333333333333333 // 3.000000000000000
+#define REF_TEMP_CALIBRATION_OFFSET 0.0  // 6.666666666666666
+#define SAMP_TEMP_CALIBRATION_OFFSET 0.0 // 3.333333333333333 // 3.000000000000000
 
 // Current sensor conversion constants
 #define CURRENT_SENSOR_SENS 0.4 // Sensitivity (Sens) 100mA per 250mV = 0.4
@@ -588,6 +588,11 @@ void updateTargetTemperature()
       startCounter = 0;
     }
     rampUpStartTime = microseconds;
+    // if (startCounter == TARGET_COUNTER_THRESHOLD)
+    // {
+    //   refPID.reset();
+    //   sampPID.reset();
+    // }
   }
   else
   {
