@@ -541,7 +541,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             end
             currentDataString = datestr(app.Data.startDateTime, 'yyyy-mm-dd-HHMM');
             if app.AutomatedTestIsRunning
-                Kp_str = strrep(num2str(app.KpEditField.Value),'.','-');
+                Kp_str = strrep(num2str(app.KpEditField.Value),'.','');
                 matfileName = ['autosave/autoPIDTestData-',Kp_str,'-P-',currentDataString,'.mat'];
             else
                 matfileName = ['autosave/autoSaveData-',currentDataString,'.mat'];
