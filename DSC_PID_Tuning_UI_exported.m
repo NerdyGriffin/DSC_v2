@@ -1213,7 +1213,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % Create ElapsedTimesecEditField
             app.ElapsedTimesecEditField = uieditfield(app.GridLayout4, 'numeric');
-            app.ElapsedTimesecEditField.ValueDisplayFormat = '%.1f';
+            app.ElapsedTimesecEditField.ValueDisplayFormat = '%.2f';
             app.ElapsedTimesecEditField.Editable = 'off';
             app.ElapsedTimesecEditField.Layout.Row = 1;
             app.ElapsedTimesecEditField.Layout.Column = 2;

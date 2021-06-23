@@ -896,7 +896,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create ElapsedTimesecEditField
             app.ElapsedTimesecEditField = uieditfield(app.GridLayout4, 'numeric');
-            app.ElapsedTimesecEditField.ValueDisplayFormat = '%.3f';
+            app.ElapsedTimesecEditField.ValueDisplayFormat = '%.2f';
             app.ElapsedTimesecEditField.Editable = 'off';
             app.ElapsedTimesecEditField.Layout.Row = 1;
             app.ElapsedTimesecEditField.Layout.Column = 2;
@@ -910,7 +910,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create TargetTempCEditField
             app.TargetTempCEditField = uieditfield(app.GridLayout4, 'numeric');
-            app.TargetTempCEditField.ValueDisplayFormat = '%.3f';
+            app.TargetTempCEditField.ValueDisplayFormat = '%.2f';
             app.TargetTempCEditField.Editable = 'off';
             app.TargetTempCEditField.Layout.Row = 2;
             app.TargetTempCEditField.Layout.Column = 2;
@@ -935,7 +935,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create TemperatureCEditField
             app.TemperatureCEditField = uieditfield(app.GridLayout5, 'numeric');
-            app.TemperatureCEditField.ValueDisplayFormat = '%.3f';
+            app.TemperatureCEditField.ValueDisplayFormat = '%.2f';
             app.TemperatureCEditField.Editable = 'off';
             app.TemperatureCEditField.Layout.Row = 1;
             app.TemperatureCEditField.Layout.Column = 2;
@@ -988,7 +988,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create TemperatureCEditField_2
             app.TemperatureCEditField_2 = uieditfield(app.GridLayout6, 'numeric');
-            app.TemperatureCEditField_2.ValueDisplayFormat = '%.3f';
+            app.TemperatureCEditField_2.ValueDisplayFormat = '%.2f';
             app.TemperatureCEditField_2.Editable = 'off';
             app.TemperatureCEditField_2.Layout.Row = 1;
             app.TemperatureCEditField_2.Layout.Column = 2;
