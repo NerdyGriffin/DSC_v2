@@ -629,6 +629,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             if isfile(matfileName)
                 beep
                 message = sprintf("Autosave file created: '%s'\n", matfileName);
+                disp(message)
                 uialert(app.UIFigure,message,'Autosave Successful','Icon','success');
             end
 
