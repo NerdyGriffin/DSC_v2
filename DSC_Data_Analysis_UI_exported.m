@@ -51,7 +51,7 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
     %       You may contact the author at ckunis.contact@gmail.com
 
     properties (Access = private)
-        MatObj matlab.io.MatFile % MatFile object used to interact with the data
+        MatObj % MatFile object used to interact with the data
     end
 
     methods (Access = private)
