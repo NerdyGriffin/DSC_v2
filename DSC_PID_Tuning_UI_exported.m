@@ -646,12 +646,12 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 close(app.SharedProgressDlg)
             end
 
-            Kp_str = strrep(num2str(app.Data.Kp),'.','');
-            Ki_str = strrep(num2str(app.Data.Ki),'.','');
-            Kd_str = strrep(num2str(app.Data.Kd),'.','');
+            Kp_str = strrep(num2str(app.Data.Kp),'.','P');
+            Ki_str = strrep(num2str(app.Data.Ki),'.','I');
+            Kd_str = strrep(num2str(app.Data.Kd),'.','D');
             date_str = datestr(app.Data.startDateTime, 'yyyy-mm-dd-HHMM');
             matfileName = ['autosave/autoSavePIDData-', ...
-                Kp_str,'P-',Ki_str,'I-',Kd_str,'D-',date_str,'.mat'];
+                Kp_str,'-',Ki_str,'-',Kd_str,'-',date_str,'.mat'];
 
             saveData = app.Data;
             save(matfileName,'-struct','saveData')
