@@ -366,8 +366,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     break
                 end
 
-                pauseDuration = 5*60; % Duration in minutes
-                d = uiprogressdlg(app.UIFigure,'Title','Please Wait while the samples cool to room temperature.', ...
+                pauseDuration = 15*60; % Duration in minutes
+                d = uiprogressdlg(app.UIFigure,'Title','Please Wait', ...
                     'Message','Time remaining: ','Cancelable','on');
                 drawnow
 
@@ -382,7 +382,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     end
                     % Update the progress bar, report time remaining
                     d.Value = tProgress/pauseDuration;
-                    d.Message = sprintf("Time remaining: %s (approximate).", datestr(seconds(pauseDuration-tProgress),'HH:MM:SS'));
+                    d.Message = sprintf("Pausing to allow the heaters to cool and settle before starting the next trial run.\nTime remaining: %s (approximate).",...
+                        datestr(seconds(pauseDuration-tProgress),'HH:MM:SS'));
                     pause(0.5);
                     tProgress = toc(tStart);
                 end
@@ -645,7 +646,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             if isvalid(app.SharedProgressDlg)
                 close(app.SharedProgressDlg)
             end
-            
+
             saveData(app, app.Data);
 
             updateLiveData(app, ...
@@ -664,15 +665,15 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             setIdleUI(app);
         end
-        
+
         function saveData(app, saveData)
             formatSpec = '%.2f';
             Kp_str = strrep(num2str(saveData.Kp,formatSpec), '.', 'P');
             Ki_str = strrep(num2str(saveData.Ki,formatSpec), '.', 'I');
             Kd_str = strrep(num2str(saveData.Kd,formatSpec), '.', 'D');
-            
+
             date_str = datestr(saveData.startDateTime, 'yyyy-mm-dd-HHMM');
-            
+
             matfileName = ['autosave/autoSavePIDData-', ...
                 Kp_str,'-',Ki_str,'-',Kd_str,'-',date_str,'.mat'];
 
