@@ -20,6 +20,7 @@
 
 #include <Adafruit_NeoPixel.h>
 #include <AutoPID.h>
+#include <pidautotuner.h>
 
 // NeoPixel parameters
 #define LED_PIN 8
@@ -59,20 +60,28 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
 
 // Wait 2 milliseconds before the next loop for the analog-to-digital converter
 // to settle after the last reading
-#define AVG_SAMPLE_DELAY 2 // Sample delay in milliseconds
+#define AVG_SAMPLE_DELAY 2000UL // Sample delay in microseconds
+
+/**
+ * Loop interval in microseconds.
+ * 500,000 microseconds = 0.5 seconds
+*/
+#define LOOP_INTERVAL 500000UL
 
 // global variable for holding the raw analog sensor values
 unsigned long sensorValues[4];
 
 // PID settings and gains
-#define PULSE_WIDTH 100 // Pulse width in milliseconds
-double Kp = 1;
-double Ki = 0;
-double Kd = 0;
-#define BANG_RANGE 10
-// When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
-// is deactivated, and the output is set to max
-#define PID_UPDATE_INTERVAL PULSE_WIDTH
+#define PULSE_WIDTH 100UL // Pulse width in milliseconds
+double Kp = 0.10;
+double Ki = 0.01;
+double Kd = 1.00;
+/**
+ * When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
+ * is deactivated, and the output is set to max
+ */
+#define BANG_RANGE 20.0
+#define PID_UPDATE_INTERVAL PULSE_WIDTH // Interval in milliseconds
 
 // The max voltage of analog input readings
 #define ANALOG_REF_VOLTAGE 3.3
@@ -88,7 +97,7 @@ const double byteToMillivolts = 1000.0 * byteToVolts;
 #define AMPLIFIER_CONVERSION_FACTOR 5.0 // 5 mV/C = 0.005 V/C
 
 #define REF_TEMP_CALIBRATION_OFFSET 6.666666666666666
-#define SAMP_TEMP_CALIBRATION_OFFSET 3.333333333333333
+#define SAMP_TEMP_CALIBRATION_OFFSET 3.000000000000000
 
 // Current sensor conversion constants
 #define CURRENT_SENSOR_SENS 0.4 // Sensitivity (Sens) 100mA per 250mV = 0.4
@@ -112,16 +121,16 @@ double Ref_Current_Sensor_VRef = 0.0, Samp_Current_Sensor_VRef = 0.0;
 
 // Max allowable temperature. If the either temperature exceeds this value, the
 // PWM duty cycle will be set set to zero
-#define MAX_TEMPERATURE 300
+#define MAX_TEMPERATURE 300.0
 
 // The minimum acceptable error between the sample temperatures and the target
 // temperature. The error for both samples must be less than this value before
 // the stage controller will continue to the next stage. Units: [degrees C]
-#define MINIMUM_ACCEPTABLE_ERROR 5
+#define MINIMUM_ACCEPTABLE_ERROR 5.0
 
 // The number of the consecutive samples within the MINIMUM_ACCEPTABLE_ERROR
 // that are required before the program considers the target to be satisfied
-#define TARGET_COUNTER_THRESHOLD 1000 //200
+#define TARGET_COUNTER_THRESHOLD 100UL // Default: 200
 
 // target temperature and temp control parameters
 double targetTemp;
@@ -130,19 +139,16 @@ double endTemp;
 double rampUpRate;
 double holdTime;
 
-#define MIN_TO_MILLIS 60000.0
+#define MIN_TO_MICROS 60000000UL
+#define SEC_TO_MICROS 1000000.0
 
-unsigned long elapsedTime; // tracks clock time
-unsigned long rampUpStartTime;
-unsigned long holdStartTime;
+// tracks clock time in microseconds
+unsigned long microseconds, rampUpStartTime, holdStartTime;
 
-// Counter used to hold samples at start temperature before beginning to ramp up
-// the target temperature
-unsigned long standbyCounter;
-unsigned long startCounter;
-unsigned long endCounter;
+unsigned long standbyCounter, startCounter, endCounter;
 
 // global variables for holding temperature and current sensor readings
+double elapsedTime; // Time in seconds
 double refTemperature, sampTemperature;
 double refCurrent, sampCurrent;
 double refHeatFlow, sampHeatFlow;
@@ -156,12 +162,25 @@ bool refRelayState, sampRelayState;
 AutoPIDRelay refPID(&refTemperature, &targetTemp, &refRelayState, PULSE_WIDTH, Kp, Ki, Kd);
 AutoPIDRelay sampPID(&sampTemperature, &targetTemp, &sampRelayState, PULSE_WIDTH, Kp, Ki, Kd);
 
+// Variables used to simulate the implementation of AutoPIDRelay during PID
+// autotuning
+bool tuner_relayState;
+unsigned long tuner_lastPulseTime;
+double tuner_pulseValue;
+bool autotuneInProgress;
+
 // The mass (in grams) of each of the material samples
 double refMass = 1, sampMass = 1;
 
-// Debug variables used to override the control loop end conditions
-#define DEBUG_MODE false
-#define DEBUG_TIME_LIMIT 3600000
+/**
+ * Returns true if anything violates the safety limits
+ */
+bool checkSafetyLimits()
+{
+  bool exceededTempLimit = (refTemperature > MAX_TEMPERATURE) || (sampTemperature > MAX_TEMPERATURE);
+  // More complicated checks will be added in the future
+  return exceededTempLimit;
+}
 
 // Variables used when recieving/parsing CSV data from the serial bus
 const byte numChars = 32;
@@ -246,42 +265,180 @@ void parsePIDGains()
  */
 void refreshPID()
 {
-  // Run the PID algorithm
-  refPID.run();
-  if (refTemperature > MAX_TEMPERATURE)
+  if (!autotuneInProgress)
   {
-    neopixel.fill(yellow);
-    neopixel.show();
-    // Override the PID controller if the sample temp exceed the max temp
-    digitalWrite(Ref_Heater_PIN, LOW);
-    // Set duty cycle to zero
-    refDutyCycle = 0;
-  }
-  else
-  {
+    // Run the PID algorithm
+    refPID.run();
     // Update the PWM Relay output
     digitalWrite(Ref_Heater_PIN, refRelayState);
     // Store the latest duty cycle
     refDutyCycle = refPID.getPulseValue();
-  }
 
-  // Run the PID algorithm
-  sampPID.run();
-  if (sampTemperature > MAX_TEMPERATURE)
-  {
-    neopixel.fill(yellow);
-    neopixel.show();
-    // Override the PID controller if the sample temp exceed the max temp
-    digitalWrite(Samp_Heater_PIN, LOW);
-    // Set duty cycle to zero
-    sampDutyCycle = 0;
-  }
-  else
-  {
+    // Run the PID algorithm
+    sampPID.run();
     // Update the PWM Relay output
     digitalWrite(Samp_Heater_PIN, sampRelayState);
     // Store the latest duty cycle
     sampDutyCycle = sampPID.getPulseValue();
+  }
+}
+
+void stopPID(uint32_t color)
+{
+  // Stop PID calculations and reset internal PID calculation values
+  refPID.stop();
+  sampPID.stop();
+
+  // Reset the target temp to the standby state
+  targetTemp = 20;
+
+  // Set duty cycle to zero
+  refDutyCycle = 0;
+  sampDutyCycle = 0;
+
+  // Turn off the PWM Relay output
+  digitalWrite(Ref_Heater_PIN, LOW);
+  digitalWrite(Samp_Heater_PIN, LOW);
+
+  neopixel.fill(color);
+  neopixel.show();
+
+  // Send the char 'x' to indicate that PID was stopped
+  Serial.println("x");
+
+  // Send the PID gain constants via the serial bus
+  sendPIDGains();
+  // Send the temperature control parameters via the serial bus
+  sendControlParameters();
+}
+
+void endAutotune(PIDAutotuner *tuner, uint32_t color)
+{
+  stopPID(color);
+
+  // Force the tuner to stop on the next
+  tuner->setTuningCycles(1);
+
+  // Get PID gains - set your PID controller's gains to these
+  Kp = tuner->getKp();
+  Ki = tuner->getKi();
+  Kd = tuner->getKd();
+
+  // Send the old PID gain constants via the serial bus
+  sendPIDGains();
+
+  autotuneInProgress = false;
+}
+
+/**
+ * Simulate the temperature control loop while running the PID autotuner
+ */
+void autotunePID()
+{
+  // Send the char 'a' to indicate the start of autotune
+  Serial.println('a');
+
+  // Stop PID calculations and reset internal PID calculation values
+  refPID.stop();
+  sampPID.stop();
+
+  // Set the target temperature for PID tuning
+  targetTemp = 120;
+
+  PIDAutotuner tuner = PIDAutotuner();
+
+  // Set the target value to tune to
+  // This will depend on what you are tuning. This should be set to a value within
+  // the usual range of the setpoint. For low-inertia systems, values at the lower
+  // end of this range usually give better results. For anything else, start with a
+  // value at the middle of the range.
+  tuner.setTargetInputValue(targetTemp);
+
+  // Set the loop interval in microseconds
+  // This must be the same as the interval the PID control loop will run at
+  tuner.setLoopInterval(LOOP_INTERVAL);
+
+  // Set the output range
+  // These are the minimum and maximum possible output values of whatever you are
+  // using to control the system (Arduino analogWrite, for example, is 0-255)
+  tuner.setOutputRange(0, 1.0);
+
+  // Set the Ziegler-Nichols tuning mode
+  // Set it to either PIDAutotuner::ZNModeBasicPID, PIDAutotuner::ZNModeLessOvershoot,
+  // or PIDAutotuner::ZNModeNoOvershoot. Defaults to ZNModeNoOvershoot as it is the
+  // safest option.
+  tuner.setZNMode(PIDAutotuner::ZNModeNoOvershoot);
+
+  // This must be called immediately before the tuning loop
+  // Must be called with the current time in microseconds
+  tuner.startTuningLoop(micros());
+
+  // Run a loop until tuner.isFinished() returns true
+  static unsigned long startTime = microseconds = micros();
+  autotuneInProgress = true;
+  while (autotuneInProgress)
+  {
+    digitalWrite(13, LOW);
+
+    neopixel.fill(blue);
+    neopixel.show();
+
+    // Record the time (convert microseconds to seconds)
+    elapsedTime = (microseconds - startTime) / SEC_TO_MICROS;
+
+    // Read the measurements from the sensors
+    updateSensorData();
+
+    // Calcutate the heat flow
+    calculateHeatFlow();
+
+    // Call tunePID() with the input value and current time in microseconds
+    double output = tuner.tunePID(refTemperature, microseconds);
+    refDutyCycle = output;
+    sampDutyCycle = 0;
+    digitalWrite(Ref_Heater_PIN, output);
+    digitalWrite(Samp_Heater_PIN, LOW);
+
+    // Send data out via Serial bus
+    sendData();
+
+    if (tuner.isFinished())
+      endAutotune(&tuner, green);
+
+    if (checkSafetyLimits())
+      endAutotune(&tuner, yellow);
+
+    // Check for interupts from the UI
+    if (Serial.available())
+    {
+      digitalWrite(13, HIGH);
+
+      // Read the incoming data as a char
+      int inByte = Serial.read();
+
+      switch (inByte)
+      {
+      case 'x':
+        // Received stop commmand
+        endAutotune(&tuner, red);
+        break;
+      default:
+        break;
+      }
+    }
+
+    // This loop must run at the same speed as the PID control loop being tuned
+    while ((micros() - microseconds) < LOOP_INTERVAL)
+      ; // busy wait
+
+    unsigned long prevMicroseconds = microseconds;
+    microseconds += LOOP_INTERVAL;
+
+    if ((microseconds - startTime) < (prevMicroseconds - startTime))
+    {
+      // Time overflow error, experiment exceeded 70 minutes
+      endAutotune(&tuner, red);
+    }
   }
 }
 
@@ -332,16 +489,13 @@ void parseControlParameters()
  */
 void readSensorValues()
 {
-  unsigned long latestSampleTime;
-
   // Zero the array before taking samples
   memset(sensorValues, 0, sizeof(sensorValues));
 
   // Read the analog signals from the sensors
+  unsigned long latestSampleTime = micros();
   for (int i = 0; i < AVG_SAMPLES; i++)
   {
-    latestSampleTime = millis();
-
     sensorValues[0] += analogRead(REF_TEMP_PROBE_PIN);
     sensorValues[1] += analogRead(SAMP_TEMP_PROBE_PIN);
 
@@ -354,8 +508,10 @@ void readSensorValues()
 
     // Wait 2 milliseconds before the next loop for the analog-to-digital
     // converter to settle after the last reading
-    while ((millis() - latestSampleTime) < AVG_SAMPLE_DELAY)
-      ;
+    while ((micros() - latestSampleTime) < AVG_SAMPLE_DELAY)
+      ; // busy wait
+
+    latestSampleTime += AVG_SAMPLE_DELAY;
   }
 
   // Calculate the average of the samples
@@ -456,9 +612,10 @@ void updateSensorData()
  */
 void calculateHeatFlow()
 {
-  // Convert current from milliAmps to Amps
-  double refCurrentAmps = refCurrent / 1000.0;
-  double sampCurrentAmps = sampCurrent / 1000.0;
+  // // Convert current from milliAmps to Amps
+  // double refCurrentAmps = refCurrent / 1000.0;
+  // double sampCurrentAmps = sampCurrent / 1000.0;
+
   // Calculate the heat flow as Watts per gram
   refHeatFlow = refCurrent * HEATING_COIL_VOLTAGE / refMass;
   sampHeatFlow = sampCurrent * HEATING_COIL_VOLTAGE / sampMass;
@@ -484,13 +641,18 @@ void updateTargetTemperature()
     {
       startCounter = 0;
     }
-    rampUpStartTime = millis();
+    rampUpStartTime = microseconds;
+    if (startCounter == TARGET_COUNTER_THRESHOLD)
+    {
+      refPID.reset();
+      sampPID.reset();
+    }
   }
   else
   {
     if (endTemp > startTemp)
     {
-      targetTemp = startTemp + (millis() - rampUpStartTime) * rampUpRate / MIN_TO_MILLIS;
+      targetTemp = startTemp + (microseconds - rampUpStartTime) * rampUpRate / MIN_TO_MICROS;
       if (targetTemp > endTemp)
       {
         targetTemp = endTemp;
@@ -498,7 +660,7 @@ void updateTargetTemperature()
     }
     else if (endTemp < startTemp)
     {
-      targetTemp = startTemp - (millis() - rampUpStartTime) * rampUpRate / MIN_TO_MILLIS;
+      targetTemp = startTemp - (microseconds - rampUpStartTime) * rampUpRate / MIN_TO_MICROS;
       if (targetTemp < endTemp)
       {
         targetTemp = endTemp;
@@ -508,8 +670,6 @@ void updateTargetTemperature()
     {
       targetTemp = endTemp;
     }
-    // //! DEBUG: Ramp up has been disabled for PID tuning
-    // targetTemp = endTemp;
   }
 
   // Prevent the target temp from exceeding the maximum
@@ -566,53 +726,18 @@ void controlLoop()
   refPID.reset();
   sampPID.reset();
 
-  startCounter = 0;
-  endCounter = 0;
-  unsigned long startTime = millis();
-  rampUpStartTime = startTime;
-  holdStartTime = startTime;
+  startCounter = endCounter = 0;
+  static unsigned long startTime = rampUpStartTime = holdStartTime = microseconds = micros();
   bool controlLoopState = true;
   while (controlLoopState)
   {
-    // Check for interupts from the UI
-    if (Serial.available())
-    {
-      digitalWrite(13, HIGH);
-
-      // Read the incoming data as a char
-      int inByte = Serial.read();
-
-      switch (inByte)
-      {
-      case 'x':
-        // Received stop commmand
-
-        // Stop PID calculations and reset internal PID calculation values
-        refPID.stop();
-        sampPID.stop();
-
-        // Turn off the PWM Relay output
-        digitalWrite(Ref_Heater_PIN, LOW);
-        digitalWrite(Samp_Heater_PIN, LOW);
-
-        neopixel.fill(red);
-        neopixel.show();
-        // Confirm by sending the same command back
-        Serial.println('x');
-        return;
-        break;
-      default:
-        break;
-      }
-    }
-
     digitalWrite(13, LOW);
 
-    neopixel.fill(green);
+    neopixel.fill(blue);
     neopixel.show();
 
-    // Record the time
-    elapsedTime = millis() - startTime;
+    // Record the time (convert to seconds)
+    elapsedTime = (microseconds - startTime) / SEC_TO_MICROS;
 
     // Read the measurements from the sensors
     updateSensorData();
@@ -631,6 +756,13 @@ void controlLoop()
     {
       if (endCounter < TARGET_COUNTER_THRESHOLD)
       {
+        if (endCounter == 0)
+        {
+          // Reset the PID when transitioning from ramp-up heating to constant
+          // target temperature
+          refPID.reset();
+          sampPID.reset();
+        }
         if ((refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
             (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
         {
@@ -638,34 +770,56 @@ void controlLoop()
         }
         else
         {
-          endCounter = 0;
+          endCounter = 1;
         }
-        holdStartTime = millis();
+        holdStartTime = microseconds;
       }
-      else if ((millis() - holdStartTime) > (holdTime * 1000))
+      else if ((microseconds - holdStartTime) > (holdTime * SEC_TO_MICROS))
       {
+        stopPID(green);
         controlLoopState = false;
       }
     }
 
-    if (DEBUG_MODE && (elapsedTime > DEBUG_TIME_LIMIT))
+    if (checkSafetyLimits())
     {
+      stopPID(yellow);
+      controlLoopState = false;
+    }
+
+    // Check for interupts from the UI
+    if (Serial.available())
+    {
+      digitalWrite(13, HIGH);
+
+      // Read the incoming data as a char
+      int inByte = Serial.read();
+
+      switch (inByte)
+      {
+      case 'x':
+        // Received stop commmand
+        stopPID(red);
+        controlLoopState = false;
+        break;
+      default:
+        break;
+      }
+    }
+
+    while ((micros() - microseconds) < LOOP_INTERVAL)
+      ; // busy wait
+
+    unsigned long prevMicroseconds = microseconds;
+    microseconds += LOOP_INTERVAL;
+
+    if ((microseconds - startTime) < (prevMicroseconds - startTime))
+    {
+      // Time overflow error, experiment exceeded 70 minutes
+      stopPID(red);
       controlLoopState = false;
     }
   }
-
-  // Stop PID calculations and reset internal PID calculation values
-  refPID.stop();
-  sampPID.stop();
-
-  // Turn off the PWM Relay output
-  digitalWrite(Ref_Heater_PIN, LOW);
-  digitalWrite(Samp_Heater_PIN, LOW);
-
-  neopixel.fill(magenta);
-  neopixel.show();
-  // Send the char 'x' to indicate the end of the control loop
-  Serial.println("x");
 }
 
 /**
@@ -687,13 +841,12 @@ void standbyData()
   // Set standby target temp
   targetTemp = 20;
 
-  // Stop PID calculations and reset internal PID calculation values
-  refPID.stop();
-  sampPID.stop();
-
   // Turn off the PWM Relay output
   digitalWrite(Ref_Heater_PIN, LOW);
   digitalWrite(Samp_Heater_PIN, LOW);
+
+  // Set duty cycle to zero
+  refDutyCycle = sampDutyCycle = 0;
 
   // Send data out via Serial bus
   sendData();
@@ -730,9 +883,9 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.4;
-  Ki = 0;
-  Kd = 0;
+  Kp = 0.10;
+  Ki = 0.01;
+  Kd = 1.00;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
@@ -740,12 +893,13 @@ void setup()
 
   // Set temperature control parameters to default values
   startTemp = 30;
-  targetTemp = startTemp;
   endTemp = 120;
   rampUpRate = 20;
   // endTemp = 25;
-  // rampUpRate = 20000;
+  // rampUpRate = 60000;
   holdTime = 0;
+
+  targetTemp = startTemp;
 
   standbyCounter = 0;
 
@@ -773,6 +927,15 @@ void loop()
 
     switch (inByte)
     {
+    case 'a':
+      // Received autotuner command
+      neopixel.fill(blue);
+      neopixel.show();
+      // Run the PID autotuner
+      autotuneInProgress = true;
+      autotunePID();
+      autotuneInProgress = false;
+      break;
     case 'i':
       // Received initialization command
       neopixel.fill(cyan);
@@ -806,7 +969,7 @@ void loop()
       break;
     case 's':
       // Received start commmand
-      neopixel.fill(green);
+      neopixel.fill(blue);
       neopixel.show();
       // Run the temperature control loop
       controlLoop();
