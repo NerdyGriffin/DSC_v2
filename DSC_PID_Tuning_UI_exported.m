@@ -114,6 +114,17 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
     methods (Access = public)
 
+        function updateProgressDlg(app, message)
+            if isvalid(app.SharedProgressDlg)
+                app.SharedProgressDlg.Message = message;
+            else
+                % Create and display the progress bar
+                app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino', ...
+                    'Message',message,'Indeterminate','on');
+            end
+            drawnow
+        end
+
         function initializeSerialPort(app)
             % Get the list of available serial ports
             app.SerialPortList = serialportlist("available");
@@ -145,9 +156,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     app.Arduino = serialport(app.SerialPort, 9600);
 
                     % Create and display the progress bar
-                    app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino', ...
-                        'Indeterminate','on');
-                    drawnow
+                    updateProgressDlg(app, 'Awaiting response from Arduino...');
 
                     if isempty(readline(app.Arduino))
                         message = sprintf("There was no response from the device on '%s'. Make sure that this is the correct serial port, and that the 'dsc_arduino' sketch has been upload onto the Arduino.", app.SerialPort);
@@ -319,6 +328,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 app.KiEditField.Value = Ki;
                 app.KdEditField.Value = Kd;
 
+                % Create and display the progress bar
+                updateProgressDlg(app, 'Awaiting response from Arduino...');
+
                 % Sync PID gains with Arduino
                 sendPIDGains(app);
                 receivePIDGains(app);
@@ -332,6 +344,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 % Sync control parameters with arduino
                 sendControlParameters(app);
                 receiveControlParameters(app);
+
+                if isvalid(app.SharedProgressDlg)
+                    % Close the progress bar
+                    close(app.SharedProgressDlg)
+                end
 
                 % Start the experiment
                 startExperiment(app);
@@ -430,9 +447,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function sendPIDGains(app)
-            if isvalid(app.SharedProgressDlg)
-                app.SharedProgressDlg.Message = 'Sending PID Gains to Arduino...';
-            end
+            updateProgressDlg(app, 'Sending PID Gains to Arduino...');
 
             % Send the PID gain constants via the serial bus
             flush(app.Arduino);
@@ -447,9 +462,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         function receivePIDGains(app)
             % Receive the PID gain constants via the serial bus
-            if isvalid(app.SharedProgressDlg)
-                app.SharedProgressDlg.Message = 'Receiving PID Gains from Arduino...';
-            end
+            updateProgressDlg(app, 'Receiving PID Gains from Arduino...');
             awaitResponse = true;
             while awaitResponse
                 serialData = strip(readline(app.Arduino));
@@ -479,9 +492,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function sendControlParameters(app)
-            if isvalid(app.SharedProgressDlg)
-                app.SharedProgressDlg.Message = 'Sending temperature control parameters to Arduino...';
-            end
+            updateProgressDlg(app, 'Sending temperature control parameters to Arduino...');
 
             flush(app.Arduino);
             write(app.Arduino, 'l', 'char');
@@ -496,9 +507,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function receiveControlParameters(app)
-            if isvalid(app.SharedProgressDlg)
-                app.SharedProgressDlg.Message = 'Receiving temperature control parameters from Arduino...';
-            end
+            updateProgressDlg(app, 'Receiving temperature control parameters from Arduino...');
             awaitResponse = true;
             while awaitResponse
                 serialData = strip(readline(app.Arduino));
@@ -529,6 +538,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function receiveSerialData(app)
+            updateProgressDlg(app, 'Awaiting initial data...');
+
             app.Data.Kp = app.KpEditField.Value;
             app.Data.Ki = app.KiEditField.Value;
             app.Data.Kd = app.KdEditField.Value;
@@ -567,6 +578,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         case 'x'
                             experimentIsRunning = false;
                             disp('Received end signal')
+                            updateProgressDlg(app, 'Awaiting response from Arduino...');
                             receivePIDGains(app);
                             receiveControlParameters(app);
                         otherwise
@@ -605,6 +617,10 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                                 app.Data.elapsedTime, app.Data.targetTemp, ...
                                 app.Data.refTemp, app.Data.sampTemp, ...
                                 app.Data.refDutyCycle, app.Data.sampDutyCycle);
+                            if isvalid(app.SharedProgressDlg)
+                                % Close the progress bar
+                                close(app.SharedProgressDlg)
+                            end
                         end
                     else
                         disp(parsedData)
@@ -622,6 +638,11 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 app.PIDAutotunerIsRunning = false;
                 % This also updates the app.Data struct so that the new
                 % PID gains will be included in the autosave file.
+            end
+
+            if isvalid(app.SharedProgressDlg)
+                % Close the progress bar
+                close(app.SharedProgressDlg)
             end
 
             saveData = app.Data;
@@ -855,9 +876,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             loadConfigFile(app);
 
             % Create and display the progress bar
-            app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino', ...
-                'Indeterminate','on');
-            drawnow
+            updateProgressDlg(app, 'Awaiting response from Arduino...');
 
             sendPIDGains(app);
             receivePIDGains(app);
@@ -876,9 +895,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.ApplyPIDParametersButton.Enable = 'off';
 
             % Create and display the progress bar
-            app.SharedProgressDlg = uiprogressdlg(app.UIFigure,'Title','Communicating with Arduino', ...
-                'Indeterminate','on');
-            drawnow
+            updateProgressDlg(app, 'Awaiting response from Arduino...');
 
             sendPIDGains(app);
             receivePIDGains(app);
