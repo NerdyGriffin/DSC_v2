@@ -471,17 +471,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                 close(app.SharedProgressDlg)
             end
 
-            date_str = datestr(app.Data.startDateTime, 'yyyy-mm-dd-HHMM');
-            matfileName = ['autosave/autoSaveData-',date_str,'.mat'];
-
-            saveData = app.Data;
-            save(matfileName,'-struct','saveData')
-            if isfile(matfileName)
-                beep
-                message = sprintf("Autosave file created: '%s'\n", matfileName);
-                disp(message)
-                uialert(app.UIFigure,message,'Autosave Successful','Icon','success');
-            end
+            saveData(app, app.Data);
 
             updateLiveData(app, ...
                 app.Data.elapsedTime(dataLength), ...
@@ -497,6 +487,20 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                 app.Data.refTemp, app.Data.sampTemp);
 
             setIdleUI(app);
+        end
+
+        function saveData(app, saveData)
+            date_str = datestr(saveData.startDateTime, 'yyyy-mm-dd-HHMM');
+
+            matfileName = ['autosave/autoSaveData-',date_str,'.mat'];
+
+            save(matfileName,'-struct','saveData')
+            if isfile(matfileName)
+                beep
+                message = sprintf("Save file created: '%s'\n", matfileName);
+                disp(message)
+                uialert(app.UIFigure,message,'Data Saved Successfully','Icon','success');
+            end
         end
 
         function setRunningUI(app)

@@ -645,22 +645,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             if isvalid(app.SharedProgressDlg)
                 close(app.SharedProgressDlg)
             end
-
-            Kp_str = strrep(num2str(app.Data.Kp),'.','P');
-            Ki_str = strrep(num2str(app.Data.Ki),'.','I');
-            Kd_str = strrep(num2str(app.Data.Kd),'.','D');
-            date_str = datestr(app.Data.startDateTime, 'yyyy-mm-dd-HHMM');
-            matfileName = ['autosave/autoSavePIDData-', ...
-                Kp_str,'-',Ki_str,'-',Kd_str,'-',date_str,'.mat'];
-
-            saveData = app.Data;
-            save(matfileName,'-struct','saveData')
-            if isfile(matfileName)
-                beep
-                message = sprintf("Autosave file created: '%s'\n", matfileName);
-                disp(message)
-                uialert(app.UIFigure,message,'Autosave Successful','Icon','success');
-            end
+            
+            saveData(app, app.Data);
 
             updateLiveData(app, ...
                 app.Data.elapsedTime(dataLength), ...
@@ -677,6 +663,26 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 app.Data.refDutyCycle, app.Data.sampDutyCycle);
 
             setIdleUI(app);
+        end
+        
+        function saveData(app, saveData)
+            formatSpec = '%.2f';
+            Kp_str = strrep(num2str(saveData.Kp,formatSpec), '.', 'P');
+            Ki_str = strrep(num2str(saveData.Ki,formatSpec), '.', 'I');
+            Kd_str = strrep(num2str(saveData.Kd,formatSpec), '.', 'D');
+            
+            date_str = datestr(saveData.startDateTime, 'yyyy-mm-dd-HHMM');
+            
+            matfileName = ['autosave/autoSavePIDData-', ...
+                Kp_str,'-',Ki_str,'-',Kd_str,'-',date_str,'.mat'];
+
+            save(matfileName,'-struct','saveData')
+            if isfile(matfileName)
+                beep
+                message = sprintf("Save file created: '%s'\n", matfileName);
+                disp(message)
+                uialert(app.UIFigure,message,'Data Saved Successfully','Icon','success');
+            end
         end
 
         function setRunningUI(app)
@@ -1207,7 +1213,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % Create ElapsedTimesecEditField
             app.ElapsedTimesecEditField = uieditfield(app.GridLayout4, 'numeric');
-            app.ElapsedTimesecEditField.ValueDisplayFormat = '%.3f';
+            app.ElapsedTimesecEditField.ValueDisplayFormat = '%.1f';
             app.ElapsedTimesecEditField.Editable = 'off';
             app.ElapsedTimesecEditField.Layout.Row = 1;
             app.ElapsedTimesecEditField.Layout.Column = 2;
@@ -1221,7 +1227,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % Create TargetTempCEditField
             app.TargetTempCEditField = uieditfield(app.GridLayout4, 'numeric');
-            app.TargetTempCEditField.ValueDisplayFormat = '%.3f';
+            app.TargetTempCEditField.ValueDisplayFormat = '%.2f';
             app.TargetTempCEditField.Editable = 'off';
             app.TargetTempCEditField.Layout.Row = 2;
             app.TargetTempCEditField.Layout.Column = 2;
@@ -1246,7 +1252,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % Create TemperatureCEditField
             app.TemperatureCEditField = uieditfield(app.GridLayout5, 'numeric');
-            app.TemperatureCEditField.ValueDisplayFormat = '%.3f';
+            app.TemperatureCEditField.ValueDisplayFormat = '%.2f';
             app.TemperatureCEditField.Editable = 'off';
             app.TemperatureCEditField.Layout.Row = 1;
             app.TemperatureCEditField.Layout.Column = 2;
@@ -1299,7 +1305,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             % Create TemperatureCEditField_2
             app.TemperatureCEditField_2 = uieditfield(app.GridLayout6, 'numeric');
-            app.TemperatureCEditField_2.ValueDisplayFormat = '%.3f';
+            app.TemperatureCEditField_2.ValueDisplayFormat = '%.2f';
             app.TemperatureCEditField_2.Editable = 'off';
             app.TemperatureCEditField_2.Layout.Row = 1;
             app.TemperatureCEditField_2.Layout.Column = 2;
