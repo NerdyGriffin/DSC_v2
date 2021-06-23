@@ -108,6 +108,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         SharedProgressDlg matlab.ui.dialog.ProgressDialog
 
         AutomatedTestIsRunning
+
+        PIDAutotunerIsRunning
     end
 
     methods (Access = public)
@@ -374,6 +376,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.AutomatedKiSweepButton.Enable = 'on';
             app.AutomatedKdSweepButton.Enable = 'on';
             app.AbortSweepButton.Enable = 'off';
+            app.AutomatedTestIsRunning = false;
         end
 
         function startPIDAutotuner(app)
@@ -386,6 +389,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 if strlength(serialData) == 1
                     switch strip(serialData)
                         case 'a'
+                            app.PIDAutotunerIsRunning = true;
                             setRunningUI(app);
                             receiveSerialData(app);
                             awaitStart = false;
@@ -611,11 +615,12 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             app.Data.dataLength = dataLength;
 
-            if matches(app.PIDAutotunerButton.Enable, 'off')
+            if app.PIDAutotunerIsRunning
                 % Recieve the PID gains which are sent automatically after
                 % the autotuner is complete.
                 disp('PID Autotuner results:')
                 receivePIDGains(app);
+                app.PIDAutotunerIsRunning = false;
                 % This also updates the app.Data struct so that the new
                 % PID gains will be included in the autosave file.
             end
