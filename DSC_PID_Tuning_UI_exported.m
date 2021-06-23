@@ -564,6 +564,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                         case 'x'
                             experimentIsRunning = false;
                             disp('Received end signal')
+                            receivePIDGains(app);
+                            receiveControlParameters(app);
                         otherwise
                             disp('Unrecognized data flag while awaiting data:')
                             disp(serialData)
@@ -608,6 +610,15 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             end
 
             app.Data.dataLength = dataLength;
+
+            if matches(app.PIDAutotunerButton.Enable, 'off')
+                % Recieve the PID gains which are sent automatically after
+                % the autotuner is complete.
+                disp('PID Autotuner results:')
+                receivePIDGains(app);
+                % This also updates the app.Data struct so that the new
+                % PID gains will be included in the autosave file.
+            end
 
             saveData = app.Data;
             save(matfileName,'-struct','saveData')
@@ -928,10 +939,6 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.PIDAutotunerButton.Enable = 'off';
 
             startPIDAutotuner(app);
-
-            % Recieve the PID gains which are send automatically after the
-            % autotuner is complete
-            receivePIDGains(app);
         end
     end
 

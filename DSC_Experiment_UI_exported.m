@@ -403,6 +403,8 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                         case 'x'
                             experimentIsRunning = false;
                             disp('Received end signal')
+                            receivePIDGains(app);
+                            receiveControlParameters(app);
                         otherwise
                             disp('Unrecognized data flag while awaiting data:')
                             disp(serialData)

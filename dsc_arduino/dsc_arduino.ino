@@ -260,6 +260,11 @@ void stopPID(uint32_t color)
 
   // Send the char 'x' to indicate that PID was stopped
   Serial.println("x");
+
+  // Send the PID gain constants via the serial bus
+  sendPIDGains();
+  // Send the temperature control parameters via the serial bus
+  sendControlParameters();
 }
 
 void endAutotune(PIDAutotuner *tuner, uint32_t color)
