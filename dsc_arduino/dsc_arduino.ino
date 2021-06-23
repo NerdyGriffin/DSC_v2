@@ -702,6 +702,13 @@ void controlLoop()
     {
       if (endCounter < TARGET_COUNTER_THRESHOLD)
       {
+        if (endCounter == 0)
+        {
+          // Reset the PID when transitioning from ramp-up heating to constant
+          // target temperature
+          refPID.reset();
+          sampPID.reset();
+        }
         if ((refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
             (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
         {
@@ -709,7 +716,7 @@ void controlLoop()
         }
         else
         {
-          endCounter = 0;
+          endCounter = 1;
         }
         holdStartTime = microseconds;
       }
