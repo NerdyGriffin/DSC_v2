@@ -197,11 +197,11 @@ void sendPIDGains()
   Serial.println("Kp,Ki,Kd");
 
   // Send each value in the expected order, separated by newlines
-  Serial.print(Kp);
+  Serial.print(Kp, 4);
   Serial.print(",");
-  Serial.print(Ki);
+  Serial.print(Ki, 4);
   Serial.print(",");
-  Serial.println(Kd);
+  Serial.println(Kd, 4);
 }
 
 /**
