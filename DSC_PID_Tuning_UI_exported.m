@@ -107,8 +107,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         SharedProgressDlg matlab.ui.dialog.ProgressDialog
 
-        AutomatedLoopIsRunning
-        PIDAutotunerIsRunning
+        AutomatedLoopIsRunning = false;
+        PIDAutotunerIsRunning = false;
     end
 
     methods (Access = public)
@@ -362,7 +362,6 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 startExperiment(app);
 
                 if ~app.AutomatedLoopIsRunning
-                    app.AutomatedLoopIsRunning = false;
                     break
                 end
 
@@ -393,7 +392,6 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 close(d)
 
                 if ~app.AutomatedLoopIsRunning
-                    app.AutomatedLoopIsRunning = false;
                     break
                 end
             end
