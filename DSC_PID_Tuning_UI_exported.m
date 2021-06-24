@@ -309,9 +309,9 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 kStep = 1e-2;
                 kMax = 1e-1;
             else
-                kMin = (10^n);
-                kStep = (10^(n-1));
-                kMax = (10^(n+1));
+                kMin = 1; % (10^n);
+                kStep = 0.5; % (10^(n-1));
+                kMax = 10; % (10^(n+1));
 
             end
 
