@@ -705,13 +705,13 @@ void controlLoop()
     {
       if (endCounter < TARGET_COUNTER_THRESHOLD)
       {
-        if (endCounter == 0)
-        {
-          // Reset the PID when transitioning from ramp-up heating to constant
-          // target temperature
-          refPID.reset();
-          sampPID.reset();
-        }
+        // if (endCounter == 0)
+        // {
+        //   // Reset the PID when transitioning from ramp-up heating to constant
+        //   // target temperature
+        //   refPID.reset();
+        //   sampPID.reset();
+        // }
         if ((refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
             (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
         {
@@ -832,7 +832,7 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.10;
+  Kp = 0.08;
   Ki = 0.01;
   Kd = 1.00;
 
