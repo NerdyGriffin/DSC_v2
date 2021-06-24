@@ -62,6 +62,10 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
             % Prompt the user to select a file
             [dataFileName, dataFilePath] = uigetfile('*.mat');
 
+            % Re-focus the app window
+            drawnow;
+            figure(app.UIFigure)
+
             switch dataFileName
                 case 0
                     % Cancel the read operation and return an empty array

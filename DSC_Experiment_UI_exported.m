@@ -173,6 +173,10 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             % Prompt the user to select a file
             [configFileName, configFilePath] = uigetfile('*.ini');
 
+            % Re-focus the app window
+            drawnow;
+            figure(app.UIFigure)
+
             switch configFileName
                 case 0
                     % Cancel the read operation and return an empty array
@@ -189,7 +193,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     configFullPath = fullfile(configFilePath, configFileName);
 
                     % Read the .ini file
-                    ini.ReadFile(configFullPath)
+                    ini.ReadFile(configFullPath);
 
                     PIDSection = 'PID Settings';
                     if ini.IsSections(PIDSection)
@@ -211,7 +215,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     else
                         % Close the progress bar
                         if isvalid(app.SharedProgressDlg)
-                            close(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg);
                         end
 
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", PIDSection);
@@ -249,7 +253,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     else
                         % Close the progress bar
                         if isvalid(app.SharedProgressDlg)
-                            close(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg);
                         end
 
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", TempControlSection);
@@ -261,7 +265,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Close the progress bar
             if isvalid(app.SharedProgressDlg)
-                close(app.SharedProgressDlg)
+                close(app.SharedProgressDlg);
             end
         end
 
@@ -667,7 +671,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Close the progress bar
             if isvalid(app.SharedProgressDlg)
-                close(app.SharedProgressDlg)
+                close(app.SharedProgressDlg);
             end
 
             app.LoadConfigFileButton.Enable = 'on';
