@@ -820,7 +820,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create RateCminEditField
             app.RateCminEditField = uieditfield(app.GridLayout7, 'numeric');
-            app.RateCminEditField.Limits = [0 Inf];
+            app.RateCminEditField.Limits = [0 200];
             app.RateCminEditField.Layout.Row = 3;
             app.RateCminEditField.Layout.Column = 2;
 
