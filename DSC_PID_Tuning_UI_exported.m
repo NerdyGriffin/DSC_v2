@@ -304,15 +304,14 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             end
 
             n = floor(log10(sweepVal));
-            if n < -1
-                kMin = 1e-2;
-                kStep = 1e-2;
-                kMax = 1e-1;
+            if n < -3
+                kMin = 1e-4;
+                kStep = 1e-4;
+                kMax = 1e-3;
             else
-                kMin = 1; % (10^n);
-                kStep = 0.5; % (10^(n-1));
-                kMax = 10; % (10^(n+1));
-
+                kMin = (10^n);
+                kStep = (10^n);
+                kMax = (10^(n+1));
             end
 
             app.AutomatedLoopIsRunning = true;
