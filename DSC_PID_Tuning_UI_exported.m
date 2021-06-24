@@ -274,6 +274,15 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     end
             end
 
+            % Create and display the progress bar
+            updateProgressDlg(app, 'Awaiting response from Arduino...');
+
+            sendPIDGains(app);
+            receivePIDGains(app);
+
+            sendControlParameters(app);
+            receiveControlParameters(app);
+
             % Close the progress bar
             if isvalid(app.SharedProgressDlg)
                 close(app.SharedProgressDlg);
@@ -893,20 +902,6 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.LoadConfigFileButton.Enable = 'off';
 
             loadConfigFile(app);
-
-            % Create and display the progress bar
-            updateProgressDlg(app, 'Awaiting response from Arduino...');
-
-            sendPIDGains(app);
-            receivePIDGains(app);
-
-            sendControlParameters(app);
-            receiveControlParameters(app);
-
-            % Close the progress bar
-            if isvalid(app.SharedProgressDlg)
-                close(app.SharedProgressDlg);
-            end
 
             app.LoadConfigFileButton.Enable = 'on';
         end
