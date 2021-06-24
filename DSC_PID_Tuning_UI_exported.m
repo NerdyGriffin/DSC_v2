@@ -668,7 +668,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
         end
 
         function saveData(app, saveData)
-            formatSpec = '%.2f';
+            formatSpec = '%.4f';
             Kp_str = strrep(num2str(saveData.Kp,formatSpec), '.', 'P');
             Ki_str = strrep(num2str(saveData.Ki,formatSpec), '.', 'I');
             Kd_str = strrep(num2str(saveData.Kd,formatSpec), '.', 'D');
@@ -683,7 +683,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 beep
                 message = sprintf("Save file created: '%s'\n", matfileName);
                 disp(message)
-                if ~app.AutomatedLoopIsRunning
+                if ~(app.AutomatedLoopIsRunning)
                     uialert(app.UIFigure,message,'Data Saved Successfully','Icon','success');
                 end
             end
@@ -1072,7 +1072,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             % Create KpEditField
             app.KpEditField = uieditfield(app.GridLayout7, 'numeric');
             app.KpEditField.Limits = [0 Inf];
-            app.KpEditField.ValueDisplayFormat = '%.2f';
+            app.KpEditField.ValueDisplayFormat = '%.4f';
             app.KpEditField.Layout.Row = 1;
             app.KpEditField.Layout.Column = 3;
 
@@ -1086,7 +1086,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             % Create KiEditField
             app.KiEditField = uieditfield(app.GridLayout7, 'numeric');
             app.KiEditField.Limits = [0 Inf];
-            app.KiEditField.ValueDisplayFormat = '%.2f';
+            app.KiEditField.ValueDisplayFormat = '%.4f';
             app.KiEditField.Layout.Row = 2;
             app.KiEditField.Layout.Column = 3;
 
@@ -1100,7 +1100,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             % Create KdEditField
             app.KdEditField = uieditfield(app.GridLayout7, 'numeric');
             app.KdEditField.Limits = [0 Inf];
-            app.KdEditField.ValueDisplayFormat = '%.2f';
+            app.KdEditField.ValueDisplayFormat = '%.4f';
             app.KdEditField.Layout.Row = 3;
             app.KdEditField.Layout.Column = 3;
 
