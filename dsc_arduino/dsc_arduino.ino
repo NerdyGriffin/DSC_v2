@@ -45,6 +45,8 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
 #define Ref_Heater_PIN 11
 #define Samp_Heater_PIN 10
 
+const unsigned long STANDBY_LOOP_INTERVAL = 1000UL; // milliseconds
+
 /**
  * Number of samples to average the reading over. Change this to make the
  * reading smoother... but beware of buffer overflows!
@@ -146,7 +148,7 @@ double holdTime;
 #define SEC_TO_MICROS 1000000.0
 
 // tracks clock time in microseconds
-unsigned long microseconds, rampUpStartTime, holdStartTime;
+unsigned long microseconds, rampUpStartTime, holdStartTime, standbyTime;
 
 unsigned long standbyCounter;
 int startCounter, endCounter;
@@ -858,14 +860,14 @@ void setup()
   // Set the sample masses to default values
   refMass = 1.0;
   sampMass = 1.0;
+
+  standbyTime = 0;
 }
 
 void loop()
 {
-  digitalWrite(13, LOW); // Blink the LED
-  delay(500);
   digitalWrite(13, HIGH); // Blink the LED
-  delay(500);
+  delay(STANDBY_LOOP_INTERVAL / 2);
 
   neopixel.clear();
   neopixel.show();
@@ -932,14 +934,19 @@ void loop()
     default:
       break;
     }
-  }
-  else if (standbyCounter % 10 == 0)
-  {
-    standbyCounter++;
-  }
-  else
-  {
     standbyCounter = 0;
-    standbyData();
   }
+  else if ((standbyCounter % 10UL) == 0)
+  {
+    standbyData();
+    standbyCounter = 0;
+  }
+  standbyCounter++;
+
+  digitalWrite(13, LOW); // Blink the LED
+
+  while ((micros() - standbyTime) < STANDBY_LOOP_INTERVAL)
+    ; // busy wait
+
+  standbyTime += STANDBY_LOOP_INTERVAL;
 }
