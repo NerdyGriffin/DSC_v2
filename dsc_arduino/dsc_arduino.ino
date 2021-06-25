@@ -76,8 +76,8 @@ unsigned long sensorValues[4];
 // PID settings and gains
 #define PULSE_WIDTH 100UL // Pulse width in milliseconds
 double Kp = 0.1000;
-double Ki = 0.0000;
-double Kd = 1.0000;
+double Ki = 0.0001;
+double Kd = 5.0000;
 /**
  * When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
  * is deactivated, and the output is set to max
@@ -838,8 +838,8 @@ void setup()
 
   // Set PID gain constants to default values
   Kp = 0.1000;
-  Ki = 0.0000;
-  Kd = 1.0000;
+  Ki = 0.0001;
+  Kd = 5.0000;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
