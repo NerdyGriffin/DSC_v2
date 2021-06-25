@@ -757,7 +757,10 @@ void controlLoop()
     }
 
     while ((micros() - microseconds) < LOOP_INTERVAL)
-      ; // busy wait
+    {
+      // Refresh the PID calculations and PWM output
+      refreshPID();
+    } // busy wait
 
     unsigned long prevMicroseconds = microseconds;
     microseconds += LOOP_INTERVAL;
