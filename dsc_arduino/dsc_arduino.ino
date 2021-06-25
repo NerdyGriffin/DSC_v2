@@ -945,7 +945,7 @@ void loop()
 
   digitalWrite(13, LOW); // Blink the LED
 
-  while ((micros() - standbyTime) < STANDBY_LOOP_INTERVAL)
+  while ((millis() - standbyTime) < STANDBY_LOOP_INTERVAL)
     ; // busy wait
 
   standbyTime += STANDBY_LOOP_INTERVAL;
