@@ -9,7 +9,7 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
         YAxisDataPanel         matlab.ui.container.Panel
         GridLayout7            matlab.ui.container.GridLayout
         TemperatureCButton_Y   matlab.ui.control.StateButton
-        HeatFlowRateWgButton   matlab.ui.control.StateButton
+        HeatFlowRatemWgButton  matlab.ui.control.StateButton
         XAxisDataPanel         matlab.ui.container.Panel
         GridLayout6            matlab.ui.container.GridLayout
         TemperatureCButton_X   matlab.ui.control.StateButton
@@ -130,18 +130,18 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
                 app.TimesecButton.Enable = 'on';
                 app.TemperatureCButton_X.Enable = 'on';
 
-                app.HeatFlowRateWgButton.Enable = 'on';
+                app.HeatFlowRatemWgButton.Enable = 'on';
                 app.TemperatureCButton_Y.Enable = 'on';
 
                 if app.DifferentialButton.Value
-                    app.HeatFlowRateWgButton.Enable = 'on';
+                    app.HeatFlowRatemWgButton.Enable = 'on';
                 elseif app.TargetTempButton.Value
-                    app.HeatFlowRateWgButton.Enable = 'off';
+                    app.HeatFlowRatemWgButton.Enable = 'off';
                     app.TimesecButton.Value = true;
                     app.TemperatureCButton_X.Value = false;
                     app.TemperatureCButton_X.Enable = 'off';
                 elseif app.ReferenceButton.Value || app.TestSampButton.Value
-                    app.HeatFlowRateWgButton.Enable = 'on';
+                    app.HeatFlowRatemWgButton.Enable = 'on';
                 end
 
                 redrawPlot(app)
@@ -162,11 +162,11 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
             if app.TimesecButton.Value
                 app.TemperatureCButton_Y.Enable = 'on';
 
-                if app.HeatFlowRateWgButton.Value
+                if app.HeatFlowRatemWgButton.Value
                     app.TemperatureCButton_X.Enable = 'on';
                     title(app.UIAxes, 'Heat Flow Rate vs. Time')
                     xlabel(app.UIAxes, 'Time (sec)')
-                    ylabel(app.UIAxes, 'Heat Flow Rate (W/g)')
+                    ylabel(app.UIAxes, 'Heat Flow Rate (mW/g)')
 
                     % Check whether there is any data before attempting to
                     % plot
@@ -264,11 +264,11 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
             elseif app.TemperatureCButton_X.Value
                 app.TemperatureCButton_Y.Enable = 'off';
 
-                app.HeatFlowRateWgButton.Value = true;
+                app.HeatFlowRatemWgButton.Value = true;
                 app.TemperatureCButton_Y.Value = false;
                 title(app.UIAxes, 'Heat Flow Rate vs. Temperature')
                 xlabel(app.UIAxes, 'Temperature (\circC)')
-                ylabel(app.UIAxes, 'Heat Flow Rate (W/g)')
+                ylabel(app.UIAxes, 'Heat Flow Rate (mW/g)')
 
                 % Check whether there is any data before attempting to plot
                 if (app.MatObj.dataLength > 0)
@@ -405,7 +405,7 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
                 app.TimesecButton.Value = false;
                 app.TemperatureCButton_X.Value = true;
 
-                app.HeatFlowRateWgButton.Value = true;
+                app.HeatFlowRatemWgButton.Value = true;
                 app.TemperatureCButton_Y.Value = false;
             end
 
@@ -422,7 +422,7 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
                 app.TimesecButton.Value = true;
                 app.TemperatureCButton_X.Value = false;
 
-                app.HeatFlowRateWgButton.Value = false;
+                app.HeatFlowRatemWgButton.Value = false;
                 app.TemperatureCButton_Y.Value = true;
             end
 
@@ -478,9 +478,9 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
 
         end
 
-        % Value changed function: HeatFlowRateWgButton
-        function HeatFlowRateWgButtonValueChanged(app, event)
-            value = app.HeatFlowRateWgButton.Value;
+        % Value changed function: HeatFlowRatemWgButton
+        function HeatFlowRatemWgButtonValueChanged(app, event)
+            value = app.HeatFlowRatemWgButton.Value;
             if value
                 app.TemperatureCButton_Y.Value = false;
             else
@@ -495,9 +495,9 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
         function TemperatureCButton_YValueChanged(app, event)
             value = app.TemperatureCButton_Y.Value;
             if value
-                app.HeatFlowRateWgButton.Value = false;
+                app.HeatFlowRatemWgButton.Value = false;
             else
-                app.HeatFlowRateWgButton.Value = true;
+                app.HeatFlowRatemWgButton.Value = true;
             end
 
             updateUIStates(app);
@@ -637,13 +637,13 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
             % Create GridLayout7
             app.GridLayout7 = uigridlayout(app.YAxisDataPanel);
 
-            % Create HeatFlowRateWgButton
-            app.HeatFlowRateWgButton = uibutton(app.GridLayout7, 'state');
-            app.HeatFlowRateWgButton.ValueChangedFcn = createCallbackFcn(app, @HeatFlowRateWgButtonValueChanged, true);
-            app.HeatFlowRateWgButton.Text = 'Heat Flow Rate (W/g)';
-            app.HeatFlowRateWgButton.Layout.Row = 1;
-            app.HeatFlowRateWgButton.Layout.Column = [1 2];
-            app.HeatFlowRateWgButton.Value = true;
+            % Create HeatFlowRatemWgButton
+            app.HeatFlowRatemWgButton = uibutton(app.GridLayout7, 'state');
+            app.HeatFlowRatemWgButton.ValueChangedFcn = createCallbackFcn(app, @HeatFlowRatemWgButtonValueChanged, true);
+            app.HeatFlowRatemWgButton.Text = 'Heat Flow Rate (mW/g)';
+            app.HeatFlowRatemWgButton.Layout.Row = 1;
+            app.HeatFlowRatemWgButton.Layout.Column = [1 2];
+            app.HeatFlowRatemWgButton.Value = true;
 
             % Create TemperatureCButton_Y
             app.TemperatureCButton_Y = uibutton(app.GridLayout7, 'state');
@@ -667,7 +667,7 @@ classdef DSC_Data_Analysis_UI_exported < matlab.apps.AppBase
             app.UIAxes = uiaxes(app.GridLayout3);
             title(app.UIAxes, 'Differential Heat Flow Rate vs. Temperature')
             xlabel(app.UIAxes, 'Temperature (C)')
-            ylabel(app.UIAxes, 'Heat Flow Rate (W/g)')
+            ylabel(app.UIAxes, 'Heat Flow Rate (mW/g)')
             app.UIAxes.XGrid = 'on';
             app.UIAxes.YGrid = 'on';
             app.UIAxes.Layout.Row = 1;
