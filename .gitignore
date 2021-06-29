@@ -2,3 +2,5 @@
 *.mat
 
 test/
+
+*.fig
