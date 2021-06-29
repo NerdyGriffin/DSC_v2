@@ -505,15 +505,32 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         function saveData(app, saveData)
             date_str = datestr(saveData.startDateTime, 'yyyy-mm-dd-HHMM');
 
-            matfileName = ['autosave/autoSaveData-',date_str,'.mat'];
+            autoFilename = ['autosave/autoSaveData-',date_str];
 
-            save(matfileName,'-struct','saveData')
-            if isfile(matfileName)
+            matFilename = [autoFilename,'.mat'];
+            save(matFilename,'-struct','saveData');
+
+            figureFilename = [autoFilename,'.fig'];
+            saveAxesAsFigure(app, figureFilename);
+
+            if isfile(matFilename)
                 beep
-                message = sprintf("Save file created: '%s'\n", matfileName);
+                message = sprintf("Save file created: '%s'\n", matFilename);
+                if isfile(figureFilename)
+                    message = sprintf("%s\n\nFigure file created: '%s'\n", message, figureFilename);
+                end
                 disp(message)
                 uialert(app.UIFigure,message,'Data Saved Successfully','Icon','success');
             end
+        end
+
+        function saveAxesAsFigure(app, figureFilename)
+            fignew = figure('Visible','off'); % Invisible figure
+            newAxes = copyobj(app.UIAxes,fignew); % Copy the appropriate axes
+            set(newAxes,'Position',get(groot,'DefaultAxesPosition')); % The original position is copied too, so adjust it.
+            set(fignew,'CreateFcn','set(gcbf,''Visible'',''on'')'); % Make it visible upon loading
+            savefig(fignew,figureFilename);
+            delete(fignew);
         end
 
         function setRunningUI(app)
