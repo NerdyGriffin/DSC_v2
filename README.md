@@ -156,7 +156,12 @@ For this program, I have taken advantage of the built-in NeoPixel LED on the Fea
 
 ### Circuit Diagram
 
-- TBD
+Work in progess...
+
+<p align="center">
+    <img src="./fritzing/DSC_Full_bb.png" alt="Circuit Diagram">
+</p>
+
 
 ## Previous version
 
