@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dialog Color="[0.941 0.941 0.941]" HPosition="center" Name="Experiment_UI" Position="[1 719 1280 720]" Resize="off" VPosition="center" windowStyle="normal">
+    <GlobalSrc>%
+% The source code writed here will be executed when
+% windows load. Work like 'onLoad' event of other languages.
+%
+</GlobalSrc>
+    <uiControl class="imgCtrl" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" Name="Main_Plot" Position="[190 0 770 680]"/>
+    <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Button_1" Position="[5 5 180 44]" String="Start Experiment" TooltipString="">% This code will be executed when user click the button control.
+% As default, all events are deactivated, to activate must set the
+% propertie 'generateCallback' from the properties editor</uiControl>
+    <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Button_2" Position="[5 55 180 44]" String="Stop Experiment" TooltipString="">% This code will be executed when user click the button control.
+% As default, all events are deactivated, to activate must set the
+% propertie 'generateCallback' from the properties editor</uiControl>
+    <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Button_3" Position="[5 105 180 44]" String="Load Config File" TooltipString="">% This code will be executed when user click the button control.
+% As default, all events are deactivated, to activate must set the
+% propertie 'generateCallback' from the properties editor</uiControl>
+    <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Button_4" Position="[5 155 180 44]" String="Sync to Arduino" TooltipString="">% This code will be executed when user click the button control.
+% As default, all events are deactivated, to activate must set the
+% propertie 'generateCallback' from the properties editor</uiControl>
+    <uiControl class="cmbCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="ComboBox_1" Position="[110 600 70 25]" String="COM1|COM2|COM3" TooltipString=""/>
+    <uiControl class="textCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Serial_Port_Label" Position="[10 605 90 20]" String="Serial Port" TooltipString=""/>
+    <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Button_5" Position="[5 635 180 44]" String="Button_5" TooltipString="">% This code will be executed when user click the button control.
+% As default, all events are deactivated, to activate must set the
+% propertie 'generateCallback' from the properties editor</uiControl>
+    <uiControl class="groupPanel" BackgroundColor="[0.863 0.863 0.863]" BorderWidth="1" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" Name="GroupPanel_1" Position="[5 220 180 145]" Title="Experiment Parameters" TitlePosition="lefttop">
+        <ContainerSrc/>
+        <uiControl class="textCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Start_Temp_Label" Position="[10 25 84 16]" String="Start Temp (C)" TooltipString=""/>
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" Name="Edit_1" Position="[110 25 60 22]" String="Edit_1" TooltipString="">% This code will be executed when the control lost focus and text has 
+% been changed or when press the &quot;enter&quot; key.
+% As default, all events are deactivated, to activate must set the
+% propertie 'have callback' from the properties editor</uiControl>
+        <uiControl class="textCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="End_Temp_Label" Position="[10 55 79 16]" String="End Temp (C)" TooltipString=""/>
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" Name="Edit_2" Position="[110 55 60 22]" String="Edit_2" TooltipString="">% This code will be executed when the control lost focus and text has 
+% been changed or when press the &quot;enter&quot; key.
+% As default, all events are deactivated, to activate must set the
+% propertie 'have callback' from the properties editor</uiControl>
+        <uiControl class="textCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Rate_Label" Position="[10 85 73 16]" String="Rate (C/min)" TooltipString=""/>
+        <uiControl class="textCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Hold_Time_Label" Position="[10 115 91 16]" String="Hold Time (sec)" TooltipString=""/>
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" Name="Edit_3" Position="[110 85 60 22]" String="Edit_3" TooltipString="">% This code will be executed when the control lost focus and text has 
+% been changed or when press the &quot;enter&quot; key.
+% As default, all events are deactivated, to activate must set the
+% propertie 'have callback' from the properties editor</uiControl>
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" Name="Edit_4" Position="[110 115 60 22]" String="Edit_4" TooltipString="">% This code will be executed when the control lost focus and text has 
+% been changed or when press the &quot;enter&quot; key.
+% As default, all events are deactivated, to activate must set the
+% propertie 'have callback' from the properties editor</uiControl>
+    </uiControl>
+    <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" Name="Edit_5" Position="[1185 20 90 22]" String="Edit_5" TooltipString="">% This code will be executed when the control lost focus and text has 
+% been changed or when press the &quot;enter&quot; key.
+% As default, all events are deactivated, to activate must set the
+% propertie 'have callback' from the properties editor</uiControl>
+    <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" Name="Edit_6" Position="[1185 55 90 22]" String="Edit_6" TooltipString="">% This code will be executed when the control lost focus and text has 
+% been changed or when press the &quot;enter&quot; key.
+% As default, all events are deactivated, to activate must set the
+% propertie 'have callback' from the properties editor</uiControl>
+    <uiControl class="groupPanel" BackgroundColor="[0.941 0.941 0.941]" BorderWidth="1" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" Name="GroupPanel_2" Position="[1016 120 236 205]" Title="Reference Sample Live Data" TitlePosition="lefttop">
+        <ContainerSrc/>
+    </uiControl>
+    <uiControl class="groupPanel" BackgroundColor="[0.941 0.941 0.941]" BorderWidth="1" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" Name="GroupPanel_3" Position="[1007 410 243 190]" Title="Test Sample Live Data" TitlePosition="lefttop">
+        <ContainerSrc/>
+    </uiControl>
+    <uiControl class="aNanoCtrl" exportClass="true" Name="aNano_1" pinDir10="none" pinDir11="none" pinDir12="none" pinDir13="output" pinDir14="none" pinDir15="none" pinDir16="none" pinDir17="none" pinDir18="none" pinDir19="none" pinDir2="none" pinDir20="none" pinDir21="none" pinDir3="none" pinDir4="none" pinDir5="none" pinDir6="none" pinDir7="none" pinDir8="none" pinDir9="none" Position="[95 410 52 52]" serialPort=""/>
+</dialog>
