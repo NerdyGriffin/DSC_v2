@@ -173,6 +173,10 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             % Prompt the user to select a file
             [configFileName, configFilePath] = uigetfile('*.ini');
 
+            % Re-focus the app window
+            drawnow;
+            figure(app.UIFigure)
+
             switch configFileName
                 case 0
                     % Cancel the read operation and return an empty array
@@ -189,7 +193,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     configFullPath = fullfile(configFilePath, configFileName);
 
                     % Read the .ini file
-                    ini.ReadFile(configFullPath)
+                    ini.ReadFile(configFullPath);
 
                     PIDSection = 'PID Settings';
                     if ini.IsSections(PIDSection)
@@ -211,7 +215,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     else
                         % Close the progress bar
                         if isvalid(app.SharedProgressDlg)
-                            close(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg);
                         end
 
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", PIDSection);
@@ -249,7 +253,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     else
                         % Close the progress bar
                         if isvalid(app.SharedProgressDlg)
-                            close(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg);
                         end
 
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", TempControlSection);
@@ -259,9 +263,18 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     end
             end
 
+            % Create and display the progress bar
+            updateProgressDlg(app, 'Awaiting response from Arduino...');
+
+            sendPIDGains(app);
+            receivePIDGains(app);
+
+            sendControlParameters(app);
+            receiveControlParameters(app);
+
             % Close the progress bar
             if isvalid(app.SharedProgressDlg)
-                close(app.SharedProgressDlg)
+                close(app.SharedProgressDlg);
             end
         end
 
@@ -492,15 +505,32 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         function saveData(app, saveData)
             date_str = datestr(saveData.startDateTime, 'yyyy-mm-dd-HHMM');
 
-            matfileName = ['autosave/autoSaveData-',date_str,'.mat'];
+            autoFilename = ['autosave/autoSaveData-',date_str];
 
-            save(matfileName,'-struct','saveData')
-            if isfile(matfileName)
+            matFilename = [autoFilename,'.mat'];
+            save(matFilename,'-struct','saveData');
+
+            figureFilename = [autoFilename,'.fig'];
+            saveAxesAsFigure(app, figureFilename);
+
+            if isfile(matFilename)
                 beep
-                message = sprintf("Save file created: '%s'\n", matfileName);
+                message = sprintf("Save file created: '%s'\n", matFilename);
+                if isfile(figureFilename)
+                    message = sprintf("%s\n\nFigure file created: '%s'\n", message, figureFilename);
+                end
                 disp(message)
                 uialert(app.UIFigure,message,'Data Saved Successfully','Icon','success');
             end
+        end
+
+        function saveAxesAsFigure(app, figureFilename)
+            fignew = figure('Visible','off'); % Invisible figure
+            newAxes = copyobj(app.UIAxes,fignew); % Copy the appropriate axes
+            set(newAxes,'Position',get(groot,'DefaultAxesPosition')); % The original position is copied too, so adjust it.
+            set(fignew,'CreateFcn','set(gcbf,''Visible'',''on'')'); % Make it visible upon loading
+            savefig(fignew,figureFilename);
+            delete(fignew);
         end
 
         function setRunningUI(app)
@@ -656,20 +686,6 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             loadConfigFile(app);
 
-            % Create and display the progress bar
-            updateProgressDlg(app, 'Awaiting response from Arduino...');
-
-            sendPIDGains(app);
-            receivePIDGains(app);
-
-            sendControlParameters(app);
-            receiveControlParameters(app);
-
-            % Close the progress bar
-            if isvalid(app.SharedProgressDlg)
-                close(app.SharedProgressDlg)
-            end
-
             app.LoadConfigFileButton.Enable = 'on';
         end
 
@@ -820,7 +836,7 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
 
             % Create RateCminEditField
             app.RateCminEditField = uieditfield(app.GridLayout7, 'numeric');
-            app.RateCminEditField.Limits = [0 Inf];
+            app.RateCminEditField.Limits = [0 200];
             app.RateCminEditField.Layout.Row = 3;
             app.RateCminEditField.Layout.Column = 2;
 
