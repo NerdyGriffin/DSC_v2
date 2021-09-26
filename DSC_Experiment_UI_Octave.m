@@ -1,4 +1,4 @@
-classdef DSC_Experiment_UI_Octave %< matlab.apps.AppBase
+classdef DSC_Experiment_UI_Octave < handle %< matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
