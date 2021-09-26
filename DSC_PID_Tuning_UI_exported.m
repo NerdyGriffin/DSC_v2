@@ -107,8 +107,8 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
         SharedProgressDlg matlab.ui.dialog.ProgressDialog
 
-        AutomatedTestIsRunning
-        PIDAutotunerIsRunning
+        AutomatedLoopIsRunning = false;
+        PIDAutotunerIsRunning = false;
     end
 
     methods (Access = public)
@@ -185,6 +185,10 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             % Prompt the user to select a file
             [configFileName, configFilePath] = uigetfile('*.ini');
 
+            % Re-focus the app window
+            drawnow;
+            figure(app.UIFigure)
+
             switch configFileName
                 case 0
                     % Cancel the read operation and return an empty array
@@ -201,7 +205,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     configFullPath = fullfile(configFilePath, configFileName);
 
                     % Read the .ini file
-                    ini.ReadFile(configFullPath)
+                    ini.ReadFile(configFullPath);
 
                     PIDSection = 'PID Settings';
                     if ini.IsSections(PIDSection)
@@ -226,7 +230,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     else
                         % Close the progress bar
                         if isvalid(app.SharedProgressDlg)
-                            close(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg);
                         end
 
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", PIDSection);
@@ -260,7 +264,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     else
                         % Close the progress bar
                         if isvalid(app.SharedProgressDlg)
-                            close(app.SharedProgressDlg)
+                            close(app.SharedProgressDlg);
                         end
 
                         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", TempControlSection);
@@ -270,9 +274,18 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     end
             end
 
+            % Create and display the progress bar
+            updateProgressDlg(app, 'Awaiting response from Arduino...');
+
+            sendPIDGains(app);
+            receivePIDGains(app);
+
+            sendControlParameters(app);
+            receiveControlParameters(app);
+
             % Close the progress bar
             if isvalid(app.SharedProgressDlg)
-                close(app.SharedProgressDlg)
+                close(app.SharedProgressDlg);
             end
         end
 
@@ -299,23 +312,22 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 otherwise
                     message = sprintf("Invalid sweepType: '%s'\nPlease report this bug to the developer.", sweepType);
                     uialert(app.UIFigure,message,'Internal Error');
-                    app.AutomatedTestIsRunning = false;
+                    app.AutomatedLoopIsRunning = false;
                     return
             end
 
             n = floor(log10(sweepVal));
-            if n < -1
-                kMin = 1e-2;
-                kStep = 1e-2;
-                kMax = 1e-1;
+            if n < -3
+                kMin = 1e-4;
+                kStep = 1e-4;
+                kMax = 1e-3;
             else
                 kMin = (10^n);
-                kStep = (10^(n-1));
+                kStep = (10^n);
                 kMax = (10^(n+1));
-
             end
 
-            app.AutomatedTestIsRunning = true;
+            app.AutomatedLoopIsRunning = true;
             for kVar = kMin:kStep:kMax
                 switch sweepType
                     case 'P'
@@ -327,7 +339,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                     otherwise
                         message = sprintf("Invalid sweepType: '%s'\nPlease report this bug to the developer.", sweepType);
                         uialert(app.UIFigure,message,'Internal Error');
-                        app.AutomatedTestIsRunning = false;
+                        app.AutomatedLoopIsRunning = false;
                         return
                 end
 
@@ -361,13 +373,13 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 % Start the experiment
                 startExperiment(app);
 
-                if ~app.AutomatedTestIsRunning
-                    app.AutomatedTestIsRunning = false;
+                if ~app.AutomatedLoopIsRunning
                     break
                 end
 
-                pauseDuration = 5*60; % Duration in minutes
-                d = uiprogressdlg(app.UIFigure,'Title','Please Wait while the samples cool to room temperature.', ...
+                pauseDuration = 15*60; % Duration in seconds
+                pauseMinuteStr = datestr(seconds(pauseDuration),'MM');
+                d = uiprogressdlg(app.UIFigure,'Title','Please Wait', ...
                     'Message','Time remaining: ','Cancelable','on');
                 drawnow
 
@@ -377,12 +389,13 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 while tProgress < pauseDuration
                     % Check for Cancel button press
                     if d.CancelRequested
-                        app.AutomatedTestIsRunning = false;
+                        app.AutomatedLoopIsRunning = false;
                         break
                     end
                     % Update the progress bar, report time remaining
                     d.Value = tProgress/pauseDuration;
-                    d.Message = sprintf("Time remaining: %s (approximate).", datestr(seconds(pauseDuration-tProgress),'HH:MM:SS'));
+                    d.Message = sprintf("The system will pause for %s minutes to allow the heaters to cool before starting the next trial run.\nTime remaining: %s (approximate).", ...
+                        pauseMinuteStr, datestr(seconds(pauseDuration-tProgress),'HH:MM:SS'));
                     pause(0.5);
                     tProgress = toc(tStart);
                 end
@@ -390,8 +403,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
                 % Close dialog box
                 close(d)
 
-                if ~app.AutomatedTestIsRunning
-                    app.AutomatedTestIsRunning = false;
+                if ~app.AutomatedLoopIsRunning
                     break
                 end
             end
@@ -400,7 +412,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.AutomatedKiSweepButton.Enable = 'on';
             app.AutomatedKdSweepButton.Enable = 'on';
             app.AbortSweepButton.Enable = 'off';
-            app.AutomatedTestIsRunning = false;
+            app.AutomatedLoopIsRunning = false;
         end
 
         function startPIDAutotuner(app)
@@ -645,7 +657,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             if isvalid(app.SharedProgressDlg)
                 close(app.SharedProgressDlg)
             end
-            
+
             saveData(app, app.Data);
 
             updateLiveData(app, ...
@@ -664,25 +676,44 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             setIdleUI(app);
         end
-        
+
         function saveData(app, saveData)
-            formatSpec = '%.2f';
+            formatSpec = '%.4f';
             Kp_str = strrep(num2str(saveData.Kp,formatSpec), '.', 'P');
             Ki_str = strrep(num2str(saveData.Ki,formatSpec), '.', 'I');
             Kd_str = strrep(num2str(saveData.Kd,formatSpec), '.', 'D');
-            
-            date_str = datestr(saveData.startDateTime, 'yyyy-mm-dd-HHMM');
-            
-            matfileName = ['autosave/autoSavePIDData-', ...
-                Kp_str,'-',Ki_str,'-',Kd_str,'-',date_str,'.mat'];
 
-            save(matfileName,'-struct','saveData')
-            if isfile(matfileName)
+            date_str = datestr(saveData.startDateTime, 'yyyy-mm-dd-HHMM');
+
+            autoFilename = ['autosave/autoSavePIDData-', ...
+                Kp_str,'-',Ki_str,'-',Kd_str,'-',date_str];
+
+            matFilename = [autoFilename,'.mat'];
+            save(matFilename,'-struct','saveData');
+
+            figureFilename = [autoFilename,'.fig'];
+            saveAxesAsFigure(app, figureFilename);
+
+            if isfile(matFilename)
                 beep
-                message = sprintf("Save file created: '%s'\n", matfileName);
+                message = sprintf("Save file created: '%s'\n", matFilename);
+                if isfile(figureFilename)
+                    message = sprintf("%s\n\nFigure file created: '%s'\n", message, figureFilename);
+                end
                 disp(message)
-                uialert(app.UIFigure,message,'Data Saved Successfully','Icon','success');
+                if ~(app.AutomatedLoopIsRunning)
+                    uialert(app.UIFigure,message,'Data Saved Successfully','Icon','success');
+                end
             end
+        end
+
+        function saveAxesAsFigure(app, figureFilename)
+            fignew = figure('Visible','off'); % Invisible figure
+            newAxes = copyobj(app.UIAxes,fignew); % Copy the appropriate axes
+            set(newAxes,'Position',get(groot,'DefaultAxesPosition')); % The original position is copied too, so adjust it.
+            set(fignew,'CreateFcn','set(gcbf,''Visible'',''on'')'); % Make it visible upon loading
+            savefig(fignew,figureFilename);
+            delete(fignew);
         end
 
         function setRunningUI(app)
@@ -889,20 +920,6 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
 
             loadConfigFile(app);
 
-            % Create and display the progress bar
-            updateProgressDlg(app, 'Awaiting response from Arduino...');
-
-            sendPIDGains(app);
-            receivePIDGains(app);
-
-            sendControlParameters(app);
-            receiveControlParameters(app);
-
-            % Close the progress bar
-            if isvalid(app.SharedProgressDlg)
-                close(app.SharedProgressDlg)
-            end
-
             app.LoadConfigFileButton.Enable = 'on';
         end
 
@@ -953,7 +970,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             app.AbortSweepButton.Enable = 'off';
             app.StopExperimentButton.Enable = 'off';
 
-            app.AutomatedTestIsRunning = false;
+            app.AutomatedLoopIsRunning = false;
 
             write(app.Arduino, 'x', 'char');
 
@@ -1068,7 +1085,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             % Create KpEditField
             app.KpEditField = uieditfield(app.GridLayout7, 'numeric');
             app.KpEditField.Limits = [0 Inf];
-            app.KpEditField.ValueDisplayFormat = '%.2f';
+            app.KpEditField.ValueDisplayFormat = '%.4f';
             app.KpEditField.Layout.Row = 1;
             app.KpEditField.Layout.Column = 3;
 
@@ -1082,7 +1099,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             % Create KiEditField
             app.KiEditField = uieditfield(app.GridLayout7, 'numeric');
             app.KiEditField.Limits = [0 Inf];
-            app.KiEditField.ValueDisplayFormat = '%.2f';
+            app.KiEditField.ValueDisplayFormat = '%.4f';
             app.KiEditField.Layout.Row = 2;
             app.KiEditField.Layout.Column = 3;
 
@@ -1096,7 +1113,7 @@ classdef DSC_PID_Tuning_UI_exported < matlab.apps.AppBase
             % Create KdEditField
             app.KdEditField = uieditfield(app.GridLayout7, 'numeric');
             app.KdEditField.Limits = [0 Inf];
-            app.KdEditField.ValueDisplayFormat = '%.2f';
+            app.KdEditField.ValueDisplayFormat = '%.4f';
             app.KdEditField.Layout.Row = 3;
             app.KdEditField.Layout.Column = 3;
 
