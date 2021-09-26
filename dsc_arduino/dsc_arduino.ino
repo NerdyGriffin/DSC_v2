@@ -45,6 +45,8 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
 #define Ref_Heater_PIN 11
 #define Samp_Heater_PIN 10
 
+const unsigned long STANDBY_LOOP_INTERVAL = 1000UL; // milliseconds
+
 /**
  * Number of samples to average the reading over. Change this to make the
  * reading smoother... but beware of buffer overflows!
@@ -73,9 +75,9 @@ unsigned long sensorValues[4];
 
 // PID settings and gains
 #define PULSE_WIDTH 100UL // Pulse width in milliseconds
-double Kp = 0.10;
-double Ki = 0.01;
-double Kd = 1.00;
+double Kp = 0.1000;
+double Ki = 0.0001;
+double Kd = 5.0000;
 /**
  * When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
  * is deactivated, and the output is set to max
@@ -119,6 +121,9 @@ double Ref_Current_Sensor_VRef = 0.0, Samp_Current_Sensor_VRef = 0.0;
 // the total resistance around the heating coil circuit, not just the resistance
 // of the heating components alone.
 
+// The expected current through the heating coils (in mA)
+const double idealHeatingCoilCurrent = (HEATING_COIL_VOLTAGE / HEATING_COIL_RESISTANCE) * 1000;
+
 // Max allowable temperature. If the either temperature exceeds this value, the
 // PWM duty cycle will be set set to zero
 #define MAX_TEMPERATURE 300.0
@@ -130,7 +135,7 @@ double Ref_Current_Sensor_VRef = 0.0, Samp_Current_Sensor_VRef = 0.0;
 
 // The number of the consecutive samples within the MINIMUM_ACCEPTABLE_ERROR
 // that are required before the program considers the target to be satisfied
-#define TARGET_COUNTER_THRESHOLD 100UL // Default: 200
+#define TARGET_COUNTER_THRESHOLD 100 // Default: 100
 
 // target temperature and temp control parameters
 double targetTemp;
@@ -143,9 +148,10 @@ double holdTime;
 #define SEC_TO_MICROS 1000000.0
 
 // tracks clock time in microseconds
-unsigned long microseconds, rampUpStartTime, holdStartTime;
+unsigned long microseconds, rampUpStartTime, holdStartTime, standbyTime;
 
-unsigned long standbyCounter, startCounter, endCounter;
+unsigned long standbyCounter;
+int startCounter, endCounter;
 
 // global variables for holding temperature and current sensor readings
 double elapsedTime; // Time in seconds
@@ -232,11 +238,11 @@ void sendPIDGains()
   Serial.println("Kp,Ki,Kd");
 
   // Send each value in the expected order, separated by newlines
-  Serial.print(Kp);
+  Serial.print(Kp, 4);
   Serial.print(",");
-  Serial.print(Ki);
+  Serial.print(Ki, 4);
   Serial.print(",");
-  Serial.println(Kd);
+  Serial.println(Kd, 4);
 }
 
 /**
@@ -374,7 +380,7 @@ void autotunePID()
   tuner.startTuningLoop(micros());
 
   // Run a loop until tuner.isFinished() returns true
-  static unsigned long startTime = microseconds = micros();
+  unsigned long startTime = microseconds = micros();
   autotuneInProgress = true;
   while (autotuneInProgress)
   {
@@ -568,9 +574,6 @@ void calibrateCurrentSensors()
   double refCurrentVoltage = sensorValues[2] * byteToMillivolts;
   double sampCurrentVoltage = sensorValues[3] * byteToMillivolts;
 
-  // Calculate the expected current through the heating coils (in mA)
-  double idealHeatingCoilCurrent = (HEATING_COIL_VOLTAGE / HEATING_COIL_RESISTANCE) * 1000;
-
   // Calculate the ideal SENS using the max current measurement
   Ref_Current_Sensor_Sens = idealHeatingCoilCurrent / (refCurrentVoltage - Ref_Current_Sensor_VRef);
   Samp_Current_Sensor_Sens = idealHeatingCoilCurrent / (sampCurrentVoltage - Samp_Current_Sensor_VRef);
@@ -644,6 +647,8 @@ void updateTargetTemperature()
     rampUpStartTime = microseconds;
     if (startCounter == TARGET_COUNTER_THRESHOLD)
     {
+      // Reset the PID when transitioning from constant target temperature to
+      // ramp-up heating
       refPID.reset();
       sampPID.reset();
     }
@@ -727,7 +732,7 @@ void controlLoop()
   sampPID.reset();
 
   startCounter = endCounter = 0;
-  static unsigned long startTime = rampUpStartTime = holdStartTime = microseconds = micros();
+  unsigned long startTime = rampUpStartTime = holdStartTime = microseconds = micros();
   bool controlLoopState = true;
   while (controlLoopState)
   {
@@ -756,13 +761,13 @@ void controlLoop()
     {
       if (endCounter < TARGET_COUNTER_THRESHOLD)
       {
-        if (endCounter == 0)
-        {
-          // Reset the PID when transitioning from ramp-up heating to constant
-          // target temperature
-          refPID.reset();
-          sampPID.reset();
-        }
+        // if (endCounter == 0)
+        // {
+        //   // Reset the PID when transitioning from ramp-up heating to constant
+        //   // target temperature
+        //   refPID.reset();
+        //   sampPID.reset();
+        // }
         if ((refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
             (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
         {
@@ -808,7 +813,10 @@ void controlLoop()
     }
 
     while ((micros() - microseconds) < LOOP_INTERVAL)
-      ; // busy wait
+    {
+      // Refresh the PID calculations and PWM output
+      refreshPID();
+    } // busy wait
 
     unsigned long prevMicroseconds = microseconds;
     microseconds += LOOP_INTERVAL;
@@ -883,9 +891,9 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.10;
-  Ki = 0.01;
-  Kd = 1.00;
+  Kp = 0.1000;
+  Ki = 0.0001;
+  Kd = 5.0000;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
@@ -906,14 +914,14 @@ void setup()
   // Set the sample masses to default values
   refMass = 1.0;
   sampMass = 1.0;
+
+  standbyTime = 0;
 }
 
 void loop()
 {
-  digitalWrite(13, LOW); // Blink the LED
-  delay(500);
   digitalWrite(13, HIGH); // Blink the LED
-  delay(500);
+  delay(STANDBY_LOOP_INTERVAL / 2);
 
   neopixel.clear();
   neopixel.show();
@@ -982,14 +990,19 @@ void loop()
     default:
       break;
     }
-  }
-  else if (standbyCounter % 10 == 0)
-  {
-    standbyCounter++;
-  }
-  else
-  {
     standbyCounter = 0;
-    standbyData();
   }
+  else if ((standbyCounter % 10UL) == 0)
+  {
+    standbyData();
+    standbyCounter = 0;
+  }
+  standbyCounter++;
+
+  digitalWrite(13, LOW); // Blink the LED
+
+  while ((millis() - standbyTime) < STANDBY_LOOP_INTERVAL)
+    ; // busy wait
+
+  standbyTime += STANDBY_LOOP_INTERVAL;
 }
