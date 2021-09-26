@@ -1,53 +1,53 @@
-classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
+classdef DSC_Experiment_UI_Octave %< matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                      matlab.ui.Figure
-        GridLayout                    matlab.ui.container.GridLayout
-        LeftPanel                     matlab.ui.container.Panel
-        GridLayout2                   matlab.ui.container.GridLayout
-        SerialPortEditField           matlab.ui.control.EditField
-        SerialPortEditFieldLabel      matlab.ui.control.Label
-        SetSerialPortButton           matlab.ui.control.Button
-        ExperimentParametersPanel     matlab.ui.container.Panel
-        GridLayout7                   matlab.ui.container.GridLayout
-        HoldTimesecEditField          matlab.ui.control.NumericEditField
-        HoldTimesecEditFieldLabel     matlab.ui.control.Label
-        RateCminEditField             matlab.ui.control.NumericEditField
-        RateCminEditFieldLabel        matlab.ui.control.Label
-        EndTempCEditField             matlab.ui.control.NumericEditField
-        EndTempCEditFieldLabel        matlab.ui.control.Label
-        StartTempCEditField           matlab.ui.control.NumericEditField
-        StartTempCEditFieldLabel      matlab.ui.control.Label
-        StopExperimentButton          matlab.ui.control.Button
-        ApplyExperimentParametersButton  matlab.ui.control.Button
-        StartExperimentButton         matlab.ui.control.Button
-        LoadConfigFileButton          matlab.ui.control.Button
-        CenterPanel                   matlab.ui.container.Panel
-        GridLayout3                   matlab.ui.container.GridLayout
-        UIAxes                        matlab.ui.control.UIAxes
-        RightPanel                    matlab.ui.container.Panel
-        GridLayout4                   matlab.ui.container.GridLayout
-        TestSampleLiveDataPanel       matlab.ui.container.Panel
-        GridLayout6                   matlab.ui.container.GridLayout
-        PWMDutyCycleEditField_2       matlab.ui.control.NumericEditField
-        PWMDutyCycleEditField_2Label  matlab.ui.control.Label
-        CurrentmAEditField_2          matlab.ui.control.NumericEditField
-        CurrentmAEditField_2Label     matlab.ui.control.Label
-        TemperatureCEditField_2       matlab.ui.control.NumericEditField
-        TemperatureCEditField_2Label  matlab.ui.control.Label
-        ReferenceSampleLiveDataPanel  matlab.ui.container.Panel
-        GridLayout5                   matlab.ui.container.GridLayout
-        PWMDutyCycleEditField         matlab.ui.control.NumericEditField
-        PWMDutyCycleEditFieldLabel    matlab.ui.control.Label
-        CurrentmAEditField            matlab.ui.control.NumericEditField
-        CurrentmAEditFieldLabel       matlab.ui.control.Label
-        TemperatureCEditField         matlab.ui.control.NumericEditField
-        TemperatureCEditFieldLabel    matlab.ui.control.Label
-        TargetTempCEditField          matlab.ui.control.NumericEditField
-        TargetTempCEditFieldLabel     matlab.ui.control.Label
-        ElapsedTimesecEditField       matlab.ui.control.NumericEditField
-        ElapsedTimesecEditFieldLabel  matlab.ui.control.Label
+        UIFigure                      %matlab.ui.Figure
+        GridLayout                    %matlab.ui.container.GridLayout
+        LeftPanel                     %matlab.ui.container.Panel
+        GridLayout2                   %matlab.ui.container.GridLayout
+        SerialPortEditField           %matlab.ui.control.EditField
+        SerialPortEditFieldLabel      %matlab.ui.control.Label
+        SetSerialPortButton           %matlab.ui.control.Button
+        ExperimentParametersPanel     %matlab.ui.container.Panel
+        GridLayout7                   %matlab.ui.container.GridLayout
+        HoldTimesecEditField          %matlab.ui.control.NumericEditField
+        HoldTimesecEditFieldLabel     %matlab.ui.control.Label
+        RateCminEditField             %matlab.ui.control.NumericEditField
+        RateCminEditFieldLabel        %matlab.ui.control.Label
+        EndTempCEditField             %matlab.ui.control.NumericEditField
+        EndTempCEditFieldLabel        %matlab.ui.control.Label
+        StartTempCEditField           %matlab.ui.control.NumericEditField
+        StartTempCEditFieldLabel      %matlab.ui.control.Label
+        StopExperimentButton          %matlab.ui.control.Button
+        ApplyExperimentParametersButton  %matlab.ui.control.Button
+        StartExperimentButton         %matlab.ui.control.Button
+        LoadConfigFileButton          %matlab.ui.control.Button
+        CenterPanel                   %matlab.ui.container.Panel
+        GridLayout3                   %matlab.ui.container.GridLayout
+        UIAxes                        %matlab.ui.control.UIAxes
+        RightPanel                    %matlab.ui.container.Panel
+        GridLayout4                   %matlab.ui.container.GridLayout
+        TestSampleLiveDataPanel       %matlab.ui.container.Panel
+        GridLayout6                   %matlab.ui.container.GridLayout
+        PWMDutyCycleEditField_2       %matlab.ui.control.NumericEditField
+        PWMDutyCycleEditField_2Label  %matlab.ui.control.Label
+        CurrentmAEditField_2          %matlab.ui.control.NumericEditField
+        CurrentmAEditField_2Label     %matlab.ui.control.Label
+        TemperatureCEditField_2       %matlab.ui.control.NumericEditField
+        TemperatureCEditField_2Label  %matlab.ui.control.Label
+        ReferenceSampleLiveDataPanel  %matlab.ui.container.Panel
+        GridLayout5                   %matlab.ui.container.GridLayout
+        PWMDutyCycleEditField         %matlab.ui.control.NumericEditField
+        PWMDutyCycleEditFieldLabel    %matlab.ui.control.Label
+        CurrentmAEditField            %matlab.ui.control.NumericEditField
+        CurrentmAEditFieldLabel       %matlab.ui.control.Label
+        TemperatureCEditField         %matlab.ui.control.NumericEditField
+        TemperatureCEditFieldLabel    %matlab.ui.control.Label
+        TargetTempCEditField          %matlab.ui.control.NumericEditField
+        TargetTempCEditFieldLabel     %matlab.ui.control.Label
+        ElapsedTimesecEditField       %matlab.ui.control.NumericEditField
+        ElapsedTimesecEditFieldLabel  %matlab.ui.control.Label
     end
 
     % Properties that correspond to apps with auto-reflow
@@ -92,9 +92,9 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
         % the plots
         PlotRefreshDelay = 10;
 
-        Data struct
+        Data %struct
 
-        SharedProgressDlg matlab.ui.dialog.ProgressDialog
+        SharedProgressDlg %matlab.ui.dialog.ProgressDialog
 
         AutomatedTestIsRunning
     end
