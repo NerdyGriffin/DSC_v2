@@ -102,7 +102,7 @@ function ret = show_Experiment_UI()
 	'FontName', 'Arial', ... 
 	'FontSize', 10, 'FontUnits', 'points', ... 
 	'FontWeight', 'normal', ... 
-	'Position', [190 1 860 680]);
+	'Position', [230 31 840 620]);
   Button_1 = uicontrol( ...
 	'parent',Experiment_UI, ... 
 	'Style','pushbutton', ... 
@@ -625,7 +625,7 @@ function ret = show_Experiment_UI()
 % Initialize the struct to prevent errors
 Data = struct('Kp', 0, 'Ki', 0, 'Kd', 0, ...
     'startTemp', 0, 'endTemp', 0, 'rampUpRate', 0, ...
-    'holdTime', 0, 'startDateTime', datetime);
+    'holdTime', 0, 'startDateTime', datestr(clock()));
 
 %app.SerialPortEditField.Value = '';
 
@@ -637,12 +637,13 @@ xlabel(dlg.Main_Plot, 'Time (sec)');
 ylabel(dlg.Main_Plot, 'Temperature (C)');
 
 % Create the animatedline objects
-TargetLine = animatedline(dlg.Main_Plot, 'Color', 'black', 'LineStyle', ':');
-RefSampleLine = animatedline(dlg.Main_Plot, 'Color', 'blue', 'LineStyle', '-');
-TestSampleLine = animatedline(dlg.Main_Plot, 'Color', 'red', 'LineStyle', '-');
+%TargetLine = animatedline(dlg.Main_Plot, 'Color', 'black', 'LineStyle', ':');
+%RefSampleLine = animatedline(dlg.Main_Plot, 'Color', 'blue', 'LineStyle', '-');
+%TestSampleLine = animatedline(dlg.Main_Plot, 'Color', 'red', 'LineStyle', '-');
 
 % Create a legend for the temperature plot
-legend(dlg.Main_Plot, 'Target Temperature', 'Reference Sample', 'Test Sample', 'Location', 'best')
+%legend(dlg.Main_Plot, 'Target Temperature', 'Reference Sample', 'Test Sample', 'Location', 'best')
+%legend(dlg.Main_Plot, 'Location', 'best')
 
 %setIdleUI(app);
 
