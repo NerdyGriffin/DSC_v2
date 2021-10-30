@@ -629,7 +629,7 @@ Data = struct('Kp', 0, 'Ki', 0, 'Kd', 0, ...
 
 dlg.Data = Data;
 
-%app.SerialPortEditField.Value = '';
+%dlg.SerialPortEditField.Value = '';
 
 initializeSerialPort(dlg);
 

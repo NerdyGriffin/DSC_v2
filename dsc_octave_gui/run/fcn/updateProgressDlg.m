@@ -4,15 +4,16 @@
 %@end deftypefn
 
 function ret = updateProgressDlg (dlg, message)
-    if isvalid(dlg.SharedProgressDlg)
-        dlg.SharedProgressDlg.Message = message;
-    else
-        % Create and display the progress bar
-        dlg.SharedProgressDlg = uiprogressdlg(dlg.UIFigure, 'Title', 'Communicating with Arduino', ...
-            'Message', message, 'Indeterminate', 'on');
-    end
 
-    drawnow
+  if isvalid(dlg.SharedProgressDlg)
+    dlg.SharedProgressDlg.Message = message;
+  else
+    % Create and display the progress bar
+    dlg.SharedProgressDlg = uiprogressdlg(dlg.UIFigure, 'Title', 'Communicating with Arduino', ...
+      'Message', message, 'Indeterminate', 'on');
+  end
 
-    ret = 0;
+  drawnow
+
+  ret = 0;
 endfunction
