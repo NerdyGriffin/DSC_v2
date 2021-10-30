@@ -76,7 +76,7 @@ You may contact the author at ckunis.contact@gmail.com
 
   Low level I/O functions for serial, i2c, spi, parallel, tcp, gpib, vxi11, udp and usbtmc interfaces.
 
-  To install a package, use the `pkg` command from the Octave prompt by typing: `pkg install -forge -verbose instrument-control`
+  To install a package, use the `pkg` command from the Octave prompt by typing: `pkg install -forge -verbose instrument-control` Note: This package may take more than 30 minutes to compile and install.
 
 #### MATLAB Libraries
 

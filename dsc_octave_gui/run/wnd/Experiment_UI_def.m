@@ -622,6 +622,8 @@ function ret = show_Experiment_UI()
 % windows load. Work like 'onLoad' event of other languages.
 %
 
+pkg load instrument-control
+
 % Initialize the struct to prevent errors
 Data = struct('Kp', 0, 'Ki', 0, 'Kd', 0, ...
     'startTemp', 0, 'endTemp', 0, 'rampUpRate', 0, ...
@@ -647,6 +649,7 @@ refTempArray = [0, 1];
 sampTempArray = [0, -1];
 
 refreshLivePlot (dlg, elapsedTimeArray, targetTempArray, refTempArray, sampTempArray);
+
 
   set(Experiment_UI.figure, 'visible', 'on');
   ret = Experiment_UI;

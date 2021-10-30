@@ -5,7 +5,7 @@
 % windows load. Work like 'onLoad' event of other languages.
 %
 
-pkg install -forge -verbose instrument-control
+pkg load instrument-control
 
 % Initialize the struct to prevent errors
 Data = struct('Kp', 0, 'Ki', 0, 'Kd', 0, ...
