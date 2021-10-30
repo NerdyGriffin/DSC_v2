@@ -1,5 +1,16 @@
 {
-    "editor.detectIndentation": false,
-    "editor.tabSize": 2,
-    "matlab-formatter.indentwidth": 2
+  "[matlab]": {
+    "editor.defaultFormatter": "AffenWiesel.matlab-formatter",
+    "editor.rulers": [
+      75,
+      100
+    ]
+  },
+  "[octave]": {
+    "editor.defaultFormatter": "tusindfryd.octave-formatter"
+  },
+  "editor.detectIndentation": false,
+  "editor.tabSize": 2,
+  "matlab-formatter.indentwidth": 2,
+  "octave-formatter.indentwidth": 2
 }
