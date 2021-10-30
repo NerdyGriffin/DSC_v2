@@ -7,10 +7,10 @@
     ]
   },
   "[octave]": {
-    "editor.defaultFormatter": "tusindfryd.octave-formatter"
+    "editor.defaultFormatter": "tusindfryd.octave-formatter",
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2
   },
-  "editor.detectIndentation": false,
-  "editor.tabSize": 2,
-  "matlab-formatter.indentwidth": 2,
+  "matlab-formatter.indentwidth": 4,
   "octave-formatter.indentwidth": 2
 }
