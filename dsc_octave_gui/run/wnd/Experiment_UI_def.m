@@ -627,6 +627,8 @@ Data = struct('Kp', 0, 'Ki', 0, 'Kd', 0, ...
     'startTemp', 0, 'endTemp', 0, 'rampUpRate', 0, ...
     'holdTime', 0, 'startDateTime', datestr(clock()));
 
+dlg.Data = Data;
+
 %app.SerialPortEditField.Value = '';
 
 %initializeSerialPort(app);
@@ -646,6 +648,8 @@ ylabel(dlg.Main_Plot, 'Temperature (C)');
 %legend(dlg.Main_Plot, 'Location', 'best')
 
 %setIdleUI(app);
+
+refreshLivePlot (dlg, true);
 
   set(Experiment_UI.figure, 'visible', 'on');
   ret = Experiment_UI;

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<dialog Color="[0.941 0.941 0.941]" HPosition="center" Name="Experiment_UI" Position="[0 720 1280 720]" Resize="off" VPosition="center" windowStyle="normal">
+<dialog Color="[0.941 0.941 0.941]" HPosition="center" Name="Experiment_UI" Position="[0 391 160 31]" Resize="off" VPosition="center" windowStyle="normal">
     <GlobalSrc>%
 % The source code writed here will be executed when
 % windows load. Work like 'onLoad' event of other languages.
@@ -9,6 +9,8 @@
 Data = struct('Kp', 0, 'Ki', 0, 'Kd', 0, ...
     'startTemp', 0, 'endTemp', 0, 'rampUpRate', 0, ...
     'holdTime', 0, 'startDateTime', datestr(clock()));
+
+dlg.Data = Data;
 
 %app.SerialPortEditField.Value = '';
 
@@ -29,6 +31,8 @@ ylabel(dlg.Main_Plot, 'Temperature (C)');
 %legend(dlg.Main_Plot, 'Location', 'best')
 
 %setIdleUI(app);
+
+refreshLivePlot (dlg, true);
 </GlobalSrc>
     <uiControl class="imgCtrl" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" Name="Main_Plot" Position="[240 40 820 600]"/>
     <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" Name="Button_1" Position="[5 5 180 44]" String="Start Experiment" TooltipString="">% This code will be executed when user click the button control.
