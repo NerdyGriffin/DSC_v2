@@ -4,11 +4,6 @@
 %@end deftypefn
 
 function ret = refreshLivePlot (dlg, init = false)
-
-    %
-    %  Add yout code here
-    %
-
     if (init)
         x = [0, 1];
         y = [0, 0];

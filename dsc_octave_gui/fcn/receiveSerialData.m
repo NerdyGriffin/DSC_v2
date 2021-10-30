@@ -4,11 +4,6 @@
 %@end deftypefn
 
 function ret = receiveSerialData (dlg)
-
-    %
-    %  Add yout code here
-    %
-
     updateProgressDlg(dlg, 'Awaiting initial data...');
 
     dlg.Data.startTemp = dlg.StartTempCEditField.Value;

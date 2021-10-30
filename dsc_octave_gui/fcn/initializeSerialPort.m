@@ -4,11 +4,6 @@
 %@end deftypefn
 
 function ret = initializeSerialPort (dlg)
-
-    %
-    %  Add yout code here
-    %
-
     % Get the list of available serial ports
     dlg.SerialPortList = serialportlist("available");
     disp('Available serial ports:')

@@ -4,11 +4,6 @@
 %@end deftypefn
 
 function ret = updateProgressDlg (dlg, message)
-
-    %
-    %  Add yout code here
-    %
-
     if isvalid(dlg.SharedProgressDlg)
         dlg.SharedProgressDlg.Message = message;
     else
