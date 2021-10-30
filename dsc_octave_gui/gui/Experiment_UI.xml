@@ -5,6 +5,8 @@
 % windows load. Work like 'onLoad' event of other languages.
 %
 
+pkg install -forge -verbose instrument-control
+
 % Initialize the struct to prevent errors
 Data = struct('Kp', 0, 'Ki', 0, 'Kd', 0, ...
     'startTemp', 0, 'endTemp', 0, 'rampUpRate', 0, ...
@@ -30,6 +32,7 @@ refTempArray = [0, 1];
 sampTempArray = [0, -1];
 
 refreshLivePlot (dlg, elapsedTimeArray, targetTempArray, refTempArray, sampTempArray);
+
 </GlobalSrc>
     <uiControl class="imgCtrl" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" Name="Main_Plot" Position="[240 40 820 600]"/>
     <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" Name="StartExperimentButton" Position="[5 5 180 44]" String="Start Experiment" TooltipString="">% This code will be executed when user click the button control.

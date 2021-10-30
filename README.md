@@ -72,17 +72,11 @@ You may contact the author at ckunis.contact@gmail.com
 
 #### Octave Packages
 
-- [arduino](https://octave.sourceforge.io/arduino/index.html)
-
-  Basic Octave implementation of the matlab arduino extension, allowing communication to a programmed arduino board to control its hardware.
-
-  To install a package, use the `pkg` command from the Octave prompt by typing: `pkg install -forge arduino`
-
 - [instrument-control](https://octave.sourceforge.io/instrument-control/index.html)
 
   Low level I/O functions for serial, i2c, spi, parallel, tcp, gpib, vxi11, udp and usbtmc interfaces.
 
-  To install a package, use the `pkg` command from the Octave prompt by typing: `pkg install -forge instrument-control`
+  To install a package, use the `pkg` command from the Octave prompt by typing: `pkg install -forge -verbose instrument-control`
 
 #### MATLAB Libraries
 
@@ -138,6 +132,8 @@ You may contact the author at ckunis.contact@gmail.com
 4. Make a note of which serial port the arduino board is connected to (Example: "COM3"), as you will need to set the same port in the experiment UI (the MATLAB program)
 
 ### Experiment Instructions
+
+**Octave:** Run the file `dsc_octave_gui/run/runApp.m` in Octave to display the dev build of the Octave UI
 
 Run the `DSC_Experiment_UI.mlapp` in MATLAB 2020b or later
 (More detailed instructions coming in the future)
