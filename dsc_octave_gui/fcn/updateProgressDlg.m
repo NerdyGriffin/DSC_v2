@@ -3,14 +3,13 @@
 %Function updateProgressDlg()
 %@end deftypefn
 
-function ret = updateProgressDlg (dlg, message)
+function ret = updateProgressDlg (dlg, fraction, message)
 
-  if isvalid(dlg.SharedProgressDlg)
-    dlg.SharedProgressDlg.Message = message;
+  if isfield(dlg, 'SharedProgressDlg') && isvalid(dlg.SharedProgressDlg)
+    waitbar(fraction, dlg.SharedProgressDlg, sprintf('%s %.2f%%', message, 100 * i));
   else
     % Create and display the progress bar
-    dlg.SharedProgressDlg = uiprogressdlg(dlg.UIFigure, 'Title', 'Communicating with Arduino', ...
-      'Message', message, 'Indeterminate', 'on');
+    dlg.SharedProgressDlg = waitbar(fraction, sprintf('%s %.2f%%', message, 100 * i));
   end
 
   drawnow

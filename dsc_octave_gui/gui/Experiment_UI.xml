@@ -47,11 +47,15 @@ refreshLivePlot (dlg, elapsedTimeArray, targetTempArray, refTempArray, sampTempA
     <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" Name="SyncToArduinoButton" Position="[5 155 180 44]" String="Sync to Arduino" TooltipString="">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
 % propertie 'generateCallback' from the properties editor</uiControl>
-    <uiControl class="cmbCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="ComboBox_1" Position="[110 600 70 25]" String="COM1|COM2|COM3" TooltipString=""/>
+    <uiControl class="cmbCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="SerialPortComboBox" Position="[110 600 70 25]" String="" TooltipString=""/>
     <uiControl class="textCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Serial_Port_Label" Position="[10 605 61 16]" String="Serial Port" TooltipString=""/>
-    <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" Name="Button_5" Position="[5 635 180 44]" String="Set Serial Port" TooltipString="">% This code will be executed when user click the button control.
+    <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" Name="SetSerialPortButton" Position="[5 635 180 44]" String="Set Serial Port" TooltipString="">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
-% propertie 'generateCallback' from the properties editor</uiControl>
+% propertie 'generateCallback' from the properties editor
+set(dlg.SetSerialPortButton, 'enable', 'off');
+dlg.SerialPort = get(dlg.SerialPortComboBox, &quot;string&quot;){get (dlg.SerialPortComboBox, &quot;value&quot;)};
+set(dlg.SetSerialPortButton, 'enable', 'on');
+</uiControl>
     <uiControl class="groupPanel" BackgroundColor="[0.863 0.863 0.863]" BorderWidth="1" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" Name="GroupPanel_1" Position="[5 220 180 145]" Title="Experiment Parameters" TitlePosition="lefttop">
         <ContainerSrc/>
         <uiControl class="textCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Start_Temp_Label" Position="[10 25 84 16]" String="Start Temp (C)" TooltipString=""/>
