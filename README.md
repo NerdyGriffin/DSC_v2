@@ -16,6 +16,7 @@ NOTE: This project is currently a work-in-progress. Not all features have been i
     - [Back End Development (Arduino)](#back-end-development-arduino)
     - [Editor Requirement & Recommendations](#editor-requirement--recommendations)
     - [Libraries](#libraries)
+      - [Octave Packages](#octave-packages)
       - [MATLAB Libraries](#matlab-libraries)
       - [Arduino Libraries](#arduino-libraries)
     - [Arduino Board Packages](#arduino-board-packages)
@@ -68,6 +69,20 @@ You may contact the author at ckunis.contact@gmail.com
 - **Arduino:** Recommended Arduino IDE 1.8 or later. Requires additional Arduino libraries, which are listed in the [Arduino Libraries](#arduino-libraries) section below.
 
 ### Libraries
+
+#### Octave Packages
+
+- [arduino](https://octave.sourceforge.io/arduino/index.html)
+
+  Basic Octave implementation of the matlab arduino extension, allowing communication to a programmed arduino board to control its hardware.
+
+  To install a package, use the `pkg` command from the Octave prompt by typing: `pkg install -forge arduino`
+
+- [instrument-control](https://octave.sourceforge.io/instrument-control/index.html)
+
+  Low level I/O functions for serial, i2c, spi, parallel, tcp, gpib, vxi11, udp and usbtmc interfaces.
+
+  To install a package, use the `pkg` command from the Octave prompt by typing: `pkg install -forge instrument-control`
 
 #### MATLAB Libraries
 
@@ -161,7 +176,6 @@ Work in progess...
 <p align="center">
     <img src="./fritzing/DSC_Full_bb.png" alt="Circuit Diagram">
 </p>
-
 
 ## Previous version
 
