@@ -3,17 +3,21 @@
 %Function refreshLivePlot()
 %@end deftypefn
 
-function ret = refreshLivePlot (dlg, init = false)
+function ret = refreshLivePlot (dlg, elapsedTimeArray, ...
+        targetTempArray, refTempArray, sampTempArray)
+
     if (init)
-        x = [0, 1];
-        y = [0, 0];
-    else
-        plot (dlg.Main_Plot, Data.elapsedTimeArray, Data.targetTempArray, "k:",
-        Data.elapsedTimeArray, Data.refTempArray, "b",
-        Data.elapsedTimeArray, Data.sampTempArray, "r");
+        elapsedTimeArray = [0, 1];
+        targetTempArray = [0, 0];
+        refTempArray = [0, 1];
+        sampTempArray = [0, -1];
     endif
 
-    plot (dlg.Main_Plot, x, y, "k:"); %, x, y, "b", x, y, "r");
+    %plot (dlg.Main_Plot, x, y, "k:"); %, x, y, "b", x, y, "r");
+    plot (dlg.Main_Plot, elapsedTimeArray, targetTempArray, "k:",
+    elapsedTimeArray, refTempArray, "b",
+    elapsedTimeArray, sampTempArray, "r");
+    legend(dlg.Main_Plot, 'Target Temperature', 'Reference Sample', 'Test Sample', 'Location', 'best');
 
     ret = 0;
 endfunction

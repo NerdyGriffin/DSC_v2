@@ -631,25 +631,22 @@ dlg.Data = Data;
 
 %app.SerialPortEditField.Value = '';
 
-%initializeSerialPort(app);
+initializeSerialPort(dlg);
 
 % Set title and labels for plot
 title(dlg.Main_Plot, 'Temperature vs. Time');
 xlabel(dlg.Main_Plot, 'Time (sec)');
 ylabel(dlg.Main_Plot, 'Temperature (C)');
 
-% Create the animatedline objects
-%TargetLine = animatedline(dlg.Main_Plot, 'Color', 'black', 'LineStyle', ':');
-%RefSampleLine = animatedline(dlg.Main_Plot, 'Color', 'blue', 'LineStyle', '-');
-%TestSampleLine = animatedline(dlg.Main_Plot, 'Color', 'red', 'LineStyle', '-');
+%setIdleUI(dlg);
 
-% Create a legend for the temperature plot
-%legend(dlg.Main_Plot, 'Target Temperature', 'Reference Sample', 'Test Sample', 'Location', 'best')
-%legend(dlg.Main_Plot, 'Location', 'best')
+% DEBUG
+elapsedTimeArray = [0, 1];
+targetTempArray = [0, 0];
+refTempArray = [0, 1];
+sampTempArray = [0, -1];
 
-%setIdleUI(app);
-
-refreshLivePlot (dlg, true);
+refreshLivePlot (dlg, elapsedTimeArray, targetTempArray, refTempArray, sampTempArray);
 
   set(Experiment_UI.figure, 'visible', 'on');
   ret = Experiment_UI;
