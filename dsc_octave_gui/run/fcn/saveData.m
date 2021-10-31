@@ -23,7 +23,7 @@ function ret = saveData (dlg, saveData)
     end
 
     disp(message)
-    uialert(dlg.UIFigure, message, 'Data Saved Successfully', 'Icon', 'success');
+    msgbox(message, 'Data Saved Successfully');
   end
 
   ret = 0;

@@ -82,9 +82,7 @@ function ret = receiveSerialData (dlg)
             dlg.Data.elapsedTime, dlg.Data.targetTemp, ...
             dlg.Data.refTemp, dlg.Data.sampTemp);
           % Close the progress bar
-          if isvalid(dlg.SharedProgressDlg)
-            close(dlg.SharedProgressDlg)
-          end
+          closeProgressDlg(dlg);
 
         end
 
@@ -99,9 +97,7 @@ function ret = receiveSerialData (dlg)
   dlg.Data.dataLength = dataLength;
 
   % Close the progress bar
-  if isvalid(dlg.SharedProgressDlg)
-    close(dlg.SharedProgressDlg)
-  end
+  closeProgressDlg(dlg);
 
   saveData(dlg, dlg.Data);
 

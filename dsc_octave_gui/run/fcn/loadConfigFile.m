@@ -54,12 +54,10 @@ function configLoadStatus = loadConfigFile (dlg)
 
       else
         % Close the progress bar
-        if isvalid(dlg.SharedProgressDlg)
-          close(dlg.SharedProgressDlg);
-        end
+        closeProgressDlg(dlg);
 
         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", PIDSection);
-        uialert(dlg.UIFigure, warningMessage, 'Invalid File');
+        errordlg(warningMessage, 'Invalid File');
         configLoadStatus = false;
         return
       end
@@ -94,12 +92,10 @@ function configLoadStatus = loadConfigFile (dlg)
 
       else
         % Close the progress bar
-        if isvalid(dlg.SharedProgressDlg)
-          close(dlg.SharedProgressDlg);
-        end
+        closeProgressDlg(dlg);
 
         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", TempControlSection);
-        uialert(dlg.UIFigure, warningMessage, 'Invalid File');
+        errordlg(warningMessage, 'Invalid File');
         configLoadStatus = false;
         return
       end
@@ -116,8 +112,6 @@ function configLoadStatus = loadConfigFile (dlg)
   receiveControlParameters(dlg);
 
   % Close the progress bar
-  if isvalid(dlg.SharedProgressDlg)
-    close(dlg.SharedProgressDlg);
-  end
+  closeProgressDlg(dlg);
 
 endfunction

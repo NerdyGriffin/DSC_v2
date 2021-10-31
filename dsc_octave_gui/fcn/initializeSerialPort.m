@@ -14,7 +14,7 @@ function ret = initializeSerialPort (dlg)
   if (isempty(dlg.SerialPortList))
     % Display a warning if no serial ports found
     message = 'No available serial ports were found. Make sure the arduino device is plugged into this computer via USB, and that it is not in use by another program (such as Arduino IDE).';
-    uialert(dlg.UIFigure, message, 'No Serial Device');
+    errordlg(message, 'No Serial Device');
   else
     dlg.SerialPort = get(dlg.SerialPortComboBox, "string"){get (dlg.SerialPortComboBox, "value")};
 
@@ -30,8 +30,8 @@ function ret = initializeSerialPort (dlg)
     updateProgressDlg(dlg, 0, 'Communicating with Arduino...');
 
     if isempty(fread (dlg.Arduino))
-      message = sprintf("There was no response from the device on '%s'. Make sure that this is the correct serial port, and that the 'dsc_arduino' sketch has been upload onto the Arduino.", dlg.SerialPort);
-      uialert(dlg, message, 'Failed to communicate with Arduino');
+      message = sprintf("There was no response from the device on '%s'. \nMake sure that this is the correct serial port, and that the 'dsc\_arduino' sketch has been upload onto the Arduino.", dlg.SerialPort);
+      errordlg(message, 'Failed to communicate with Arduino');
     else
       % Request the temperature control parameters from the arduino
       updateProgressDlg(dlg, 1/5, 'Communicating with Arduino...');
@@ -47,9 +47,7 @@ function ret = initializeSerialPort (dlg)
     end
 
     % Close the progress bar
-    if isvalid(dlg.SharedProgressDlg)
-      close(dlg.SharedProgressDlg)
-    end
+    closeProgressDlg(dlg);
 
   end
 
