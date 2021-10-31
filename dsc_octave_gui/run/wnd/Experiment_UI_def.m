@@ -626,6 +626,10 @@ function ret = show_Experiment_UI()
 % windows load. Work like 'onLoad' event of other languages.
 %
 
+app = dlg;
+global dlg
+dlg = app;
+
 pkg load instrument-control
 
 % Initialize the struct to prevent errors
@@ -653,6 +657,7 @@ refTempArray = [0, 1];
 sampTempArray = [0, -1];
 
 refreshLivePlot (dlg, elapsedTimeArray, targetTempArray, refTempArray, sampTempArray);
+
 
 
   set(Experiment_UI.figure, 'visible', 'on');

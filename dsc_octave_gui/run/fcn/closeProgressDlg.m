@@ -5,9 +5,9 @@
 
 function ret =  closeProgressDlg (dlg)
   % Close the progress bar
-  if isfield(dlg, 'SharedProgressDlg') && isvalid(dlg.SharedProgressDlg)
+  if isfield(dlg, 'SharedProgressDlg')
     close(dlg.SharedProgressDlg)
   end
 
-  ret = 0;
+  ret = dlg;
 endfunction

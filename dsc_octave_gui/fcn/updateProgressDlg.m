@@ -9,10 +9,12 @@ function ret = updateProgressDlg (dlg, fraction, message)
     waitbar(fraction, dlg.SharedProgressDlg, sprintf('%s %.2f%%', message, 100 * i));
   else
     % Create and display the progress bar
-    dlg.SharedProgressDlg = waitbar(fraction, sprintf('%s %.2f%%', message, 100 * i));
+    h = waitbar(fraction, sprintf('%s %.2f%%', message, 100 * i));
+    %dlg.SharedProgressDlg = h;
+    setfield(dlg, 'SharedProgressDlg', h);
   end
 
   drawnow
 
-  ret = 0;
+  ret = dlg;
 endfunction
