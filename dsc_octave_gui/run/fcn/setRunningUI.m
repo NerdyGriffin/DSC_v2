@@ -4,16 +4,16 @@
 %@end deftypefn
 
 function ret = setRunningUI (dlg)
-  dlg.StartExperimentButton.Enable = 'off';
-  dlg.StopExperimentButton.Enable = 'on';
-  dlg.LoadConfigFileButton.Enable = 'off';
-  dlg.SyncToArduinoButton.Enable = 'off';
-  dlg.StartTempCEditField.Editable = 'off';
-  dlg.EndTempCEditField.Editable = 'off';
-  dlg.RateCminEditField.Editable = 'off';
-  dlg.HoldTimesecEditField.Editable = 'off';
-  dlg.SetSerialPortButton.Enable = 'off';
-  dlg.SerialPortEditField.Editable = 'off';
+  set(dlg.StartExperimentButton, 'enable', 'off');
+  set(dlg.StopExperimentButton, 'enable', 'on');
+  set(dlg.LoadConfigFileButton, 'enable', 'off');
+  set(dlg.SyncToArduinoButton, 'enable', 'off');
+  %set(dlg.StartTempEditField, 'editable', 'off');
+  %set(dlg.EndTempEditField, 'editable', 'off');
+  %set(dlg.RateEditField, 'editable', 'off');
+  %set(dlg.HoldTimeEditField, 'editable', 'off');
+  set(dlg.SetSerialPortButton, 'enable', 'off');
+  %set(dlg.SerialPortComboBox, 'editable', 'off');
 
   ret = 0;
 endfunction
