@@ -3,8 +3,8 @@
 %Function receiveControlParameters()
 %@end deftypefn
 
-function ret = receiveControlParameters (dlg)
-  updateProgressDlg(dlg, 'Receiving temperature control parameters from Arduino...');
+function ret = receiveControlParameters (dlg, fraction = 0)
+  dlg.SharedProgressDlg = updateProgressDlg(dlg, fraction, 'Receiving temperature control parameters from Arduino...');
   awaitResponse = true;
 
   while awaitResponse
@@ -20,10 +20,10 @@ function ret = receiveControlParameters (dlg)
           [parsedData, dataIsNum] = str2num(serialData);
 
           if dataIsNum && length(parsedData) == 4
-            dlg.StartTempCEditField.Value = parsedData(1); %double(readline(dlg.Arduino));
-            dlg.EndTempCEditField.Value = parsedData(2); %double(readline(dlg.Arduino));
-            dlg.RateCminEditField.Value = parsedData(3); %double(readline(dlg.Arduino));
-            dlg.HoldTimesecEditField.Value = parsedData(4); %double(readline(dlg.Arduino));
+            set(dlg.StartTempEditField, 'value', parsedData(1)); %double(readline(dlg.Arduino));
+            set(dlg.EndTempEditField, 'value', parsedData(2)); %double(readline(dlg.Arduino));
+            set(dlg.RateEditField, 'value', parsedData(3)); %double(readline(dlg.Arduino));
+            set(dlg.HoldTimeEditField, 'value', parsedData(4)); %double(readline(dlg.Arduino));
           end
 
           awaitResponse = false;

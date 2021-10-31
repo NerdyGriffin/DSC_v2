@@ -9,17 +9,17 @@ function ret = updateLiveData (dlg, elapsedTime, targetTemp, ...
   drawnow limitrate nocallbacks
 
   % Convert from milliseconds to seconds
-  dlg.ElapsedTimesecEditField.Value = elapsedTime;
+  set(dlg.ElapsedTimesecEditField, 'value', elapsedTime);
 
-  dlg.TargetTempCEditField.Value = targetTemp;
+  set(dlg.TargetTempCEditField, 'value', targetTemp);
 
-  dlg.TemperatureCEditField.Value = refTemp;
-  dlg.CurrentmAEditField.Value = refCurrent;
-  dlg.PWMDutyCycleEditField.Value = refDutyCycle;
+  set(dlg.TemperatureCEditField, 'value', refTemp);
+  set(dlg.CurrentmAEditField, 'value', refCurrent);
+  set(dlg.PWMDutyCycleEditField, 'value', refDutyCycle);
 
-  dlg.TemperatureCEditField_2.Value = sampTemp;
-  dlg.CurrentmAEditField_2.Value = sampCurrent;
-  dlg.PWMDutyCycleEditField_2.Value = sampDutyCycle;
+  set(dlg.TemperatureCEditField_2, 'value', sampTemp);
+  set(dlg.CurrentmAEditField_2, 'value', sampCurrent);
+  set(dlg.PWMDutyCycleEditField_2, 'value', sampDutyCycle);
 
   drawnow limitrate
 

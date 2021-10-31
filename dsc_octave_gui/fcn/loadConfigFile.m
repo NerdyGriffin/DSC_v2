@@ -23,15 +23,18 @@ function configLoadStatus = loadConfigFile (dlg)
       return
 
     otherwise
+      loadingMessage = 'Loading config file...';
+
       % Create and display the progress bar
-      updateProgressDlg(dlg, 'Loading config file...');
-      dlg.SharedProgressDlg.Title = 'Loading Config';
+      dlg.SharedProgressDlg = updateProgressDlg(dlg, 0, loadingMessage);
 
       % Create fully-formed filename as a string
       configFullPath = fullfile(configFilePath, configFileName);
+      dlg.SharedProgressDlg = updateProgressDlg(dlg, 1/4, loadingMessage);
 
       % Read the .ini file
       ini.ReadFile(configFullPath);
+      dlg.SharedProgressDlg = updateProgressDlg(dlg, 2/4, loadingMessage);
 
       PIDSection = 'PID Settings';
 
@@ -54,13 +57,15 @@ function configLoadStatus = loadConfigFile (dlg)
 
       else
         % Close the progress bar
-        closeProgressDlg(dlg);
+        dlg = closeProgressDlg(dlg);
 
         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", PIDSection);
         errordlg(warningMessage, 'Invalid File');
         configLoadStatus = false;
         return
       end
+
+      dlg.SharedProgressDlg = updateProgressDlg(dlg, 3/4, loadingMessage);
 
       TempControlSection = 'Temperature Control';
 
@@ -69,30 +74,30 @@ function configLoadStatus = loadConfigFile (dlg)
         if ini.IsKeys(TempControlSection, 'startTemp')
           dlg.Data.startTemp = ...
             ini.GetValues(TempControlSection, 'startTemp');
-          dlg.StartTempCEditField.Value = dlg.Data.startTemp;
+          set(dlg.StartTempEditField, 'value', dlg.Data.startTemp);
         end
 
         if ini.IsKeys(TempControlSection, 'endTemp')
           dlg.Data.endTemp = ...
             ini.GetValues(TempControlSection, 'endTemp');
-          dlg.EndTempCEditField.Value = dlg.Data.endTemp;
+          set(dlg.EndTempEditField, 'value', dlg.Data.endTemp);
         end
 
         if ini.IsKeys(TempControlSection, 'rampUpRate')
           dlg.Data.rampUpRate = ...
             ini.GetValues(TempControlSection, 'rampUpRate');
-          dlg.RateCminEditField.Value = dlg.Data.rampUpRate;
+          set(dlg.RateEditField, 'value', dlg.Data.rampUpRate);
         end
 
         if ini.IsKeys(TempControlSection, 'holdTime')
           dlg.Data.holdTime = ...
             ini.GetValues(TempControlSection, 'holdTime');
-          dlg.HoldTimesecEditField.Value = dlg.Data.holdTime;
+          set(dlg.HoldTimeEditField, 'value', dlg.Data.holdTime);
         end
 
       else
         % Close the progress bar
-        closeProgressDlg(dlg);
+        dlg = closeProgressDlg(dlg);
 
         warningMessage = sprintf("The selected .ini file does not contain a [%s] section", TempControlSection);
         errordlg(warningMessage, 'Invalid File');
@@ -100,18 +105,22 @@ function configLoadStatus = loadConfigFile (dlg)
         return
       end
 
+      dlg.SharedProgressDlg = updateProgressDlg(dlg, 4/4, loadingMessage);
+
   end
 
   % Create and display the progress bar
-  updateProgressDlg(dlg, 'Awaiting response from Arduino...');
+  dlg.SharedProgressDlg = updateProgressDlg(dlg, 0, 'Awaiting response from Arduino...');
 
-  sendPIDGains(dlg);
-  receivePIDGains(dlg);
+  sendPIDGains(dlg, 1/5);
+  receivePIDGains(dlg, 2/5);
 
-  sendControlParameters(dlg);
-  receiveControlParameters(dlg);
+  sendControlParameters(dlg, 3/5);
+  receiveControlParameters(dlg, 4/5);
+
+  dlg.SharedProgressDlg = updateProgressDlg(dlg, 5/5, 'Finished communicating with Arduino');
 
   % Close the progress bar
-  closeProgressDlg(dlg);
+  dlg = closeProgressDlg(dlg);
 
 endfunction

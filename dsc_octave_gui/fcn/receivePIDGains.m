@@ -3,9 +3,9 @@
 %Function receivePIDGains()
 %@end deftypefn
 
-function ret = receivePIDGains (dlg)
+function ret = receivePIDGains (dlg, fraction = 0)
   % Receive the PID gain constants via the serial bus
-  updateProgressDlg(dlg, 'Receiving PID Gains from Arduino...');
+  dlg.SharedProgressDlg = updateProgressDlg(dlg, fraction, 'Receiving PID Gains from Arduino...');
   awaitResponse = true;
 
   while awaitResponse

@@ -3,8 +3,8 @@
 %Function sendPIDGains()
 %@end deftypefn
 
-function ret = sendPIDGains (dlg)
-  updateProgressDlg(dlg, 'Sending PID Gains to Arduino...');
+function ret = sendPIDGains (dlg, fraction = 0)
+  dlg.SharedProgressDlg = updateProgressDlg(dlg, fraction, 'Sending PID Gains to Arduino...');
 
   % Send the PID gain constants via the serial bus
   flush(dlg.Arduino);

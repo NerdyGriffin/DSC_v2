@@ -4,12 +4,12 @@
 %@end deftypefn
 
 function ret = receiveSerialData (dlg)
-  updateProgressDlg(dlg, 'Awaiting initial data...');
+  dlg.SharedProgressDlg = updateProgressDlg(dlg, 0, 'Awaiting initial data...');
 
-  dlg.Data.startTemp = dlg.StartTempCEditField.Value;
-  dlg.Data.endTemp = dlg.EndTempCEditField.Value;
-  dlg.Data.rampUpRate = dlg.RateCminEditField.Value;
-  dlg.Data.holdTime = dlg.HoldTimesecEditField.Value;
+  dlg.Data.startTemp = dlg.StartTempEditField.Value;
+  dlg.Data.endTemp = dlg.EndTempEditField.Value;
+  dlg.Data.rampUpRate = dlg.RateEditField.Value;
+  dlg.Data.holdTime = dlg.HoldTimeEditField.Value;
 
   dlg.Data.startDateTime = datetime;
 
@@ -41,9 +41,10 @@ function ret = receiveSerialData (dlg)
         case 'x'
           experimentIsRunning = false;
           disp('Received end signal')
-          updateProgressDlg(dlg, 'Awaiting response from Arduino...');
-          receivePIDGains(dlg);
-          receiveControlParameters(dlg);
+          dlg.SharedProgressDlg = updateProgressDlg(dlg, 1/4, 'Awaiting response from Arduino...');
+          receivePIDGains(dlg, 2/4);
+          receiveControlParameters(dlg, 3/4);
+          dlg.SharedProgressDlg = updateProgressDlg(dlg, 4/4, 'Finished communicating with Arduino');
         otherwise
           disp('Unrecognized data flag while awaiting data:')
           disp(serialData)
@@ -82,7 +83,7 @@ function ret = receiveSerialData (dlg)
             dlg.Data.elapsedTime, dlg.Data.targetTemp, ...
             dlg.Data.refTemp, dlg.Data.sampTemp);
           % Close the progress bar
-          closeProgressDlg(dlg);
+          dlg = closeProgressDlg(dlg);
 
         end
 
@@ -97,7 +98,7 @@ function ret = receiveSerialData (dlg)
   dlg.Data.dataLength = dataLength;
 
   % Close the progress bar
-  closeProgressDlg(dlg);
+  dlg = closeProgressDlg(dlg);
 
   saveData(dlg, dlg.Data);
 
