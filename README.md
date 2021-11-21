@@ -109,6 +109,14 @@ You may contact the author at ckunis.contact@gmail.com
   A library for the INA219 current sensor module
   It allows to set various ADC modes, gains and bus voltage ranges. Continous mode, triggered mode, power down and ADC off mode are supported.
 
+- [pidautotuner](https://github.com/jackw01/arduino-pid-autotuner)
+
+  Automated PID tuning using Ziegler-Nichols/relay method for embedded systems.
+
+  Originally designed for Arduino and compatible boards, but does not rely on the Arduino standard library.
+
+  **Note:** This library is included in the `libraries` folder of this repo, and must be manually added to your Arduino libraries. It is not available via the Arduino IDE library manager.
+
 ### Arduino Board Packages
 
 - To use the Adafruit Feather M0 Express with the Arduino IDE, you will first need to add the following link into the **Additional Boards Manager URLs** option in the Arduino IDE preferences: `https://adafruit.github.io/arduino-board-index/package_adafruit_index.json`
