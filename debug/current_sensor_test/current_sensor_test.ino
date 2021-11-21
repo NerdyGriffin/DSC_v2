@@ -107,7 +107,7 @@ unsigned long elapsedTime; // tracks clock time
 
 // global variables for holding temperature and current sensor readings
 double refTemperature, sampTemperature;
-double refCurrent, sampCurrent;
+double refCurrent_mA, sampCurrent_mA;
 double refHeatFlow, sampHeatFlow;
 
 // The mass (in grams) of each of the material samples
@@ -175,8 +175,8 @@ void updateSensorData()
   sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR;
   // This will calculate the actual current (in mA). Using the ~~Vref~~ and
   // sensitivity settings you configure
-  refCurrent = (refCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
-  sampCurrent = (sampCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
+  refCurrent_mA = (refCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
+  sampCurrent_mA = (sampCurrentVoltage - CURRENT_SENSOR_VREF) * CURRENT_SENSOR_SENS;
 }
 
 /**
@@ -185,11 +185,11 @@ void updateSensorData()
 void calculateHeatFlow()
 {
   // Convert current from milliAmps to Amps
-  double refCurrentAmps = refCurrent / 1000.0;
-  double sampCurrentAmps = sampCurrent / 1000.0;
+  double refCurrentAmps = refCurrent_mA / 1000.0;
+  double sampCurrentAmps = sampCurrent_mA / 1000.0;
   // Calculate the heat flow as milliWatts per gram
-  refHeatFlow = refCurrent * HEATING_COIL_VOLTAGE / refMass;
-  sampHeatFlow = refCurrent * HEATING_COIL_VOLTAGE / sampMass;
+  refHeatFlow = refCurrent_mA * HEATING_COIL_VOLTAGE / refMass;
+  sampHeatFlow = refCurrent_mA * HEATING_COIL_VOLTAGE / sampMass;
 }
 
 /**
@@ -213,9 +213,9 @@ void sendData()
   Serial.print(sampTemperature);
   Serial.print(",");
 
-  Serial.print(refCurrent);
+  Serial.print(refCurrent_mA);
   Serial.print(",");
-  Serial.print(sampCurrent);
+  Serial.print(sampCurrent_mA);
   Serial.print(",");
 
   Serial.print(refHeatFlow);
