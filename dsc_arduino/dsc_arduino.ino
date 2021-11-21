@@ -22,6 +22,7 @@
 #include <AutoPID.h>
 #include <INA219_WE.h>
 #include <pidautotuner.h>
+#include <Wire.h>
 
 // NeoPixel parameters
 #define LED_PIN 8
@@ -743,9 +744,8 @@ void setup()
     delay(1);
   }
 
-  // Initialize the INA219.
-  // By default the initialization will use the largest range (32V, 2A).  However
-  // you can call a setCalibration function to change this range (see comments).
+  // Initialize INA219 boards.
+  Wire.begin();
   if (!REF_INA219.init())
   {
     Serial.println("Failed to find INA219 chip for reference heater");
@@ -754,8 +754,6 @@ void setup()
       delay(10);
     }
   }
-
-  // Initialize the INA219.
   if (!SAMP_INA219.init())
   {
     Serial.println("Failed to find INA219 chip for sample heater");
