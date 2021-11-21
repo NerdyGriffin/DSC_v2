@@ -10,11 +10,13 @@
                 "${workspaceFolder}/**",
                 "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/EEPROM/src",
                 "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/HID/src",
+                "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SPI/src",
+                "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SPI/src",
                 "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SoftwareSerial/src",
-                "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SPI/src",
                 "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/Wire/src",
-                "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SPI/src",
-                "C:/Users/NerdyGriffin/Documents/Arduino/libraries/**"
+                "C:/Users/Acer/OneDrive/Documents/Arduino/libraries/**",
+                "C:/Users/NerdyGriffin/Documents/Arduino/libraries/**",
+                "D:/Users/Acer/Documents/Arduino/libraries/**"
             ],
             "forcedInclude": [],
             "cStandard": "c11",
@@ -47,22 +49,26 @@
             ],
             "intelliSenseMode": "gcc-x64",
             "includePath": [
+                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\libraries\\Wire\\src",
+                "C:\\Users\\Acer\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.2\\cores\\arduino",
                 "C:\\Users\\Acer\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.2\\libraries\\Adafruit_TinyUSB_Arduino\\src\\arduino",
                 "C:\\Users\\Acer\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.2\\libraries\\Adafruit_TinyUSB_Arduino\\src\\arduino",
+                "C:\\Users\\Acer\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.2\\variants\\feather_m0_express",
+                "C:\\Users\\Acer\\AppData\\Local\\Arduino15\\packages\\adafruit\\tools\\CMSIS-Atmel\\1.2.2\\CMSIS\\Device\\ATMEL\\",
                 "C:\\Users\\Acer\\AppData\\Local\\Arduino15\\packages\\adafruit\\tools\\CMSIS\\5.4.0\\CMSIS\\Core\\Include\\",
                 "C:\\Users\\Acer\\AppData\\Local\\Arduino15\\packages\\adafruit\\tools\\CMSIS\\5.4.0\\CMSIS\\DSP\\Include\\",
-                "C:\\Users\\Acer\\AppData\\Local\\Arduino15\\packages\\adafruit\\tools\\CMSIS-Atmel\\1.2.2\\CMSIS\\Device\\ATMEL\\",
-                "C:\\Users\\Acer\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.2\\cores\\arduino",
-                "C:\\Users\\Acer\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.2\\variants\\feather_m0_express",
+                "C:\\Users\\Acer\\OneDrive\\Documents\\Arduino\\libraries\\**",
+                "D:\\Users\\Acer\\Documents\\Arduino\\libraries\\**",
                 "D:\\Users\\Acer\\Documents\\Arduino\\libraries\\Adafruit_NeoPixel",
                 "D:\\Users\\Acer\\Documents\\Arduino\\libraries\\AutoPID",
+                "D:\\Users\\Acer\\Documents\\Arduino\\libraries\\INA219_WE",
                 "D:\\Users\\Acer\\Documents\\Arduino\\libraries\\pidautotuner",
+                "c:\\users\\acer\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\arm-none-eabi\\include",
                 "c:\\users\\acer\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\arm-none-eabi\\include\\c++\\9.2.1",
                 "c:\\users\\acer\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\arm-none-eabi\\include\\c++\\9.2.1\\arm-none-eabi",
                 "c:\\users\\acer\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\arm-none-eabi\\include\\c++\\9.2.1\\backward",
                 "c:\\users\\acer\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\lib\\gcc\\arm-none-eabi\\9.2.1\\include",
-                "c:\\users\\acer\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\lib\\gcc\\arm-none-eabi\\9.2.1\\include-fixed",
-                "c:\\users\\acer\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\arm-none-eabi\\include"
+                "c:\\users\\acer\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\lib\\gcc\\arm-none-eabi\\9.2.1\\include-fixed"
             ],
             "forcedInclude": [
                 "C:\\Users\\Acer\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.2\\cores\\arduino\\Arduino.h"
