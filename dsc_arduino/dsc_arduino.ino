@@ -581,8 +581,8 @@ void updateTargetTemperature()
  */
 void sendData()
 {
-  Serial.println("ElapsedTime(ms),TargetTemp(C),RefTemp(C),SampTemp(C),RefCurrent(mA),SampCurrent(mA),RefHeatFlow(),SampHeatFlow(),RefDutyCycle(%),SampDutyCycle(%)");
-  // Serial.println("ElapsedTime(ms),TargetTemp(C),RefTemp(C),SampTemp(C),RefShuntVoltage(mV),SampShuntVoltage(mV),RefBusVoltage(V),SampBusVoltage(V),RefLoadVoltage(V),SampLoadVoltage(V),RefCurrent(mA),SampCurrent(mA),RefBusPower(mW),SampBusPower(mW),RefHeatFlow(),SampHeatFlow(),RefDutyCycle(%),SampDutyCycle(%)");
+  // Serial.println("ElapsedTime(ms),TargetTemp(C),RefTemp(C),SampTemp(C),RefCurrent(mA),SampCurrent(mA),RefHeatFlow(),SampHeatFlow(),RefDutyCycle(%),SampDutyCycle(%)");
+  Serial.println("ElapsedTime(ms),TargetTemp(C),RefTemp(C),SampTemp(C),RefShuntVoltage(mV),SampShuntVoltage(mV),RefBusVoltage(V),SampBusVoltage(V),RefLoadVoltage(V),SampLoadVoltage(V),RefCurrent(mA),SampCurrent(mA),RefBusPower(mW),SampBusPower(mW),RefHeatFlow(),SampHeatFlow(),RefDutyCycle(%),SampDutyCycle(%)");
 
   // Send each value in the expected order, separated by commas
   Serial.print(elapsedTime);
@@ -595,30 +595,30 @@ void sendData()
   Serial.print(sampTemperature);
   Serial.print(",");
 
-  // Serial.print(refShuntVoltage_mV);
-  // Serial.print(",");
-  // Serial.print(sampShuntVoltage_mV);
-  // Serial.print(",");
+  Serial.print(refShuntVoltage_mV);
+  Serial.print(",");
+  Serial.print(sampShuntVoltage_mV);
+  Serial.print(",");
 
-  // Serial.print(refBusVoltage_V);
-  // Serial.print(",");
-  // Serial.print(sampBusVoltage_V);
-  // Serial.print(",");
+  Serial.print(refBusVoltage_V);
+  Serial.print(",");
+  Serial.print(sampBusVoltage_V);
+  Serial.print(",");
 
-  // Serial.print(refLoadVoltage_V);
-  // Serial.print(",");
-  // Serial.print(sampLoadVoltage_V);
-  // Serial.print(",");
+  Serial.print(refLoadVoltage_V);
+  Serial.print(",");
+  Serial.print(sampLoadVoltage_V);
+  Serial.print(",");
 
   Serial.print(refCurrent_mA);
   Serial.print(",");
   Serial.print(sampCurrent_mA);
   Serial.print(",");
 
-  // Serial.print(refPower);
-  // Serial.print(",");
-  // Serial.print(sampPower);
-  // Serial.print(",");
+  Serial.print(refPower);
+  Serial.print(",");
+  Serial.print(sampPower);
+  Serial.print(",");
 
   Serial.print(refHeatFlow);
   Serial.print(",");
