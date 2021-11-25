@@ -73,7 +73,7 @@ const unsigned long STANDBY_LOOP_INTERVAL = 1000UL; // milliseconds
 /**
  * Loop interval in microseconds.
  * 500,000 microseconds = 0.5 seconds
-*/
+ */
 #define LOOP_INTERVAL 500000UL
 
 // global variable for holding the raw analog sensor values
@@ -140,8 +140,14 @@ int startCounter, endCounter;
 // global variables for holding temperature and current sensor readings
 double elapsedTime; // Time in seconds
 double refTemperature, sampTemperature;
-double refCurrent, sampCurrent;
+
+double refShuntVoltage_mV, sampShuntVoltage_mV;
+double refBusVoltage_V, sampBusVoltage_V;
+double refLoadVoltage_V, sampLoadVoltage_V;
+double refCurrent_mA, sampCurrent_mA;
 double refPower, sampPower;
+bool refOverflow = false, sampOverflow = false;
+
 double refHeatFlow, sampHeatFlow;
 
 double refDutyCycle, sampDutyCycle;
@@ -425,7 +431,7 @@ void receiveControlParameters()
  * Reads the values from each of the sensor pins and computes to average of
  * multiple measurements for each pin
  */
-void readSensorValues()
+void readTempSensorValues()
 {
   // Zero the array before taking samples
   memset(sensorValues, 0, sizeof(sensorValues));
@@ -454,14 +460,6 @@ void readSensorValues()
     sensorValues[i] = sensorValues[i] / AVG_SAMPLES;
   }
 
-  REF_INA219.startSingleMeasurement();
-  refCurrent = REF_INA219.getCurrent_mA();
-  refPower = REF_INA219.getBusPower();
-
-  SAMP_INA219.startSingleMeasurement();
-  sampCurrent = SAMP_INA219.getCurrent_mA();
-  sampPower = SAMP_INA219.getBusPower();
-
   // Refresh the PID calculations and PWM output
   refreshPID();
 }
@@ -472,7 +470,7 @@ void readSensorValues()
  */
 void updateSensorData()
 {
-  readSensorValues();
+  readTempSensorValues();
 
   // The voltage is in millivolts
   double refTempVoltage = sensorValues[0] * byteToMillivolts;
@@ -482,6 +480,22 @@ void updateSensorData()
   // the temperature (in Celcius)
   refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR - REF_TEMP_CALIBRATION_OFFSET;
   sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR - SAMP_TEMP_CALIBRATION_OFFSET;
+
+  REF_INA219.startSingleMeasurement();
+  refShuntVoltage_mV = REF_INA219.getShuntVoltage_mV();
+  refBusVoltage_V = REF_INA219.getBusVoltage_V();
+  refCurrent_mA = REF_INA219.getCurrent_mA();
+  refPower = REF_INA219.getBusPower();
+  refLoadVoltage_V = refBusVoltage_V + (refShuntVoltage_mV / 1000);
+  refOverflow = REF_INA219.getOverflow();
+
+  SAMP_INA219.startSingleMeasurement();
+  sampShuntVoltage_mV = SAMP_INA219.getShuntVoltage_mV();
+  sampBusVoltage_V = SAMP_INA219.getBusVoltage_V();
+  sampCurrent_mA = SAMP_INA219.getCurrent_mA();
+  sampPower = SAMP_INA219.getBusPower();
+  sampLoadVoltage_V = sampBusVoltage_V + (sampShuntVoltage_mV / 1000);
+  sampOverflow = SAMP_INA219.getOverflow();
 
   // Refresh the PID calculations and PWM output
   refreshPID();
@@ -493,8 +507,8 @@ void updateSensorData()
 void calculateHeatFlow()
 {
   // // Convert current from milliAmps to Amps
-  // double refCurrentAmps = refCurrent / 1000.0;
-  // double sampCurrentAmps = sampCurrent / 1000.0;
+  // double refCurrentAmps = refCurrent_mA / 1000.0;
+  // double sampCurrentAmps = sampCurrent_mA / 1000.0;
 
   // Calculate the heat flow as Watts per gram
   refHeatFlow = (refPower / 1000.0) / refMass;
@@ -569,7 +583,8 @@ void updateTargetTemperature()
  */
 void sendData()
 {
-  Serial.println("ElapsedTime(ms),TargetTemp(C),RefTemp(C),SampTemp(C),RefCurrent(mA),SampCurrent(mA),RefHeatFlow(),SampHeatFlow(),RefDutyCycle(%),SampDutyCycle(%)");
+  // Serial.println("ElapsedTime(ms),TargetTemp(C),RefTemp(C),SampTemp(C),RefCurrent(mA),SampCurrent(mA),RefHeatFlow(),SampHeatFlow(),RefDutyCycle(%),SampDutyCycle(%)");
+  Serial.println("ElapsedTime(ms),TargetTemp(C),RefTemp(C),SampTemp(C),RefShuntVoltage(mV),SampShuntVoltage(mV),RefBusVoltage(V),SampBusVoltage(V),RefLoadVoltage(V),SampLoadVoltage(V),RefCurrent(mA),SampCurrent(mA),RefBusPower(mW),SampBusPower(mW),RefHeatFlow(),SampHeatFlow(),RefDutyCycle(%),SampDutyCycle(%)");
 
   // Send each value in the expected order, separated by commas
   Serial.print(elapsedTime);
@@ -582,9 +597,29 @@ void sendData()
   Serial.print(sampTemperature);
   Serial.print(",");
 
-  Serial.print(refCurrent);
+  Serial.print(refShuntVoltage_mV);
   Serial.print(",");
-  Serial.print(sampCurrent);
+  Serial.print(sampShuntVoltage_mV);
+  Serial.print(",");
+
+  Serial.print(refBusVoltage_V);
+  Serial.print(",");
+  Serial.print(sampBusVoltage_V);
+  Serial.print(",");
+
+  Serial.print(refLoadVoltage_V);
+  Serial.print(",");
+  Serial.print(sampLoadVoltage_V);
+  Serial.print(",");
+
+  Serial.print(refCurrent_mA);
+  Serial.print(",");
+  Serial.print(sampCurrent_mA);
+  Serial.print(",");
+
+  Serial.print(refPower);
+  Serial.print(",");
+  Serial.print(sampPower);
   Serial.print(",");
 
   Serial.print(refHeatFlow);
