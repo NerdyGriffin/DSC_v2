@@ -37,10 +37,6 @@ function ret = initializeSerialPort (dlg)
     % Create and display the progress bar
     dlg.SharedProgressDlg = updateProgressDlg(dlg, 0, 'Communicating with Arduino...');
 
-    disp('Data read from serial port:')
-    readline(dlg.Arduino)
-    disp('End of serial port data')
-
     if isempty(readline(dlg.Arduino))
       message = sprintf("There was no response from the device on '%s'. Make sure that this is the correct serial port, and that the 'dsc\_arduino' sketch has been upload onto the Arduino.", dlg.SerialPort);
       errordlg(message, 'Failed to communicate with Arduino');

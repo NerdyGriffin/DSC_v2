@@ -10,11 +10,11 @@ function ret = startExperiment (dlg)
   awaitStart = true;
 
   while awaitStart
-    serialData = strip(readline(dlg.Arduino));
+    serialData = strtrim(readline(dlg.Arduino));
 
-    if strlength(serialData) == 1
+    if length(serialData) == 1
 
-      switch strip(serialData)
+      switch strtrim(serialData)
         case 's'
           setRunningUI(dlg);
           receiveSerialData(dlg);

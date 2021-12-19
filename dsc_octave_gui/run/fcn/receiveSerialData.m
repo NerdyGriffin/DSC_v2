@@ -33,11 +33,11 @@ function ret = receiveSerialData (dlg)
   experimentIsRunning = true;
 
   while experimentIsRunning
-    serialData = strip(readline(dlg.Arduino));
+    serialData = strtrim(readline(dlg.Arduino));
 
-    if strlength(serialData) == 1
+    if length(serialData) == 1
 
-      switch strip(serialData)
+      switch strtrim(serialData)
         case 'x'
           experimentIsRunning = false;
           disp('Received end signal')

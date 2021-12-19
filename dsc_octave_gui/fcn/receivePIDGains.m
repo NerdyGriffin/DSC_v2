@@ -9,14 +9,14 @@ function ret = receivePIDGains (dlg, fraction = 0)
   awaitResponse = true;
 
   while awaitResponse
-    serialData = strip(readline(dlg.Arduino));
+    serialData = strtrim(readline(dlg.Arduino));
 
-    if strlength(serialData) == 1
+    if length(serialData) == 1
 
-      switch strip(serialData)
+      switch strtrim(serialData)
         case 'k'
           readline(dlg.Arduino);
-          serialData = strip(readline(dlg.Arduino));
+          serialData = strtrim(readline(dlg.Arduino));
           [parsedData, dataIsNum] = str2num(serialData);
 
           if dataIsNum && length(parsedData) == 3

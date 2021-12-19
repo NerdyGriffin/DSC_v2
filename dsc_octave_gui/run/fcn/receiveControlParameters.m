@@ -8,14 +8,14 @@ function ret = receiveControlParameters (dlg, fraction = 0)
   awaitResponse = true;
 
   while awaitResponse
-    serialData = strip(readline(dlg.Arduino));
+    serialData = strtrim(readline(dlg.Arduino));
 
-    if strlength(serialData) == 1
+    if length(serialData) == 1
 
-      switch strip(serialData)
+      switch strtrim(serialData)
         case 'c'
           readline(dlg.Arduino);
-          serialData = strip(readline(dlg.Arduino));
+          serialData = strtrim(readline(dlg.Arduino));
           disp(serialData)
           [parsedData, dataIsNum] = str2num(serialData);
 
