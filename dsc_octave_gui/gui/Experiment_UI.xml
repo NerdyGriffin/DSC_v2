@@ -39,16 +39,48 @@ refreshLivePlot (dlg, elapsedTimeArray, targetTempArray, refTempArray, sampTempA
     <uiControl class="imgCtrl" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" Name="Main_Plot" Position="[240 40 820 600]"/>
     <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" Name="StartExperimentButton" Position="[5 5 180 44]" String="Start Experiment" TooltipString="">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
-% propertie 'generateCallback' from the properties editor</uiControl>
+% propertie 'generateCallback' from the properties editor
+
+set(dlg.StartExperimentButton, 'enable', 'off');
+
+startExperiment(dlg);</uiControl>
     <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" Name="StopExperimentButton" Position="[5 55 180 44]" String="Stop Experiment" TooltipString="">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
-% propertie 'generateCallback' from the properties editor</uiControl>
+% propertie 'generateCallback' from the properties editor
+
+set(dlg.StopExperimentButton, 'enable', 'off');
+
+write(dlg.Arduino, 'x', 'char');</uiControl>
     <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" Name="LoadConfigFileButton" Position="[5 105 180 44]" String="Load Config File" TooltipString="">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
-% propertie 'generateCallback' from the properties editor</uiControl>
+% propertie 'generateCallback' from the properties editor
+
+set(dlg.LoadConfigFileButton, 'enable', 'off');
+
+loadConfigFile(dlg);
+
+set(dlg.LoadConfigFileButton, 'enable', 'on');</uiControl>
     <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" Name="SyncToArduinoButton" Position="[5 155 180 44]" String="Sync to Arduino" TooltipString="">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
-% propertie 'generateCallback' from the properties editor</uiControl>
+% propertie 'generateCallback' from the properties editor
+
+set(dlg.SyncToArduinoButton, 'enable', 'off');
+
+% Create and display the progress bar
+dlg.SharedProgressDlg = updateProgressDlg(dlg, 0, 'Communicating with Arduino...');
+
+sendPIDGains(dlg, 1/5);
+receivePIDGains(dlg, 2/5);
+
+sendControlParameters(dlg, 3/5);
+receiveControlParameters(dlg, 4/5);
+
+dlg.SharedProgressDlg = updateProgressDlg(dlg, 5/5, 'Finished communicating with Arduino.');
+
+% Close the progress bar
+dlg = closeProgressDlg(dlg);
+
+set(dlg.SyncToArduinoButton, 'enable', 'on');</uiControl>
     <uiControl class="cmbCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="SerialPortComboBox" Position="[110 600 70 25]" String="" TooltipString=""/>
     <uiControl class="textCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Serial_Port_Label" Position="[10 605 61 16]" String="Serial Port" TooltipString=""/>
     <uiControl class="buttonCtrl" BackgroundColor="[0.941 0.941 0.941]" FontAngle="normal" FontName="Arial" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" Name="SetSerialPortButton" Position="[5 635 180 44]" String="Set Serial Port" TooltipString="">% This code will be executed when user click the button control.
