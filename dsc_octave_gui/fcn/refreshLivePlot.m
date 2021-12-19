@@ -11,5 +11,5 @@ function ret = refreshLivePlot (dlg, elapsedTimeArray, ...
   elapsedTimeArray, sampTempArray, "r");
   legend(dlg.Main_Plot, 'Target Temperature', 'Reference Sample', 'Test Sample');
 
-  ret = 0;
+  ret = dlg;
 endfunction

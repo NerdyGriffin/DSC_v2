@@ -16,5 +16,5 @@ function ret = setIdleUI (dlg)
   set(dlg.SetSerialPortButton, 'enable', 'on');
   %set(dlg.SerialPortComboBox, 'editable', 'on');
 
-  ret = 0;
+  ret = dlg;
 endfunction
