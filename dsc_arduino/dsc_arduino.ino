@@ -816,9 +816,9 @@ void setup()
   // be set to min or max respectively
   refPID.setBangBang(BANG_RANGE);
   sampPID.setBangBang(BANG_RANGE);
-  // // set PID update interval
-  // refPID.setTimeStep(PID_UPDATE_INTERVAL);
-  // sampPID.setTimeStep(PID_UPDATE_INTERVAL);
+  // set PID update interval
+  refPID.setTimeStep(PID_UPDATE_INTERVAL);
+  sampPID.setTimeStep(PID_UPDATE_INTERVAL);
 
   // NeoPixel initialization
   neopixel.begin();
