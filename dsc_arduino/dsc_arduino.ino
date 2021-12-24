@@ -90,7 +90,7 @@ double Kd = 5.0000;
  * is deactivated, and the output is set to max
  */
 #define BANG_RANGE 20.0
-#define PID_UPDATE_INTERVAL 100UL // Interval in milliseconds
+#define PID_UPDATE_INTERVAL 100UL // Interval in milliseconds (Default is 1000)
 
 // The max voltage of analog input readings
 #define ANALOG_REF_VOLTAGE 3.3
@@ -816,7 +816,7 @@ void setup()
   // be set to min or max respectively
   refPID.setBangBang(BANG_RANGE);
   sampPID.setBangBang(BANG_RANGE);
-  // set PID update interval
+  // set PID update interval (Default is 1000)
   refPID.setTimeStep(PID_UPDATE_INTERVAL);
   sampPID.setTimeStep(PID_UPDATE_INTERVAL);
 
