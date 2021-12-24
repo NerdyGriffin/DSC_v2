@@ -477,7 +477,7 @@ void updateSensorData()
   double sampTempVoltage = sensorValues[1] * byteToMillivolts;
 
   // Convert the voltage readings into appropriate units. This will calculate
-  // the temperature (in Celcius)
+  // the temperature (in Celsius)
   refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR - REF_TEMP_CALIBRATION_OFFSET;
   sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR - SAMP_TEMP_CALIBRATION_OFFSET;
 
@@ -583,7 +583,6 @@ void updateTargetTemperature()
  */
 void sendData()
 {
-  // Serial.println("ElapsedTime(ms),TargetTemp(C),RefTemp(C),SampTemp(C),RefCurrent(mA),SampCurrent(mA),RefHeatFlow(),SampHeatFlow(),RefDutyCycle(%),SampDutyCycle(%)");
   Serial.println("ElapsedTime(ms),TargetTemp(C),RefTemp(C),SampTemp(C),RefShuntVoltage(mV),SampShuntVoltage(mV),RefBusVoltage(V),SampBusVoltage(V),RefLoadVoltage(V),SampLoadVoltage(V),RefCurrent(mA),SampCurrent(mA),RefBusPower(mW),SampBusPower(mW),RefHeatFlow(),SampHeatFlow(),RefDutyCycle(%),SampDutyCycle(%)");
 
   // Send each value in the expected order, separated by commas
@@ -812,6 +811,7 @@ void setup()
   // Set measurement mode to single-shot triggered
   REF_INA219.setMeasureMode(TRIGGERED);
   SAMP_INA219.setMeasureMode(TRIGGERED);
+
   // Set the temperature and current sensor pins
   pinMode(REF_TEMP_PROBE_PIN, INPUT);
   pinMode(SAMP_TEMP_PROBE_PIN, INPUT);
