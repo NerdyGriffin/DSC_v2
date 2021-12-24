@@ -364,7 +364,7 @@ void autotunePID()
       switch (inByte)
       {
       case 'x':
-        // Received stop commmand
+        // Received stop command
         endAutotune(&tuner, red);
         break;
       default:
@@ -706,7 +706,7 @@ void controlLoop()
       switch (inByte)
       {
       case 'x':
-        // Received stop commmand
+        // Received stop command
         stopPID(red);
         controlLoopState = false;
         break;
@@ -888,7 +888,7 @@ void loop()
       sendControlParameters();
       break;
     case 'l':
-      // Received load control parameters commmand
+      // Received load control parameters command
       neopixel.fill(cyan);
       neopixel.show();
       // Receive the temperature control parameters via the serial bus
@@ -898,7 +898,7 @@ void loop()
       sendControlParameters();
       break;
     case 'p':
-      // Received load PID gains commmand
+      // Received load PID gains command
       neopixel.fill(cyan);
       neopixel.show();
       // Receive the PID gain constants via the serial bus
@@ -908,7 +908,7 @@ void loop()
       sendPIDGains();
       break;
     case 's':
-      // Received start commmand
+      // Received start command
       neopixel.fill(blue);
       neopixel.show();
       // Run the temperature control loop
