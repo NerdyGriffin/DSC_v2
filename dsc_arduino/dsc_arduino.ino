@@ -152,7 +152,7 @@ double refHeatFlow, sampHeatFlow;
 
 double refDutyCycle, sampDutyCycle;
 
-//input/output variables passed by reference, so they are updated automatically
+// input/output variables passed by reference, so they are updated automatically
 AutoPID refPID(&refTemperature, &targetTemp, &refDutyCycle, OUTPUT_MIN, OUTPUT_MAX, Kp, Ki, Kd);
 AutoPID sampPID(&sampTemperature, &targetTemp, &sampDutyCycle, OUTPUT_MIN, OUTPUT_MAX, Kp, Ki, Kd);
 
@@ -220,19 +220,11 @@ void refreshPID()
     refPID.run();
     // Update the PWM output
     analogWrite(REF_HEATER_PIN, refDutyCycle);
-    // // Update the PWM Relay output
-    // digitalWrite(REF_HEATER_PIN, refRelayState);
-    // // Store the latest duty cycle
-    // refDutyCycle = refPID.getPulseValue();
 
     // Run the PID algorithm
     sampPID.run();
     // Update the PWM output
     analogWrite(SAMP_HEATER_PIN, sampDutyCycle);
-    // // Update the PWM Relay output
-    // digitalWrite(SAMP_HEATER_PIN, sampRelayState);
-    // // Store the latest duty cycle
-    // sampDutyCycle = sampPID.getPulseValue();
   }
 }
 
