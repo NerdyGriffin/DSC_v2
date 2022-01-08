@@ -186,6 +186,11 @@ char receivedChars[numChars]; // an array to store the received data
 char tempChars[numChars];     // temporary array for use when parsing
 boolean newData = false;
 
+/**
+ * @brief Receive a full line of serial data as a character array
+ *
+ * Based off the code examples here: https://forum.arduino.cc/t/serial-input-basics-updated/382007/3
+ */
 void recvSerialData()
 {
   static byte ndx = 0;
