@@ -92,7 +92,6 @@ const unsigned long STANDBY_LOOP_INTERVAL = 250UL; // milliseconds
 #define ANALOG_REF_VOLTAGE 3.3
 // The sample resolution of the analogRead() output
 #define ANALOG_RESOLUTION 12
-const unsigned long analogMidpoint = pow(2, ANALOG_RESOLUTION - 1);
 // Analog signal to voltage conversion factor
 const double byteToVolts = (ANALOG_REF_VOLTAGE / pow(2, ANALOG_RESOLUTION));
 const double byteToMillivolts = 1000.0 * byteToVolts;
@@ -103,9 +102,10 @@ unsigned long sensorValues[2];
 // PID settings and gains
 const unsigned int OUTPUT_MIN = 0;
 const unsigned int OUTPUT_MAX = pow(2, ANALOG_RESOLUTION) - 1;
-double Kp = 0.1000;
-double Ki = 0.0001;
-double Kd = 5.0000;
+double Kp = 10.0000;
+double Ki = 0.5000;
+double Kd = 1.0000;
+
 /**
  * When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
  * is deactivated, and the output is set to max
@@ -378,7 +378,7 @@ void autotunePID()
   sampPID.stop();
 
   // Set the target temperature for PID tuning
-  targetTemp = 120;
+  targetTemp = 45;
 
   PIDAutotuner tuner = PIDAutotuner();
 
@@ -989,7 +989,7 @@ void setup()
 
   // Set PID gain constants to default values
   Kp = 10.0000;
-  Ki = 0.0001;
+  Ki = 0.5000;
   Kd = 1.0000;
 
   // Update the PID gains
