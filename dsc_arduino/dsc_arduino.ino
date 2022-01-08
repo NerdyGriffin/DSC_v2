@@ -286,7 +286,7 @@ void recvPIDGains()
 }
 
 /**
- * Run the PID algorithm and update the PWM Relay outputs
+ * Run the PID algorithm and update the PWM outputs
  */
 void refreshPID()
 {
@@ -296,14 +296,14 @@ void refreshPID()
     refPID.run();
     // Update the PWM output
     analogWrite(REF_HEATER_PIN, refPIDOutput);
-    // Calculate the latest duty cycle
+    // Store the latest duty cycle
     refDutyCycle = refPIDOutput * byteToPercent;
 
     // Run the PID algorithm
     sampPID.run();
     // Update the PWM output
     analogWrite(SAMP_HEATER_PIN, sampPIDOutput);
-    // Calculate the latest duty cycle
+    // Store the latest duty cycle
     sampDutyCycle = sampPIDOutput * byteToPercent;
   }
 }
@@ -321,7 +321,7 @@ void stopPID(uint32_t color)
   refPIDOutput = sampPIDOutput = 0;
   refDutyCycle = sampDutyCycle = 0;
 
-  // Turn off the PWM Relay output
+  // Turn off the PWM output
   analogWrite(REF_HEATER_PIN, OUTPUT_MIN);
   analogWrite(SAMP_HEATER_PIN, OUTPUT_MIN);
 
@@ -423,6 +423,8 @@ void autotunePID()
     sampPIDOutput = OUTPUT_MIN;
     analogWrite(REF_HEATER_PIN, refPIDOutput);
     analogWrite(SAMP_HEATER_PIN, sampPIDOutput);
+    refDutyCycle = refPIDOutput * byteToPercent;
+    sampDutyCycle = sampPIDOutput * byteToPercent;
 
     // Send data out via Serial bus
     sendData();
@@ -865,7 +867,7 @@ void standbyData()
   // Set standby target temp
   targetTemp = 20;
 
-  // Turn off the PWM Relay output
+  // Turn off the PWM output
   analogWrite(REF_HEATER_PIN, OUTPUT_MIN);
   analogWrite(SAMP_HEATER_PIN, OUTPUT_MIN);
 
