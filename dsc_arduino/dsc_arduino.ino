@@ -198,7 +198,6 @@ boolean newData = false;
 
 void receiveSerialData()
 {
-  static boolean recvInProgress = false;
   static byte ndx = 0;
   char endMarker = '\n';
   char rc;
@@ -207,24 +206,20 @@ void receiveSerialData()
   {
     rc = Serial.read();
 
-    if (recvInProgress == true)
+    if (rc != endMarker)
     {
-      if (rc != endMarker)
+      receivedChars[ndx] = rc;
+      ndx++;
+      if (ndx >= numChars)
       {
-        receivedChars[ndx] = rc;
-        ndx++;
-        if (ndx >= numChars)
-        {
-          ndx = numChars - 1;
-        }
+        ndx = numChars - 1;
       }
-      else
-      {
-        receivedChars[ndx] = '\0'; // terminate the string
-        recvInProgress = false;
-        ndx = 0;
-        newData = true;
-      }
+    }
+    else
+    {
+      receivedChars[ndx] = '\0'; // terminate the string
+      ndx = 0;
+      newData = true;
     }
   }
 }
@@ -521,17 +516,9 @@ void parseControlParameters()
 void receiveControlParameters()
 {
   unsigned long startTime = micros();
-  // while ((micros() - startTime) < MAX_SERIAL_WAIT_TIME)
-  // {
-  //   String testString = Serial.readString();
-  //   Serial.println(testString);
-  // }
   while (newData == false && (micros() - startTime) < MAX_SERIAL_WAIT_TIME)
   {
     receiveSerialData();
-
-    String testString = Serial.readString();
-    Serial.println(testString);
 
     if (newData)
     {
