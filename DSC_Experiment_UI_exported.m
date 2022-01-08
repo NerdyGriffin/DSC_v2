@@ -310,11 +310,12 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             flush(app.Arduino);
             write(app.Arduino, 'p', 'char');
 
-            write(app.Arduino, string(app.Data.Kp), 'string');
-            write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.Data.Ki), 'string');
-            write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.Data.Kd), 'string');
+            csvString = sprintf("%f,%f,%f\n", ...
+                app.Data.Kp, ...
+                app.Data.Ki, ...
+                app.Data.Kd);
+
+            write(app.Arduino, csvString, 'string');
         end
 
         function receivePIDGains(app)
@@ -353,13 +354,13 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             flush(app.Arduino);
             write(app.Arduino, 'l', 'char');
 
-            write(app.Arduino, string(app.StartTempCEditField.Value), 'string');
-            write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.EndTempCEditField.Value), 'string');
-            write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.RateCminEditField.Value), 'string');
-            write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.HoldTimesecEditField.Value), 'string');
+            csvString = sprintf("%.2f,%.2f,%.2f,%.2f\n", ...
+                app.StartTempCEditField.Value, ...
+                app.EndTempCEditField.Value, ...
+                app.RateCminEditField.Value, ...
+                app.HoldTimesecEditField.Value);
+
+            write(app.Arduino, csvString, 'string');
         end
 
         function receiveControlParameters(app)
@@ -372,7 +373,6 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                         case 'c'
                             readline(app.Arduino);
                             serialData = strip(readline(app.Arduino));
-                            disp(serialData)
                             [parsedData, dataIsNum] = str2num(serialData);
                             if dataIsNum && length(parsedData) == 4
                                 app.StartTempCEditField.Value = parsedData(1); %double(readline(app.Arduino));
