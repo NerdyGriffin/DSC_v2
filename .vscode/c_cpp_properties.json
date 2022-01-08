@@ -14,6 +14,7 @@
                 "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SPI/src",
                 "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SoftwareSerial/src",
                 "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/Wire/src",
+                "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SPI/src",
                 "C:/Users/ckuni/OneDrive/Documents/Arduino/libraries/**"
             ],
             "forcedInclude": [],
@@ -35,7 +36,9 @@
             "compilerArgs": [
                 "-mcpu=cortex-m0plus",
                 "-mthumb",
-                "-w",
+                "-Wall",
+                "-Wextra",
+                "-Wno-expansion-to-defined",
                 "-std=gnu++11",
                 "-ffunction-sections",
                 "-fdata-sections",
@@ -47,17 +50,15 @@
             ],
             "intelliSenseMode": "gcc-x64",
             "includePath": [
-                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.2\\libraries\\Adafruit_TinyUSB_Arduino\\src\\arduino",
-                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.2\\libraries\\Adafruit_TinyUSB_Arduino\\src\\arduino",
+                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\libraries\\Adafruit_TinyUSB_Arduino\\src\\arduino",
+                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\libraries\\Adafruit_TinyUSB_Arduino\\src\\arduino",
                 "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\tools\\CMSIS\\5.4.0\\CMSIS\\Core\\Include\\",
                 "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\tools\\CMSIS\\5.4.0\\CMSIS\\DSP\\Include\\",
                 "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\tools\\CMSIS-Atmel\\1.2.2\\CMSIS\\Device\\ATMEL\\",
-                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.2\\cores\\arduino",
-                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.2\\variants\\feather_m0_express",
+                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\cores\\arduino",
+                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\variants\\feather_m0_express",
                 "C:\\Users\\ckuni\\OneDrive\\Documents\\Arduino\\libraries\\Adafruit_NeoPixel",
                 "C:\\Users\\ckuni\\OneDrive\\Documents\\Arduino\\libraries\\AutoPID",
-                "C:\\Users\\ckuni\\OneDrive\\Documents\\Arduino\\libraries\\INA219_WE\\src",
-                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.2\\libraries\\Wire",
                 "C:\\Users\\ckuni\\OneDrive\\Documents\\Arduino\\libraries\\pidautotuner",
                 "c:\\users\\ckuni\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\arm-none-eabi\\include\\c++\\9.2.1",
                 "c:\\users\\ckuni\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\arm-none-eabi\\include\\c++\\9.2.1\\arm-none-eabi",
@@ -67,7 +68,7 @@
                 "c:\\users\\ckuni\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\arm-none-eabi\\include"
             ],
             "forcedInclude": [
-                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.2\\cores\\arduino\\Arduino.h"
+                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\cores\\arduino\\Arduino.h"
             ],
             "cStandard": "c11",
             "cppStandard": "c++11",
@@ -77,6 +78,7 @@
                 "ARDUINO=10816",
                 "ARDUINO_SAMD_FEATHER_M0_EXPRESS",
                 "ARDUINO_ARCH_SAMD",
+                "ARDUINO_SAMD_ADAFRUIT",
                 "ARDUINO_SAMD_ZERO",
                 "ARDUINO_SAMD_FEATHER_M0",
                 "ARM_MATH_CM0PLUS",
