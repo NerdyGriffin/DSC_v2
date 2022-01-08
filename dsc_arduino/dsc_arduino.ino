@@ -24,6 +24,16 @@
 #include <pidautotuner.h>
 #include <Wire.h>
 
+// RTC clock on Adalogger featherwing
+#include "RTClib.h"
+RTC_PCF8523 rtc;
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesdsay", "Wednesday", "Thursday", "Friday", "Saturday"};
+
+// SD card from Adalogger featherwing
+#include <SPI.h>
+#include <SD.h>
+const int chipSelect = 10; // gpio pin for SD card chip select on featherwing adalogger
+
 // NeoPixel parameters
 #define LED_PIN 8
 #define LED_COUNT 1
@@ -42,8 +52,8 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
 // Feather M0 Express board pinouts
 #define REF_TEMP_PROBE_PIN A1
 #define SAMP_TEMP_PROBE_PIN A4
-#define REF_HEATER_PIN 11
-#define SAMP_HEATER_PIN 10
+#define REF_HEATER_PIN 12
+#define SAMP_HEATER_PIN 11
 #define REF_CURRENT_I2C 0x41
 #define SAMP_CURRENT_I2C 0x40
 
@@ -53,7 +63,7 @@ INA219_WE SAMP_INA219 = INA219_WE(SAMP_CURRENT_I2C); // sample heater ina219 boa
 
 const unsigned long MAX_SERIAL_WAIT_TIME = 10000000UL; // microseconds
 
-const unsigned long STANDBY_LOOP_INTERVAL = 1000UL; // milliseconds
+const unsigned long STANDBY_LOOP_INTERVAL = 250UL; // milliseconds
 
 /**
  * Number of samples to average the reading over. Change this to make the
@@ -117,7 +127,7 @@ double Kd = 5.0000;
 // The minimum acceptable error between the sample temperatures and the target
 // temperature. The error for both samples must be less than this value before
 // the stage controller will continue to the next stage. Units: [degrees C]
-#define MINIMUM_ACCEPTABLE_ERROR 5.0
+#define MINIMUM_ACCEPTABLE_ERROR 1.0
 
 // The number of the consecutive samples within the MINIMUM_ACCEPTABLE_ERROR
 // that are required before the program considers the target to be satisfied
@@ -690,51 +700,57 @@ void updateTargetTemperature()
  */
 void sendData()
 {
-  Serial.println("ElapsedTime(ms),TargetTemp(C),RefTemp(C),SampTemp(C),RefShuntVoltage(mV),SampShuntVoltage(mV),RefBusVoltage(V),SampBusVoltage(V),RefLoadVoltage(V),SampLoadVoltage(V),RefCurrent(mA),SampCurrent(mA),RefBusPower(mW),SampBusPower(mW),RefHeatFlow(),SampHeatFlow(),RefDutyCycle(%),SampDutyCycle(%)");
+  // Take an rtc time measurement
+  DateTime now = rtc.now();
+
+  Serial.print("Start of measurement RTC unix-timestamp: ");
+  Serial.println(now.unixtime());
+
+  Serial.println("Time(sec), Ttar(C), Tref(C), Tsam(C), Vrl(V), Vsl(V), Iref(mA), Isam(mA), Pref(W), Psam(W), DCref(%), DCsam(%)");
 
   // Send each value in the expected order, separated by commas
   Serial.print(elapsedTime);
-  Serial.print(",");
+  Serial.print(",    ");
   Serial.print(targetTemp);
-  Serial.print(",");
+  Serial.print(",    ");
 
   Serial.print(refTemperature);
-  Serial.print(",");
+  Serial.print(",    ");
   Serial.print(sampTemperature);
-  Serial.print(",");
+  Serial.print(",    ");
+  /*
+    Serial.print(refShuntVoltage_mV);
+    Serial.print(",    ");
+    Serial.print(sampShuntVoltage_mV);
+    Serial.print(",    ");
 
-  Serial.print(refShuntVoltage_mV);
-  Serial.print(",");
-  Serial.print(sampShuntVoltage_mV);
-  Serial.print(",");
-
-  Serial.print(refBusVoltage_V);
-  Serial.print(",");
-  Serial.print(sampBusVoltage_V);
-  Serial.print(",");
-
+    Serial.print(refBusVoltage_V);
+    Serial.print(",    ");
+    Serial.print(sampBusVoltage_V);
+    Serial.print(",    ");
+  */
   Serial.print(refLoadVoltage_V);
-  Serial.print(",");
+  Serial.print(",    ");
   Serial.print(sampLoadVoltage_V);
-  Serial.print(",");
+  Serial.print(",    ");
 
   Serial.print(refCurrent_mA);
-  Serial.print(",");
+  Serial.print(",    ");
   Serial.print(sampCurrent_mA);
-  Serial.print(",");
+  Serial.print(",    ");
 
-  Serial.print(refPower);
-  Serial.print(",");
-  Serial.print(sampPower);
-  Serial.print(",");
-
-  Serial.print(refHeatFlow);
-  Serial.print(",");
-  Serial.print(sampHeatFlow);
-  Serial.print(",");
-
+  Serial.print(refPower / 1000.0);
+  Serial.print(",    ");
+  Serial.print(sampPower / 1000.0);
+  Serial.print(",    ");
+  /*
+    Serial.print(refHeatFlow);
+    Serial.print(",    ");
+    Serial.print(sampHeatFlow);
+    Serial.print(",    ");
+  */
   Serial.print(refDutyCycle);
-  Serial.print(",");
+  Serial.print(",    ");
   Serial.println(sampDutyCycle);
 }
 
@@ -881,12 +897,46 @@ void standbyData()
 
 void setup()
 {
+  // Set the relay output pins
+  pinMode(REF_HEATER_PIN, OUTPUT);
+  pinMode(SAMP_HEATER_PIN, OUTPUT);
+
+  analogWrite(REF_HEATER_PIN, OUTPUT_MIN);
+  analogWrite(SAMP_HEATER_PIN, OUTPUT_MIN);
+
   Serial.begin(9600);
   while (!Serial)
   {
     // will pause Zero, Leonardo, etc until serial console opens
     delay(1);
   }
+
+  // Initialize the SD card.
+  Serial.print("Initializing SD card...");
+  // see if the card is present and can be initialized:
+  if (!SD.begin(chipSelect))
+  {
+    Serial.println("Card failed, or not present");
+    // don't do anything more:
+    while (1)
+      ;
+  }
+  Serial.println("card initialized.");
+
+  // Set up RTC
+  if (!rtc.begin())
+  {
+    Serial.println("Couldn't find RTC");
+    Serial.flush();
+    while (1)
+      delay(10);
+  }
+  if (!rtc.initialized() || rtc.lostPower())
+  {
+    Serial.println("RTC is NOT initialized, let's set the time!");
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  }
+  rtc.start();
 
   // Initialize INA219 boards.
   Wire.begin();
@@ -925,10 +975,6 @@ void setup()
   pinMode(REF_TEMP_PROBE_PIN, INPUT);
   pinMode(SAMP_TEMP_PROBE_PIN, INPUT);
 
-  // Set the relay output pins
-  pinMode(REF_HEATER_PIN, OUTPUT);
-  pinMode(SAMP_HEATER_PIN, OUTPUT);
-
   // if temperature is more than 4 degrees below or above setpoint, OUTPUT will
   // be set to min or max respectively
   refPID.setBangBang(BANG_RANGE);
@@ -942,20 +988,18 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 0.1000;
+  Kp = 10.0000;
   Ki = 0.0001;
-  Kd = 5.0000;
+  Kd = 1.0000;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
   sampPID.setGains(Kp, Ki, Kd);
 
   // Set temperature control parameters to default values
-  startTemp = 30;
-  endTemp = 120;
-  rampUpRate = 20;
-  // endTemp = 25;
-  // rampUpRate = 60000;
+  startTemp = 25;
+  endTemp = 45;
+  rampUpRate = 10;
   holdTime = 0;
 
   targetTemp = startTemp;
