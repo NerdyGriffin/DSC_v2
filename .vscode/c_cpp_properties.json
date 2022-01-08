@@ -11,10 +11,8 @@
                 "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/EEPROM/src",
                 "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/HID/src",
                 "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SPI/src",
-                "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SPI/src",
                 "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SoftwareSerial/src",
                 "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/Wire/src",
-                "C:/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SPI/src",
                 "C:/Users/ckuni/OneDrive/Documents/Arduino/libraries/**"
             ],
             "forcedInclude": [],
@@ -50,22 +48,23 @@
             ],
             "intelliSenseMode": "gcc-x64",
             "includePath": [
+                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\cores\\arduino",
                 "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\libraries\\Adafruit_TinyUSB_Arduino\\src\\arduino",
-                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\libraries\\Adafruit_TinyUSB_Arduino\\src\\arduino",
+                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\libraries\\wire",
+                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\variants\\feather_m0_express",
+                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\tools\\CMSIS-Atmel\\1.2.2\\CMSIS\\Device\\ATMEL\\",
                 "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\tools\\CMSIS\\5.4.0\\CMSIS\\Core\\Include\\",
                 "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\tools\\CMSIS\\5.4.0\\CMSIS\\DSP\\Include\\",
-                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\tools\\CMSIS-Atmel\\1.2.2\\CMSIS\\Device\\ATMEL\\",
-                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\cores\\arduino",
-                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\variants\\feather_m0_express",
                 "C:\\Users\\ckuni\\OneDrive\\Documents\\Arduino\\libraries\\Adafruit_NeoPixel",
                 "C:\\Users\\ckuni\\OneDrive\\Documents\\Arduino\\libraries\\AutoPID",
+                "C:\\Users\\ckuni\\OneDrive\\Documents\\Arduino\\libraries\\INA219_WE\\src",
                 "C:\\Users\\ckuni\\OneDrive\\Documents\\Arduino\\libraries\\pidautotuner",
+                "c:\\users\\ckuni\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\arm-none-eabi\\include",
                 "c:\\users\\ckuni\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\arm-none-eabi\\include\\c++\\9.2.1",
                 "c:\\users\\ckuni\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\arm-none-eabi\\include\\c++\\9.2.1\\arm-none-eabi",
                 "c:\\users\\ckuni\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\arm-none-eabi\\include\\c++\\9.2.1\\backward",
                 "c:\\users\\ckuni\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\lib\\gcc\\arm-none-eabi\\9.2.1\\include",
-                "c:\\users\\ckuni\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\lib\\gcc\\arm-none-eabi\\9.2.1\\include-fixed",
-                "c:\\users\\ckuni\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\arm-none-eabi\\include"
+                "c:\\users\\ckuni\\appdata\\local\\arduino15\\packages\\adafruit\\tools\\arm-none-eabi-gcc\\9-2019q4\\lib\\gcc\\arm-none-eabi\\9.2.1\\include-fixed"
             ],
             "forcedInclude": [
                 "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\cores\\arduino\\Arduino.h"
