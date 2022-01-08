@@ -67,7 +67,7 @@ const unsigned long STANDBY_LOOP_INTERVAL = 1000UL; // milliseconds
 /**
  * Loop interval in microseconds.
  * 500,000 microseconds = 0.5 seconds
-*/
+ */
 #define LOOP_INTERVAL 500000UL
 
 // global variable for holding the raw analog sensor values
@@ -164,7 +164,7 @@ double refDutyCycle, sampDutyCycle;
 // PID Relay output values
 bool refRelayState, sampRelayState;
 
-//input/output variables passed by reference, so they are updated automatically
+// input/output variables passed by reference, so they are updated automatically
 AutoPIDRelay refPID(&refTemperature, &targetTemp, &refRelayState, PULSE_WIDTH, Kp, Ki, Kd);
 AutoPIDRelay sampPID(&sampTemperature, &targetTemp, &sampRelayState, PULSE_WIDTH, Kp, Ki, Kd);
 
@@ -250,20 +250,25 @@ void sendPIDGains()
  */
 void parsePIDGains()
 {
-  char *strtokIndx; // this is used by strtok() as an index
+  if (newData)
+  {
+    char *strtokIndx; // this is used by strtok() as an index
 
-  strtokIndx = strtok(receivedChars, ","); // get the first part - Kp
-  Kp = atof(strtokIndx);                   // copy it to the global variable
+    strtokIndx = strtok(receivedChars, ","); // get the first part - Kp
+    Kp = atof(strtokIndx);                   // copy it to the global variable
 
-  strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
-  Ki = atof(strtokIndx);
+    strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
+    Ki = atof(strtokIndx);
 
-  strtokIndx = strtok(NULL, ",");
-  Kd = atof(strtokIndx);
+    strtokIndx = strtok(NULL, ",");
+    Kd = atof(strtokIndx);
 
-  // Update the PID gains
-  refPID.setGains(Kp, Ki, Kd);
-  sampPID.setGains(Kp, Ki, Kd);
+    // Update the PID gains
+    refPID.setGains(Kp, Ki, Kd);
+    sampPID.setGains(Kp, Ki, Kd);
+  }
+
+  newData = false; // Reset the newData flag after parsing
 }
 
 /**
@@ -474,19 +479,24 @@ void sendControlParameters()
  */
 void parseControlParameters()
 {
-  char *strtokIndx; // this is used by strtok() as an index
+  if (newData)
+  {
+    char *strtokIndx; // this is used by strtok() as an index
 
-  strtokIndx = strtok(receivedChars, ",");
-  startTemp = atof(strtokIndx);
+    strtokIndx = strtok(receivedChars, ","); // get the first part - startTemp
+    startTemp = atof(strtokIndx);            // copy it to the global variable
 
-  strtokIndx = strtok(NULL, ",");
-  endTemp = atof(strtokIndx);
+    strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
+    endTemp = atof(strtokIndx);
 
-  strtokIndx = strtok(NULL, ",");
-  rampUpRate = atof(strtokIndx);
+    strtokIndx = strtok(NULL, ",");
+    rampUpRate = atof(strtokIndx);
 
-  strtokIndx = strtok(NULL, ",");
-  holdTime = atof(strtokIndx);
+    strtokIndx = strtok(NULL, ",");
+    holdTime = atof(strtokIndx);
+  }
+
+  newData = false; // Reset the newData flag after parsing
 }
 
 /**
