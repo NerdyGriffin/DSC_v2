@@ -45,6 +45,8 @@ const uint32_t blue = neopixel.Color(0, 0, 255);
 #define Ref_Heater_PIN 11
 #define Samp_Heater_PIN 10
 
+const unsigned long MAX_SERIAL_WAIT_TIME = 10000000UL; // microseconds
+
 const unsigned long STANDBY_LOOP_INTERVAL = 1000UL; // milliseconds
 
 /**
@@ -250,25 +252,44 @@ void sendPIDGains()
  */
 void parsePIDGains()
 {
-  if (newData)
+  char *strtokIndx; // this is used by strtok() as an index
+
+  strtokIndx = strtok(tempChars, ","); // get the first part - Kp
+  Kp = atof(strtokIndx);               // copy it to the global variable
+
+  strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
+  Ki = atof(strtokIndx);
+
+  strtokIndx = strtok(NULL, ",");
+  Kd = atof(strtokIndx);
+
+  // Update the PID gains
+  refPID.setGains(Kp, Ki, Kd);
+  sampPID.setGains(Kp, Ki, Kd);
+}
+
+/**
+ * Receive the PID gain constants via the serial bus
+ */
+void receivePIDGains()
+{
+  unsigned long startTime = micros();
+  while (newData == false && (micros() - startTime) < MAX_SERIAL_WAIT_TIME)
   {
-    char *strtokIndx; // this is used by strtok() as an index
+    receiveSerialData();
 
-    strtokIndx = strtok(receivedChars, ","); // get the first part - Kp
-    Kp = atof(strtokIndx);                   // copy it to the global variable
-
-    strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
-    Ki = atof(strtokIndx);
-
-    strtokIndx = strtok(NULL, ",");
-    Kd = atof(strtokIndx);
-
-    // Update the PID gains
-    refPID.setGains(Kp, Ki, Kd);
-    sampPID.setGains(Kp, Ki, Kd);
+    if (newData)
+    {
+      // this temporary copy is necessary to protect the original data
+      //   because strtok() used in parseData() replaces the commas with \0
+      strcpy(tempChars, receivedChars);
+      parsePIDGains();
+      // Send the PID gain constants to confirm that the values were received
+      // properly
+      sendPIDGains();
+    }
   }
-
-  newData = false; // Reset the newData flag after parsing
+  newData = false;
 }
 
 /**
@@ -479,24 +500,53 @@ void sendControlParameters()
  */
 void parseControlParameters()
 {
-  if (newData)
+  char *strtokIndx; // this is used by strtok() as an index
+
+  strtokIndx = strtok(tempChars, ","); // get the first part - startTemp
+  startTemp = atof(strtokIndx);        // copy it to the global variable
+
+  strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
+  endTemp = atof(strtokIndx);
+
+  strtokIndx = strtok(NULL, ",");
+  rampUpRate = atof(strtokIndx);
+
+  strtokIndx = strtok(NULL, ",");
+  holdTime = atof(strtokIndx);
+}
+
+/**
+ * Receive the temperature control parameters via the serial bus
+ */
+void receiveControlParameters()
+{
+  unsigned long startTime = micros();
+  // while ((micros() - startTime) < MAX_SERIAL_WAIT_TIME)
+  // {
+  //   String testString = Serial.readString();
+  //   Serial.println(testString);
+  // }
+  while (newData == false && (micros() - startTime) < MAX_SERIAL_WAIT_TIME)
   {
-    char *strtokIndx; // this is used by strtok() as an index
+    receiveSerialData();
 
-    strtokIndx = strtok(receivedChars, ","); // get the first part - startTemp
-    startTemp = atof(strtokIndx);            // copy it to the global variable
+    String testString = Serial.readString();
+    Serial.println(testString);
 
-    strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
-    endTemp = atof(strtokIndx);
-
-    strtokIndx = strtok(NULL, ",");
-    rampUpRate = atof(strtokIndx);
-
-    strtokIndx = strtok(NULL, ",");
-    holdTime = atof(strtokIndx);
+    if (newData)
+    {
+      Serial.print("This just in ... "); //! DEBUG
+      Serial.println(receivedChars);     //! DEBUG
+      // this temporary copy is necessary to protect the original data
+      //   because strtok() used in parseData() replaces the commas with \0
+      strcpy(tempChars, receivedChars);
+      parseControlParameters();
+      // Send the temperature control parameters to confirm that the values were
+      // received properly
+      sendControlParameters();
+    }
   }
-
-  newData = false; // Reset the newData flag after parsing
+  newData = false;
 }
 
 /**
@@ -968,22 +1018,14 @@ void loop()
       neopixel.fill(cyan);
       neopixel.show();
       // Receive the temperature control parameters via the serial bus
-      receiveSerialData();
-      parseControlParameters();
-      // Send the temperature control parameters to confirm that the values were
-      // received properly
-      sendControlParameters();
+      receiveControlParameters();
       break;
     case 'p':
       // Received load PID gains commmand
       neopixel.fill(cyan);
       neopixel.show();
       // Receive the PID gain constants via the serial bus
-      receiveSerialData();
-      parsePIDGains();
-      // Send the PID gain constants to confirm that the values were received
-      // properly
-      sendPIDGains();
+      receivePIDGains();
       break;
     case 's':
       // Received start commmand
