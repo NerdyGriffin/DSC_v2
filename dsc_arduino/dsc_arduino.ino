@@ -190,7 +190,7 @@ bool checkSafetyLimits()
   return exceededTempLimit;
 }
 
-// Variables used when recieving/parsing CSV data from the serial bus
+// Variables used when receiving/parsing CSV data from the serial bus
 const byte numChars = 32;
 char receivedChars[numChars]; // an array to store the received data
 char tempChars[numChars];     // temporary array for use when parsing
@@ -446,7 +446,7 @@ void autotunePID()
       switch (inByte)
       {
       case 'x':
-        // Received stop commmand
+        // Received stop command
         endAutotune(&tuner, red);
         break;
       default:
@@ -643,7 +643,7 @@ void updateSensorData()
   double sampCurrentVoltage = sensorValues[3] * byteToMillivolts;
 
   // Convert the voltage readings into appropriate units. This will calculate
-  // the temperature (in Celcius)
+  // the temperature (in Celsius)
   refTemperature = (refTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR - REF_TEMP_CALIBRATION_OFFSET;
   sampTemperature = (sampTempVoltage - AMPLIFIER_VOLTAGE_OFFSET) / AMPLIFIER_CONVERSION_FACTOR - SAMP_TEMP_CALIBRATION_OFFSET;
   // This will calculate the actual current (in mA). Using the ~~Vref~~ and
@@ -848,7 +848,7 @@ void controlLoop()
       switch (inByte)
       {
       case 'x':
-        // Received stop commmand
+        // Received stop command
         stopPID(red);
         controlLoopState = false;
         break;
@@ -999,21 +999,21 @@ void loop()
       sendControlParameters();
       break;
     case 'l':
-      // Received load control parameters commmand
+      // Received load control parameters command
       neopixel.fill(cyan);
       neopixel.show();
       // Receive the temperature control parameters via the serial bus
       recvControlParameters();
       break;
     case 'p':
-      // Received load PID gains commmand
+      // Received load PID gains command
       neopixel.fill(cyan);
       neopixel.show();
       // Receive the PID gain constants via the serial bus
       recvPIDGains();
       break;
     case 's':
-      // Received start commmand
+      // Received start command
       neopixel.fill(blue);
       neopixel.show();
       // Run the temperature control loop
