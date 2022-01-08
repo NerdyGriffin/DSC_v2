@@ -196,7 +196,7 @@ char receivedChars[numChars]; // an array to store the received data
 char tempChars[numChars];     // temporary array for use when parsing
 boolean newData = false;
 
-void receiveSerialData()
+void recvSerialData()
 {
   static byte ndx = 0;
   char endMarker = '\n';
@@ -266,12 +266,12 @@ void parsePIDGains()
 /**
  * Receive the PID gain constants via the serial bus
  */
-void receivePIDGains()
+void recvPIDGains()
 {
   unsigned long startTime = micros();
-  while (newData == false && (micros() - startTime) < MAX_SERIAL_WAIT_TIME)
+  while (!newData && (micros() - startTime) < MAX_SERIAL_WAIT_TIME)
   {
-    receiveSerialData();
+    recvSerialData();
 
     if (newData)
     {
@@ -279,11 +279,11 @@ void receivePIDGains()
       //   because strtok() used in parseData() replaces the commas with \0
       strcpy(tempChars, receivedChars);
       parsePIDGains();
-      // Send the PID gain constants to confirm that the values were received
-      // properly
-      sendPIDGains();
     }
   }
+  // Send the PID gain constants to confirm that the values were received
+  // properly
+  sendPIDGains();
   newData = false;
 }
 
@@ -513,26 +513,24 @@ void parseControlParameters()
 /**
  * Receive the temperature control parameters via the serial bus
  */
-void receiveControlParameters()
+void recvControlParameters()
 {
   unsigned long startTime = micros();
-  while (newData == false && (micros() - startTime) < MAX_SERIAL_WAIT_TIME)
+  while (!newData && (micros() - startTime) < MAX_SERIAL_WAIT_TIME)
   {
-    receiveSerialData();
+    recvSerialData();
 
     if (newData)
     {
-      Serial.print("This just in ... "); //! DEBUG
-      Serial.println(receivedChars);     //! DEBUG
       // this temporary copy is necessary to protect the original data
       //   because strtok() used in parseData() replaces the commas with \0
       strcpy(tempChars, receivedChars);
       parseControlParameters();
-      // Send the temperature control parameters to confirm that the values were
-      // received properly
-      sendControlParameters();
     }
   }
+  // Send the temperature control parameters to confirm that the values were
+  // received properly
+  sendControlParameters();
   newData = false;
 }
 
@@ -1005,14 +1003,14 @@ void loop()
       neopixel.fill(cyan);
       neopixel.show();
       // Receive the temperature control parameters via the serial bus
-      receiveControlParameters();
+      recvControlParameters();
       break;
     case 'p':
       // Received load PID gains commmand
       neopixel.fill(cyan);
       neopixel.show();
       // Receive the PID gain constants via the serial bus
-      receivePIDGains();
+      recvPIDGains();
       break;
     case 's':
       // Received start commmand
