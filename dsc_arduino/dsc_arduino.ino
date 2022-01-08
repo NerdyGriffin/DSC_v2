@@ -183,7 +183,7 @@ bool checkSafetyLimits()
   return exceededTempLimit;
 }
 
-// Variables used when recieving/parsing CSV data from the serial bus
+// Variables used when receiving/parsing CSV data from the serial bus
 const byte numChars = 32;
 char receivedChars[numChars]; // an array to store the received data
 char tempChars[numChars];     // temporary array for use when parsing
