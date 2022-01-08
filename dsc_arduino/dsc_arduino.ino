@@ -78,12 +78,21 @@ const unsigned long STANDBY_LOOP_INTERVAL = 1000UL; // milliseconds
  */
 #define LOOP_INTERVAL 500000UL
 
+// The max voltage of analog input readings
+#define ANALOG_REF_VOLTAGE 3.3
+// The sample resolution of the analogRead() output
+#define ANALOG_RESOLUTION 12
+const unsigned long analogMidpoint = pow(2, ANALOG_RESOLUTION - 1);
+// Analog signal to voltage conversion factor
+const double byteToVolts = (ANALOG_REF_VOLTAGE / pow(2, ANALOG_RESOLUTION));
+const double byteToMillivolts = 1000.0 * byteToVolts;
+
 // global variable for holding the raw analog sensor values
 unsigned long sensorValues[2];
 
 // PID settings and gains
-#define OUTPUT_MIN 0
-#define OUTPUT_MAX 255
+const unsigned int OUTPUT_MIN = 0;
+const unsigned int OUTPUT_MAX = pow(2, ANALOG_RESOLUTION) - 1;
 double Kp = 0.1000;
 double Ki = 0.0001;
 double Kd = 5.0000;
@@ -93,15 +102,6 @@ double Kd = 5.0000;
  */
 #define BANG_RANGE 20.0
 #define PID_UPDATE_INTERVAL 100UL // Interval in milliseconds (Default is 1000)
-
-// The max voltage of analog input readings
-#define ANALOG_REF_VOLTAGE 3.3
-// The sample resolution of the analogRead() output
-#define ANALOG_RESOLUTION 12
-const unsigned long analogMidpoint = pow(2, ANALOG_RESOLUTION - 1);
-// Analog signal to voltage conversion factor
-const double byteToVolts = (ANALOG_REF_VOLTAGE / pow(2, ANALOG_RESOLUTION));
-const double byteToMillivolts = 1000.0 * byteToVolts;
 
 // Thermocouple amplifier conversion constants
 #define AMPLIFIER_VOLTAGE_OFFSET 1250.0 // 1250 mV = 1.25 V
@@ -154,9 +154,14 @@ double refHeatFlow, sampHeatFlow;
 
 double refDutyCycle, sampDutyCycle;
 
+// Analog signal to percentage conversion factor
+const double byteToPercent = (100.0 / pow(2, ANALOG_RESOLUTION));
+
+double refPIDOutput, sampPIDOutput;
+
 // input/output variables passed by reference, so they are updated automatically
-AutoPID refPID(&refTemperature, &targetTemp, &refDutyCycle, OUTPUT_MIN, OUTPUT_MAX, Kp, Ki, Kd);
-AutoPID sampPID(&sampTemperature, &targetTemp, &sampDutyCycle, OUTPUT_MIN, OUTPUT_MAX, Kp, Ki, Kd);
+AutoPID refPID(&refTemperature, &targetTemp, &refPIDOutput, OUTPUT_MIN, OUTPUT_MAX, Kp, Ki, Kd);
+AutoPID sampPID(&sampTemperature, &targetTemp, &sampPIDOutput, OUTPUT_MIN, OUTPUT_MAX, Kp, Ki, Kd);
 
 // Variables used to simulate the implementation of AutoPIDRelay during PID
 // autotuning
@@ -290,12 +295,16 @@ void refreshPID()
     // Run the PID algorithm
     refPID.run();
     // Update the PWM output
-    analogWrite(REF_HEATER_PIN, refDutyCycle);
+    analogWrite(REF_HEATER_PIN, refPIDOutput);
+    // Calculate the latest duty cycle
+    refDutyCycle = refPIDOutput * byteToPercent;
 
     // Run the PID algorithm
     sampPID.run();
     // Update the PWM output
-    analogWrite(SAMP_HEATER_PIN, sampDutyCycle);
+    analogWrite(SAMP_HEATER_PIN, sampPIDOutput);
+    // Calculate the latest duty cycle
+    sampDutyCycle = sampPIDOutput * byteToPercent;
   }
 }
 
@@ -309,8 +318,8 @@ void stopPID(uint32_t color)
   targetTemp = 20;
 
   // Set duty cycle to zero
-  refDutyCycle = 0;
-  sampDutyCycle = 0;
+  refPIDOutput = sampPIDOutput = 0;
+  refDutyCycle = sampDutyCycle = 0;
 
   // Turn off the PWM Relay output
   analogWrite(REF_HEATER_PIN, OUTPUT_MIN);
@@ -409,11 +418,11 @@ void autotunePID()
     calculateHeatFlow();
 
     // Call tunePID() with the input value and current time in microseconds
-    double output = tuner.tunePID(refTemperature, microseconds);
-    refDutyCycle = output;
-    sampDutyCycle = OUTPUT_MIN;
-    analogWrite(REF_HEATER_PIN, refDutyCycle);
-    analogWrite(SAMP_HEATER_PIN, sampDutyCycle);
+    double tunerOutput = tuner.tunePID(refTemperature, microseconds);
+    refPIDOutput = tunerOutput;
+    sampPIDOutput = OUTPUT_MIN;
+    analogWrite(REF_HEATER_PIN, refPIDOutput);
+    analogWrite(SAMP_HEATER_PIN, sampPIDOutput);
 
     // Send data out via Serial bus
     sendData();
@@ -861,6 +870,7 @@ void standbyData()
   analogWrite(SAMP_HEATER_PIN, OUTPUT_MIN);
 
   // Set duty cycle to zero
+  refPIDOutput = sampPIDOutput = 0;
   refDutyCycle = sampDutyCycle = 0;
 
   // Send data out via Serial bus
@@ -898,6 +908,7 @@ void setup()
   pinMode(13, OUTPUT);
 
   analogReadResolution(ANALOG_RESOLUTION);
+  analogWriteResolution(ANALOG_RESOLUTION);
 
   // Set up ADC mode for INA219 boards
   // ADC automatic hw averaging is available with SAMPLE_MODE_XX, using single sample here
