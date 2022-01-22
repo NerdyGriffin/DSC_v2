@@ -389,9 +389,7 @@ void autotunePID()
 
   // Check if the file exists - if not, then write a header line for the data
   if (!SD.exists(fileName))
-  {
     dataFile.println(csvHeader);
-  }
 
   // Stop PID calculations and reset internal PID calculation values
   refPID.stop();
@@ -830,9 +828,7 @@ void controlLoop()
 
   // Check if the file exists - if not, then write a header line for the data
   if (!SD.exists(fileName))
-  {
     dataFile.println(csvHeader);
-  }
 
   refPID.reset();
   sampPID.reset();
