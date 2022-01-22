@@ -197,6 +197,8 @@ bool checkSafetyLimits()
   return exceededTempLimit;
 }
 
+String csvHeader = "RTC(sec), Time(sec), Ttar(C), Tref(C), Tsam(C), Vrl(V), Vsl(V), Iref(mA), Isam(mA), Pref(mW), Psam(mW), DCref(%), DCsam(%)";
+
 // Variables used when receiving/parsing CSV data from the serial bus
 const byte numChars = 32;
 char receivedChars[numChars]; // an array to store the received data
@@ -377,6 +379,17 @@ void autotunePID()
   // Send the char 'a' to indicate the start of autotune
   Serial.println('a');
 
+  String fileName = "Autotune.csv";
+
+  // Open a file for the data
+  dataFile = SD.open(fileName, FILE_WRITE);
+
+  // Check if the file exists - if not, then write a header line for the data
+  if (!dataFile.size())
+  {
+    dataFile.println(csvHeader);
+  }
+
   // Stop PID calculations and reset internal PID calculation values
   refPID.stop();
   sampPID.stop();
@@ -451,7 +464,7 @@ void autotunePID()
     sendData(csvString);
 
     // Write data out to SD card file
-    writeDataToSD("Autotune", csvString);
+    writeToFile(fileName, csvString);
 
     if (tuner.isFinished())
       endAutotune(&tuner, green);
@@ -709,8 +722,6 @@ void updateTargetTemperature()
   refreshPID();
 }
 
-String csvHeader = "RTC(sec), Time(sec), Ttar(C), Tref(C), Tsam(C), Vrl(V), Vsl(V), Iref(mA), Isam(mA), Pref(mW), Psam(mW), DCref(%), DCsam(%)";
-
 /**
  * @brief Generate a CSV string of all the experiment data
  *
@@ -782,25 +793,15 @@ void sendData(String csvString)
   Serial.println(csvString);
 }
 
-void writeDataToSD(String fileName, String csvString)
+// Write all the relevant data to an SD card file
+void writeToFile(String fileName, String csvString)
 {
-  // Write all the relevant data to an SD card file
-  // First open a file for the data
-  dataFile = SD.open(fileName + ".csv", FILE_WRITE);
-
-  // First check if the file exists - if not, then write a header line for the data
-  if (!dataFile.size())
-  {
-    dataFile.println(csvHeader);
-  }
-
   // if the file opened okay, we can write to it:
   if (dataFile)
   {
     Serial.print("Writing to " + fileName + ".csv ...");
     dataFile.println(csvString);
-    // close the file:
-    dataFile.close();
+    dataFile.flush();
     Serial.println("done.");
   }
   else
@@ -816,6 +817,19 @@ void controlLoop()
 {
   // Send the char 's' to indicate the start of control loop
   Serial.println('s');
+
+  DateTime now = rtc.now();
+
+  String fileName = "ScanData" + now.toString("YYYY-MM-DDThhmmss") + ".csv";
+
+  // Open a file for the data
+  dataFile = SD.open(fileName, FILE_WRITE);
+
+  // Check if the file exists - if not, then write a header line for the data
+  if (!dataFile.size())
+  {
+    dataFile.println(csvHeader);
+  }
 
   refPID.reset();
   sampPID.reset();
@@ -853,7 +867,7 @@ void controlLoop()
     sendData(csvString);
 
     // Write data to SD card file
-    writeDataToSD("ScanData", csvString);
+    writeToFile(fileName, csvString);
 
     // Check loop exit conditions
     if (targetTemp == endTemp)
@@ -927,6 +941,9 @@ void controlLoop()
       controlLoopState = false;
     }
   }
+
+  // Close the file after the end of the loop
+  dataFile.close();
 }
 
 /**
