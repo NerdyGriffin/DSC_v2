@@ -741,9 +741,9 @@ void sendData()
   Serial.print(sampCurrent_mA);
   Serial.print(",    ");
 
-  Serial.print(refPower / 1000.0);
+  Serial.print(refPower);
   Serial.print(",    ");
-  Serial.print(sampPower / 1000.0);
+  Serial.print(sampPower);
   Serial.print(",    ");
   /*
     Serial.print(refHeatFlow);
