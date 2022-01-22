@@ -800,6 +800,10 @@ void sendData(String csvString)
 // Write all the relevant data to an SD card file
 void writeToFile(String fileName, String csvString)
 {
+  unsigned long writeStartTime, writeEndTime; //! DEBUG
+
+  writeStartTime = millis(); //! DEBUG
+
   // if the file opened okay, we can write to it:
   if (dataFile)
   {
@@ -810,8 +814,13 @@ void writeToFile(String fileName, String csvString)
   }
   else
   {
-    Serial.print("Error opening " + fileName + " file");
+    Serial.println("Error opening " + fileName + " file");
   }
+
+  writeEndTime = millis(); //! DEBUG
+
+  double writeDuration = ((writeEndTime - writeStartTime) / 1000.0);          //! DEBUG
+  Serial.println("File write duration: " + String(writeDuration) + " (sec)"); //! DEBUG
 }
 
 /**
