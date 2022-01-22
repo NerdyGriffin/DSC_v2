@@ -35,6 +35,9 @@ unsigned long rtcStamp; // rtc timestamp in seconds
 #include <SD.h>
 const int chipSelect = 10; // gpio pin for SD card chip select on featherwing adalogger
 
+// Declare a global file for logging DSC data
+File dataFileHandle;
+
 // NeoPixel parameters
 #define LED_PIN 8
 #define LED_COUNT 1
@@ -440,6 +443,9 @@ void autotunePID()
     // Send data out via Serial bus
     sendData();
 
+    // Write data out to SD card file
+    writeDataToSD(dataFileHandle, "Autotune.csv");
+
     if (tuner.isFinished())
       endAutotune(&tuner, green);
 
@@ -756,6 +762,61 @@ void sendData()
   Serial.println(sampDutyCycle);
 }
 
+void writeDataToSD(File &fileHandle, String fileName)
+{
+  // Write all the relevant data to an SD card file
+  // First open a file for the data
+  fileHandle = SD.open(fileName, FILE_WRITE);
+
+  // First check if the file exists - if not, then write a header line for the data
+  if (!fileHandle.size())
+  {
+    fileHandle.println("RTC(s), Elapsed Time(s), Ttar(C), Tref(C), Tsam(C), Vrl(V), Vsl(V), Iref(mA), Isam(mA), Pref(mW), Psam(mW), DCref(%), DCsam(%)");
+  }
+
+  // if the file opened okay, we can write to it:
+  if (fileHandle)
+  {
+    Serial.print("Writing to ");
+    Serial.print(fileName);
+    Serial.print("...");
+
+    fileHandle.print(rtcStamp);
+    fileHandle.print(", ");
+    fileHandle.print(elapsedTime);
+    fileHandle.print(", ");
+    fileHandle.print(targetTemp);
+    fileHandle.print(", ");
+    fileHandle.print(refTemperature);
+    fileHandle.print(", ");
+    fileHandle.print(sampTemperature);
+    fileHandle.print(", ");
+    fileHandle.print(refLoadVoltage_V);
+    fileHandle.print(", ");
+    fileHandle.print(sampLoadVoltage_V);
+    fileHandle.print(", ");
+    fileHandle.print(refCurrent_mA);
+    fileHandle.print(", ");
+    fileHandle.print(sampCurrent_mA);
+    fileHandle.print(", ");
+    fileHandle.print(refPower);
+    fileHandle.print(", ");
+    fileHandle.print(sampPower);
+    fileHandle.print(", ");
+    fileHandle.print(refDutyCycle);
+    fileHandle.print(", ");
+    fileHandle.println(sampDutyCycle);
+    fileHandle.close();
+    Serial.println("done.");
+  }
+  else
+  {
+    Serial.print("error opening ");
+    Serial.print(fileName);
+    Serial.print(" file");
+  }
+}
+
 /**
  * Temperature control loop
  */
@@ -791,6 +852,9 @@ void controlLoop()
 
     // Send data out via Serial bus
     sendData();
+
+    // Write data to SD card file
+    writeDataToSD(dataFileHandle, "ScanData.csv");
 
     // Check loop exit conditions
     if (targetTemp == endTemp)
