@@ -78,21 +78,6 @@ const unsigned long STANDBY_LOOP_INTERVAL = 1000UL; // milliseconds
  */
 #define LOOP_INTERVAL 500000UL
 
-// global variable for holding the raw analog sensor values
-unsigned long sensorValues[2];
-
-// PID settings and gains
-#define PULSE_WIDTH 100UL // Pulse width in milliseconds
-double Kp = 0.1000;
-double Ki = 0.0001;
-double Kd = 5.0000;
-/**
- * When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
- * is deactivated, and the output is set to max
- */
-#define BANG_RANGE 20.0
-#define PID_UPDATE_INTERVAL PULSE_WIDTH // Interval in milliseconds
-
 // The max voltage of analog input readings
 #define ANALOG_REF_VOLTAGE 3.3
 // The sample resolution of the analogRead() output
@@ -101,6 +86,22 @@ const unsigned long analogMidpoint = pow(2, ANALOG_RESOLUTION - 1);
 // Analog signal to voltage conversion factor
 const double byteToVolts = (ANALOG_REF_VOLTAGE / pow(2, ANALOG_RESOLUTION));
 const double byteToMillivolts = 1000.0 * byteToVolts;
+
+// global variable for holding the raw analog sensor values
+unsigned long sensorValues[2];
+
+// PID settings and gains
+const unsigned int OUTPUT_MIN = 0;
+const unsigned int OUTPUT_MAX = pow(2, ANALOG_RESOLUTION) - 1;
+double Kp = 0.1000;
+double Ki = 0.0001;
+double Kd = 5.0000;
+/**
+ * When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
+ * is deactivated, and the output is set to max
+ */
+#define BANG_RANGE 20.0
+#define PID_UPDATE_INTERVAL 100UL // Interval in milliseconds (Default is 1000)
 
 // Thermocouple amplifier conversion constants
 #define AMPLIFIER_VOLTAGE_OFFSET 1250.0 // 1250 mV = 1.25 V
@@ -153,12 +154,14 @@ double refHeatFlow, sampHeatFlow;
 
 double refDutyCycle, sampDutyCycle;
 
-// PID Relay output values
-bool refRelayState, sampRelayState;
+// Analog signal to percentage conversion factor
+const double byteToPercent = (100.0 / pow(2, ANALOG_RESOLUTION));
+
+double refPIDOutput, sampPIDOutput;
 
 // input/output variables passed by reference, so they are updated automatically
-AutoPIDRelay refPID(&refTemperature, &targetTemp, &refRelayState, PULSE_WIDTH, Kp, Ki, Kd);
-AutoPIDRelay sampPID(&sampTemperature, &targetTemp, &sampRelayState, PULSE_WIDTH, Kp, Ki, Kd);
+AutoPID refPID(&refTemperature, &targetTemp, &refPIDOutput, OUTPUT_MIN, OUTPUT_MAX, Kp, Ki, Kd);
+AutoPID sampPID(&sampTemperature, &targetTemp, &sampPIDOutput, OUTPUT_MIN, OUTPUT_MAX, Kp, Ki, Kd);
 
 // Variables used to simulate the implementation of AutoPIDRelay during PID
 // autotuning
@@ -283,7 +286,7 @@ void recvPIDGains()
 }
 
 /**
- * Run the PID algorithm and update the PWM Relay outputs
+ * Run the PID algorithm and update the PWM outputs
  */
 void refreshPID()
 {
@@ -291,17 +294,17 @@ void refreshPID()
   {
     // Run the PID algorithm
     refPID.run();
-    // Update the PWM Relay output
-    digitalWrite(REF_HEATER_PIN, refRelayState);
+    // Update the PWM output
+    analogWrite(REF_HEATER_PIN, refPIDOutput);
     // Store the latest duty cycle
-    refDutyCycle = refPID.getPulseValue();
+    refDutyCycle = refPIDOutput * byteToPercent;
 
     // Run the PID algorithm
     sampPID.run();
-    // Update the PWM Relay output
-    digitalWrite(SAMP_HEATER_PIN, sampRelayState);
+    // Update the PWM output
+    analogWrite(SAMP_HEATER_PIN, sampPIDOutput);
     // Store the latest duty cycle
-    sampDutyCycle = sampPID.getPulseValue();
+    sampDutyCycle = sampPIDOutput * byteToPercent;
   }
 }
 
@@ -315,12 +318,12 @@ void stopPID(uint32_t color)
   targetTemp = 20;
 
   // Set duty cycle to zero
-  refDutyCycle = 0;
-  sampDutyCycle = 0;
+  refPIDOutput = sampPIDOutput = 0;
+  refDutyCycle = sampDutyCycle = 0;
 
-  // Turn off the PWM Relay output
-  digitalWrite(REF_HEATER_PIN, LOW);
-  digitalWrite(SAMP_HEATER_PIN, LOW);
+  // Turn off the PWM output
+  analogWrite(REF_HEATER_PIN, OUTPUT_MIN);
+  analogWrite(SAMP_HEATER_PIN, OUTPUT_MIN);
 
   neopixel.fill(color);
   neopixel.show();
@@ -383,7 +386,7 @@ void autotunePID()
   // Set the output range
   // These are the minimum and maximum possible output values of whatever you are
   // using to control the system (Arduino analogWrite, for example, is 0-255)
-  tuner.setOutputRange(0, 1.0);
+  tuner.setOutputRange(OUTPUT_MIN, OUTPUT_MAX);
 
   // Set the Ziegler-Nichols tuning mode
   // Set it to either PIDAutotuner::ZNModeBasicPID, PIDAutotuner::ZNModeLessOvershoot,
@@ -415,11 +418,13 @@ void autotunePID()
     calculateHeatFlow();
 
     // Call tunePID() with the input value and current time in microseconds
-    double output = tuner.tunePID(refTemperature, microseconds);
-    refDutyCycle = output;
-    sampDutyCycle = 0;
-    digitalWrite(REF_HEATER_PIN, output);
-    digitalWrite(SAMP_HEATER_PIN, LOW);
+    double tunerOutput = tuner.tunePID(refTemperature, microseconds);
+    refPIDOutput = tunerOutput;
+    sampPIDOutput = OUTPUT_MIN;
+    analogWrite(REF_HEATER_PIN, refPIDOutput);
+    analogWrite(SAMP_HEATER_PIN, sampPIDOutput);
+    refDutyCycle = refPIDOutput * byteToPercent;
+    sampDutyCycle = sampPIDOutput * byteToPercent;
 
     // Send data out via Serial bus
     sendData();
@@ -862,11 +867,12 @@ void standbyData()
   // Set standby target temp
   targetTemp = 20;
 
-  // Turn off the PWM Relay output
-  digitalWrite(REF_HEATER_PIN, LOW);
-  digitalWrite(SAMP_HEATER_PIN, LOW);
+  // Turn off the PWM output
+  analogWrite(REF_HEATER_PIN, OUTPUT_MIN);
+  analogWrite(SAMP_HEATER_PIN, OUTPUT_MIN);
 
   // Set duty cycle to zero
+  refPIDOutput = sampPIDOutput = 0;
   refDutyCycle = sampDutyCycle = 0;
 
   // Send data out via Serial bus
@@ -904,6 +910,7 @@ void setup()
   pinMode(13, OUTPUT);
 
   analogReadResolution(ANALOG_RESOLUTION);
+  analogWriteResolution(ANALOG_RESOLUTION);
 
   // Set up ADC mode for INA219 boards
   // ADC automatic hw averaging is available with SAMPLE_MODE_XX, using single sample here
@@ -926,7 +933,7 @@ void setup()
   // be set to min or max respectively
   refPID.setBangBang(BANG_RANGE);
   sampPID.setBangBang(BANG_RANGE);
-  // set PID update interval
+  // set PID update interval (Default is 1000)
   refPID.setTimeStep(PID_UPDATE_INTERVAL);
   sampPID.setTimeStep(PID_UPDATE_INTERVAL);
 

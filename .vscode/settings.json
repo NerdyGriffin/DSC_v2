@@ -1,4 +1,8 @@
 {
+    "files.associations": {
+        "*.sbatch": "shellscript",
+        "cmath": "cpp"
+    },
     "cSpell.words": [
         "VREF"
     ]

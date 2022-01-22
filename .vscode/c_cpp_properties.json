@@ -50,7 +50,7 @@
             "includePath": [
                 "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\cores\\arduino",
                 "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\libraries\\Adafruit_TinyUSB_Arduino\\src\\arduino",
-                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\libraries\\wire",
+                "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\libraries\\Wire",
                 "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.7.5\\variants\\feather_m0_express",
                 "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\tools\\CMSIS-Atmel\\1.2.2\\CMSIS\\Device\\ATMEL\\",
                 "C:\\Users\\ckuni\\AppData\\Local\\Arduino15\\packages\\adafruit\\tools\\CMSIS\\5.4.0\\CMSIS\\Core\\Include\\",
