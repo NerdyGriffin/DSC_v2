@@ -103,15 +103,15 @@ unsigned long sensorValues[2];
 // PID settings and gains
 const unsigned int OUTPUT_MIN = 0;
 const unsigned int OUTPUT_MAX = pow(2, ANALOG_RESOLUTION) - 1;
-double Kp = 10.0000;
-double Ki = 0.5000;
-double Kd = 1.0000;
+double Kp = 20.0000;
+double Ki = 2.0000;
+double Kd = 3.0000;
 
 /**
  * When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
  * is deactivated, and the output is set to max
  */
-#define BANG_RANGE 20.0
+#define BANG_RANGE 10.0
 #define PID_UPDATE_INTERVAL 100UL // Interval in milliseconds (Default is 1000)
 
 // Thermocouple amplifier conversion constants
@@ -990,19 +990,19 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 10.0000;
-  Ki = 0.5000;
-  Kd = 1.0000;
+  Kp = 20.0000;
+  Ki = 2.0000;
+  Kd = 3.0000;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
   sampPID.setGains(Kp, Ki, Kd);
 
   // Set temperature control parameters to default values
-  startTemp = 25;
-  endTemp = 45;
-  rampUpRate = 10;
-  holdTime = 0;
+  startTemp = 30;
+  endTemp = 35;
+  rampUpRate = 5;
+  holdTime = 180;
 
   targetTemp = startTemp;
 
