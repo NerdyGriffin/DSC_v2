@@ -113,6 +113,19 @@ You may contact the author at ckunis.contact@gmail.com
 
   Most importantly to this project, the "PWM (Relay) Control" feature allows the PID controller to automatically imitate a PWM output with a customizable _pulse width_ given in milliseconds. This is necessary for using the PWM output to control the Solid State Relays in our DSC circuit because the relays we use have a response time of 10ms, so we must use a PWM signal with a pulse width that is at least 10 times larger than this 10ms response time.
 
+- [INA219_WE](https://www.arduino.cc/reference/en/libraries/ina219_we/)
+
+  A library for the INA219 current sensor module
+  It allows to set various ADC modes, gains and bus voltage ranges. Continous mode, triggered mode, power down and ADC off mode are supported.
+
+- [pidautotuner](https://github.com/jackw01/arduino-pid-autotuner)
+
+  Automated PID tuning using Ziegler-Nichols/relay method for embedded systems.
+
+  Originally designed for Arduino and compatible boards, but does not rely on the Arduino standard library.
+
+  **Note:** This library is included in the `libraries` folder of this repo, and must be manually added to your Arduino libraries. It is not available via the Arduino IDE library manager.
+
 ### Arduino Board Packages
 
 - To use the Adafruit Feather M0 Express with the Arduino IDE, you will first need to add the following link into the **Additional Boards Manager URLs** option in the Arduino IDE preferences: `https://adafruit.github.io/arduino-board-index/package_adafruit_index.json`

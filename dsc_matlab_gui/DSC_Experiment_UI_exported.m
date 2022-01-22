@@ -310,11 +310,12 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             flush(app.Arduino);
             write(app.Arduino, 'p', 'char');
 
-            write(app.Arduino, string(app.Data.Kp), 'string');
-            write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.Data.Ki), 'string');
-            write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.Data.Kd), 'string');
+            csvString = sprintf("%f,%f,%f\n", ...
+                app.Data.Kp, ...
+                app.Data.Ki, ...
+                app.Data.Kd);
+
+            write(app.Arduino, csvString, 'string');
         end
 
         function receivePIDGains(app)
@@ -353,13 +354,13 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             flush(app.Arduino);
             write(app.Arduino, 'l', 'char');
 
-            write(app.Arduino, string(app.StartTempCEditField.Value), 'string');
-            write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.EndTempCEditField.Value), 'string');
-            write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.RateCminEditField.Value), 'string');
-            write(app.Arduino, ' ', 'char');
-            write(app.Arduino, string(app.HoldTimesecEditField.Value), 'string');
+            csvString = sprintf("%.2f,%.2f,%.2f,%.2f\n", ...
+                app.StartTempCEditField.Value, ...
+                app.EndTempCEditField.Value, ...
+                app.RateCminEditField.Value, ...
+                app.HoldTimesecEditField.Value);
+
+            write(app.Arduino, csvString, 'string');
         end
 
         function receiveControlParameters(app)
@@ -372,7 +373,6 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                         case 'c'
                             readline(app.Arduino);
                             serialData = strip(readline(app.Arduino));
-                            disp(serialData)
                             [parsedData, dataIsNum] = str2num(serialData);
                             if dataIsNum && length(parsedData) == 4
                                 app.StartTempCEditField.Value = parsedData(1); %double(readline(app.Arduino));
@@ -411,8 +411,16 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
             app.Data.targetTemp = zeros(1,app.PlotRefreshDelay);
             app.Data.refTemp = zeros(1,app.PlotRefreshDelay);
             app.Data.sampTemp = zeros(1,app.PlotRefreshDelay);
+            app.Data.refShuntVoltage = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampShuntVoltage = zeros(1,app.PlotRefreshDelay);
+            app.Data.refBusVoltage = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampBusVoltage = zeros(1,app.PlotRefreshDelay);
+            app.Data.refLoadVoltage = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampLoadVoltage = zeros(1,app.PlotRefreshDelay);
             app.Data.refCurrent = zeros(1,app.PlotRefreshDelay);
             app.Data.sampCurrent = zeros(1,app.PlotRefreshDelay);
+            app.Data.refPower = zeros(1,app.PlotRefreshDelay);
+            app.Data.sampPower = zeros(1,app.PlotRefreshDelay);
             app.Data.refHeatFlow = zeros(1,app.PlotRefreshDelay);
             app.Data.sampHeatFlow = zeros(1,app.PlotRefreshDelay);
             app.Data.refDutyCycle = zeros(1,app.PlotRefreshDelay);
@@ -437,18 +445,26 @@ classdef DSC_Experiment_UI_exported < matlab.apps.AppBase
                     end
                 else
                     [parsedData, dataIsNum] = str2num(serialData);
-                    if dataIsNum && length(parsedData) == 10
+                    if dataIsNum && length(parsedData) == 18
                         dataLength = dataLength + 1;
                         app.Data.elapsedTime(dataLength) = parsedData(1); %str2double(parsedData{1});
                         app.Data.targetTemp(dataLength) = parsedData(2); %str2double(parsedData{2});
                         app.Data.refTemp(dataLength) = parsedData(3); %str2double(parsedData{3});
                         app.Data.sampTemp(dataLength) = parsedData(4); %str2double(parsedData{4});
-                        app.Data.refCurrent(dataLength) = parsedData(5); %str2double(parsedData{5});
-                        app.Data.sampCurrent(dataLength) = parsedData(6); %str2double(parsedData{6});
-                        app.Data.refHeatFlow(dataLength) = parsedData(7); %str2double(parsedData{7});
-                        app.Data.sampHeatFlow(dataLength) = parsedData(8); %str2double(parsedData{8});
-                        app.Data.refDutyCycle(dataLength) = parsedData(9); %str2double(parsedData{9});
-                        app.Data.sampDutyCycle(dataLength) = parsedData(10); %str2double(parsedData{10});
+                        app.Data.refShuntVoltage(dataLength) = parsedData(5); %str2double(parsedData{5});
+                        app.Data.sampShuntVoltage(dataLength) = parsedData(6); %str2double(parsedData{6});
+                        app.Data.refBusVoltage(dataLength) = parsedData(7); %str2double(parsedData{7});
+                        app.Data.sampBusVoltage(dataLength) = parsedData(8); %str2double(parsedData{8});
+                        app.Data.refLoadVoltage(dataLength) = parsedData(9); %str2double(parsedData{9});
+                        app.Data.sampLoadVoltage(dataLength) = parsedData(10); %str2double(parsedData{10});
+                        app.Data.refCurrent(dataLength) = parsedData(11); %str2double(parsedData{11});
+                        app.Data.sampCurrent(dataLength) = parsedData(12); %str2double(parsedData{12});
+                        app.Data.refPower(dataLength) = parsedData(13); %str2double(parsedData{13});
+                        app.Data.sampPower(dataLength) = parsedData(14); %str2double(parsedData{14});
+                        app.Data.refHeatFlow(dataLength) = parsedData(15); %str2double(parsedData{15});
+                        app.Data.sampHeatFlow(dataLength) = parsedData(16); %str2double(parsedData{16});
+                        app.Data.refDutyCycle(dataLength) = parsedData(17); %str2double(parsedData{17});
+                        app.Data.sampDutyCycle(dataLength) = parsedData(18); %str2double(parsedData{18});
 
                         if ~mod(dataLength, app.DataRefreshDelay)
                             updateLiveData(app, ...
