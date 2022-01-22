@@ -706,9 +706,6 @@ void sendData()
   rtcStamp = now.secondstime();
 
   Serial.println("RTC(sec), Time(sec), Ttar(C), Tref(C), Tsam(C), Vrl(V), Vsl(V), Iref(mA), Isam(mA), Pref(mW), Psam(mW), DCref(%), DCsam(%)");
-  Serial.println(now.unixtime());
-
-  Serial.println("Time(sec), Ttar(C), Tref(C), Tsam(C), Vrl(V), Vsl(V), Iref(mA), Isam(mA), Pref(W), Psam(W), DCref(%), DCsam(%)");
 
   // Send each value in the expected order, separated by commas
   Serial.println(rtcStamp);
