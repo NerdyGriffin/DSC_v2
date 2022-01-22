@@ -27,7 +27,8 @@
 // RTC clock on Adalogger featherwing
 #include "RTClib.h"
 RTC_PCF8523 rtc;
-char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesdsay", "Wednesday", "Thursday", "Friday", "Saturday"};
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+unsigned long rtcStamp; // rtc timestamp in seconds
 
 // SD card from Adalogger featherwing
 #include <SPI.h>
@@ -702,13 +703,17 @@ void sendData()
 {
   // Take an rtc time measurement
   DateTime now = rtc.now();
+  rtcStamp = now.secondstime();
 
-  Serial.print("Start of measurement RTC unix-timestamp: ");
+  Serial.println("RTC(sec), Time(sec), Ttar(C), Tref(C), Tsam(C), Vrl(V), Vsl(V), Iref(mA), Isam(mA), Pref(mW), Psam(mW), DCref(%), DCsam(%)");
   Serial.println(now.unixtime());
 
   Serial.println("Time(sec), Ttar(C), Tref(C), Tsam(C), Vrl(V), Vsl(V), Iref(mA), Isam(mA), Pref(W), Psam(W), DCref(%), DCsam(%)");
 
   // Send each value in the expected order, separated by commas
+  Serial.println(rtcStamp);
+  Serial.print(",    ");
+
   Serial.print(elapsedTime);
   Serial.print(",    ");
   Serial.print(targetTemp);
