@@ -33,10 +33,10 @@ unsigned long rtcStamp; // rtc timestamp in seconds
 // SD card from Adalogger featherwing
 #include <SPI.h>
 #include <SD.h>
-const int chipSelect = 10; // gpio pin for SD card chip select on featherwing adalogger
+const int chipSelect = 10; // GPIO pin for SD card chip select on featherwing adalogger
 
 // Declare a global file for logging DSC data
-File dataFileHandle;
+File dataFile;
 
 // NeoPixel parameters
 #define LED_PIN 8
@@ -422,6 +422,10 @@ void autotunePID()
     neopixel.fill(blue);
     neopixel.show();
 
+    // Take an rtc time measurement
+    DateTime now = rtc.now();
+    rtcStamp = now.secondstime();
+
     // Record the time (convert microseconds to seconds)
     elapsedTime = (microseconds - startTime) / SEC_TO_MICROS;
 
@@ -440,11 +444,14 @@ void autotunePID()
     refDutyCycle = refPIDOutput * byteToPercent;
     sampDutyCycle = sampPIDOutput * byteToPercent;
 
+    // Generate a CSV string of all the experiment data
+    String csvString = generateCSVString();
+
     // Send data out via Serial bus
-    sendData();
+    sendData(csvString);
 
     // Write data out to SD card file
-    writeDataToSD(dataFileHandle, "Autotune.csv");
+    writeDataToSD("Autotune", csvString);
 
     if (tuner.isFinished())
       endAutotune(&tuner, green);
@@ -702,118 +709,103 @@ void updateTargetTemperature()
   refreshPID();
 }
 
+String csvHeader = "RTC(sec), Time(sec), Ttar(C), Tref(C), Tsam(C), Vrl(V), Vsl(V), Iref(mA), Isam(mA), Pref(mW), Psam(mW), DCref(%), DCsam(%)";
+
+/**
+ * @brief Generate a CSV string of all the experiment data
+ *
+ */
+String generateCSVString()
+{
+  // Create a string listing each value in the expected order, separated by commas
+  String csvString = "";
+
+  csvString.concat(rtcStamp);
+  csvString.concat(",    ");
+
+  csvString.concat(elapsedTime);
+  csvString.concat(",    ");
+  csvString.concat(targetTemp);
+  csvString.concat(",    ");
+
+  csvString.concat(refTemperature);
+  csvString.concat(",    ");
+  csvString.concat(sampTemperature);
+  csvString.concat(",    ");
+  /*
+    csvString.concat(refShuntVoltage_mV);
+    csvString.concat(",    ");
+    csvString.concat(sampShuntVoltage_mV);
+    csvString.concat(",    ");
+
+    csvString.concat(refBusVoltage_V);
+    csvString.concat(",    ");
+    csvString.concat(sampBusVoltage_V);
+    csvString.concat(",    ");
+  */
+  csvString.concat(refLoadVoltage_V);
+  csvString.concat(",    ");
+  csvString.concat(sampLoadVoltage_V);
+  csvString.concat(",    ");
+
+  csvString.concat(refCurrent_mA);
+  csvString.concat(",    ");
+  csvString.concat(sampCurrent_mA);
+  csvString.concat(",    ");
+
+  csvString.concat(refPower);
+  csvString.concat(",    ");
+  csvString.concat(sampPower);
+  csvString.concat(",    ");
+  /*
+    csvString.concat(refHeatFlow);
+    csvString.concat(",    ");
+    csvString.concat(sampHeatFlow);
+    csvString.concat(",    ");
+  */
+  csvString.concat(refDutyCycle);
+  csvString.concat(",    ");
+  csvString.concat(sampDutyCycle);
+
+  // Return the CSV data string
+  return csvString;
+}
+
 /**
  * Send the latest measurement data via the serial bus
  */
-void sendData()
+void sendData(String csvString)
 {
-  // Take an rtc time measurement
-  DateTime now = rtc.now();
-  rtcStamp = now.secondstime();
-
-  Serial.println("RTC(sec), Time(sec), Ttar(C), Tref(C), Tsam(C), Vrl(V), Vsl(V), Iref(mA), Isam(mA), Pref(mW), Psam(mW), DCref(%), DCsam(%)");
-
-  // Send each value in the expected order, separated by commas
-  Serial.println(rtcStamp);
-  Serial.print(",    ");
-
-  Serial.print(elapsedTime);
-  Serial.print(",    ");
-  Serial.print(targetTemp);
-  Serial.print(",    ");
-
-  Serial.print(refTemperature);
-  Serial.print(",    ");
-  Serial.print(sampTemperature);
-  Serial.print(",    ");
-  /*
-    Serial.print(refShuntVoltage_mV);
-    Serial.print(",    ");
-    Serial.print(sampShuntVoltage_mV);
-    Serial.print(",    ");
-
-    Serial.print(refBusVoltage_V);
-    Serial.print(",    ");
-    Serial.print(sampBusVoltage_V);
-    Serial.print(",    ");
-  */
-  Serial.print(refLoadVoltage_V);
-  Serial.print(",    ");
-  Serial.print(sampLoadVoltage_V);
-  Serial.print(",    ");
-
-  Serial.print(refCurrent_mA);
-  Serial.print(",    ");
-  Serial.print(sampCurrent_mA);
-  Serial.print(",    ");
-
-  Serial.print(refPower);
-  Serial.print(",    ");
-  Serial.print(sampPower);
-  Serial.print(",    ");
-  /*
-    Serial.print(refHeatFlow);
-    Serial.print(",    ");
-    Serial.print(sampHeatFlow);
-    Serial.print(",    ");
-  */
-  Serial.print(refDutyCycle);
-  Serial.print(",    ");
-  Serial.println(sampDutyCycle);
+  // Send a line of CSV column headers
+  Serial.println(csvHeader);
+  // Send the line of CSV data
+  Serial.println(csvString);
 }
 
-void writeDataToSD(File &fileHandle, String fileName)
+void writeDataToSD(String fileName, String csvString)
 {
   // Write all the relevant data to an SD card file
   // First open a file for the data
-  fileHandle = SD.open(fileName, FILE_WRITE);
+  dataFile = SD.open(fileName + ".csv", FILE_WRITE);
 
   // First check if the file exists - if not, then write a header line for the data
-  if (!fileHandle.size())
+  if (!dataFile.size())
   {
-    fileHandle.println("RTC(s), Elapsed Time(s), Ttar(C), Tref(C), Tsam(C), Vrl(V), Vsl(V), Iref(mA), Isam(mA), Pref(mW), Psam(mW), DCref(%), DCsam(%)");
+    dataFile.println(csvHeader);
   }
 
   // if the file opened okay, we can write to it:
-  if (fileHandle)
+  if (dataFile)
   {
-    Serial.print("Writing to ");
-    Serial.print(fileName);
-    Serial.print("...");
-
-    fileHandle.print(rtcStamp);
-    fileHandle.print(", ");
-    fileHandle.print(elapsedTime);
-    fileHandle.print(", ");
-    fileHandle.print(targetTemp);
-    fileHandle.print(", ");
-    fileHandle.print(refTemperature);
-    fileHandle.print(", ");
-    fileHandle.print(sampTemperature);
-    fileHandle.print(", ");
-    fileHandle.print(refLoadVoltage_V);
-    fileHandle.print(", ");
-    fileHandle.print(sampLoadVoltage_V);
-    fileHandle.print(", ");
-    fileHandle.print(refCurrent_mA);
-    fileHandle.print(", ");
-    fileHandle.print(sampCurrent_mA);
-    fileHandle.print(", ");
-    fileHandle.print(refPower);
-    fileHandle.print(", ");
-    fileHandle.print(sampPower);
-    fileHandle.print(", ");
-    fileHandle.print(refDutyCycle);
-    fileHandle.print(", ");
-    fileHandle.println(sampDutyCycle);
-    fileHandle.close();
+    Serial.print("Writing to " + fileName + ".csv ...");
+    dataFile.println(csvString);
+    // close the file:
+    dataFile.close();
     Serial.println("done.");
   }
   else
   {
-    Serial.print("error opening ");
-    Serial.print(fileName);
-    Serial.print(" file");
+    Serial.print("Error opening " + fileName + ".csv file");
   }
 }
 
@@ -838,6 +830,10 @@ void controlLoop()
     neopixel.fill(blue);
     neopixel.show();
 
+    // Take an rtc time measurement
+    DateTime now = rtc.now();
+    rtcStamp = now.secondstime();
+
     // Record the time (convert to seconds)
     elapsedTime = (microseconds - startTime) / SEC_TO_MICROS;
 
@@ -850,11 +846,14 @@ void controlLoop()
     // Calculate the new target temperature
     updateTargetTemperature();
 
+    // Generate a CSV string of all the experiment data
+    String csvString = generateCSVString();
+
     // Send data out via Serial bus
-    sendData();
+    sendData(csvString);
 
     // Write data to SD card file
-    writeDataToSD(dataFileHandle, "ScanData.csv");
+    writeDataToSD("ScanData", csvString);
 
     // Check loop exit conditions
     if (targetTemp == endTemp)
@@ -957,8 +956,11 @@ void standbyData()
   refPIDOutput = sampPIDOutput = 0;
   refDutyCycle = sampDutyCycle = 0;
 
+  // Generate a CSV string of all the experiment data
+  String csvString = generateCSVString();
+
   // Send data out via Serial bus
-  sendData();
+  sendData(csvString);
 }
 
 void setup()
