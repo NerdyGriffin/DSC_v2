@@ -37,6 +37,7 @@ const int chipSelect = 10; // GPIO pin for SD card chip select on featherwing ad
 
 // Declare a global file for logging DSC data
 File dataFile;
+#define TIMESTAMP_FORMAT "YYYY-MM-DD-hhmmss"
 
 // NeoPixel parameters
 #define LED_PIN 8
@@ -379,7 +380,8 @@ void autotunePID()
   // Send the char 'a' to indicate the start of autotune
   Serial.println('a');
 
-  String fileName = "Autotune.csv";
+  String fileTimestamp = rtc.now().toString(TIMESTAMP_FORMAT);
+  String fileName = "Autotune" + fileTimestamp + ".csv";
 
   // Open a file for the data
   dataFile = SD.open(fileName, FILE_WRITE);
@@ -818,9 +820,8 @@ void controlLoop()
   // Send the char 's' to indicate the start of control loop
   Serial.println('s');
 
-  DateTime now = rtc.now();
-
-  String fileName = "ScanData" + now.toString("YYYY-MM-DDThhmmss") + ".csv";
+  String fileTimestamp = rtc.now().toString(TIMESTAMP_FORMAT);
+  String fileName = "ScanData" + fileTimestamp + ".csv";
 
   // Open a file for the data
   dataFile = SD.open(fileName, FILE_WRITE);
