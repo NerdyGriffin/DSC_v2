@@ -380,7 +380,8 @@ void autotunePID()
   // Send the char 'a' to indicate the start of autotune
   Serial.println('a');
 
-  String fileTimestamp = rtc.now().toString(TIMESTAMP_FORMAT);
+  char timestampFormat[] = TIMESTAMP_FORMAT;
+  String fileTimestamp = rtc.now().toString(timestampFormat);
   String fileName = "Autotune" + fileTimestamp + ".csv";
 
   // Open a file for the data
@@ -820,7 +821,8 @@ void controlLoop()
   // Send the char 's' to indicate the start of control loop
   Serial.println('s');
 
-  String fileTimestamp = rtc.now().toString(TIMESTAMP_FORMAT);
+  char timestampFormat[] = TIMESTAMP_FORMAT;
+  String fileTimestamp = rtc.now().toString(timestampFormat);
   String fileName = "ScanData" + fileTimestamp + ".csv";
 
   // Open a file for the data
