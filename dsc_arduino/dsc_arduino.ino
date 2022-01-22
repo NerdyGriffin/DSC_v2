@@ -803,14 +803,14 @@ void writeToFile(String fileName, String csvString)
   // if the file opened okay, we can write to it:
   if (dataFile)
   {
-    Serial.print("Writing to " + fileName + ".csv ...");
+    Serial.print("Writing to " + fileName + " ...");
     dataFile.println(csvString);
     dataFile.flush();
     Serial.println("done.");
   }
   else
   {
-    Serial.print("Error opening " + fileName + ".csv file");
+    Serial.print("Error opening " + fileName + " file");
   }
 }
 
