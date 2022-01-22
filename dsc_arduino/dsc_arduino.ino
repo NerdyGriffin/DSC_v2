@@ -68,7 +68,7 @@ INA219_WE SAMP_INA219 = INA219_WE(SAMP_CURRENT_I2C); // sample heater ina219 boa
 
 const unsigned long MAX_SERIAL_WAIT_TIME = 10000000UL; // microseconds
 
-const unsigned long STANDBY_LOOP_INTERVAL = 250UL; // milliseconds
+const unsigned long STANDBY_LOOP_INTERVAL = 500UL; // milliseconds
 
 /**
  * Number of samples to average the reading over. Change this to make the
