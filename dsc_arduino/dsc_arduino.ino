@@ -505,6 +505,9 @@ void autotunePID()
       endAutotune(&tuner, red);
     }
   }
+
+  // Close the file after the end of the loop
+  dataFile.close();
 }
 
 /**
