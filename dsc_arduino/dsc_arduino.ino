@@ -388,7 +388,7 @@ void autotunePID()
   dataFile = SD.open(fileName, FILE_WRITE);
 
   // Check if the file exists - if not, then write a header line for the data
-  if (!SD.exists(fileName))
+  if (!dataFile.size())
   {
     dataFile.println(csvHeader);
     dataFile.flush();
@@ -842,7 +842,7 @@ void controlLoop()
   dataFile = SD.open(fileName, FILE_WRITE);
 
   // Check if the file exists - if not, then write a header line for the data
-  if (!SD.exists(fileName))
+  if (!dataFile.size())
   {
     dataFile.println(csvHeader);
     dataFile.flush();
