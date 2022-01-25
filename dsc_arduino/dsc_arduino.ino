@@ -81,7 +81,7 @@ const unsigned long STANDBY_LOOP_INTERVAL = 500UL; // milliseconds
  *
  * For 12-bit analog res, this max is 256 samples.
  */
-#define AVG_SAMPLES 200
+#define AVG_SAMPLES 128
 
 // Wait 2 milliseconds before the next loop for the analog-to-digital converter
 // to settle after the last reading
