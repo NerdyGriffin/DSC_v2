@@ -468,7 +468,7 @@ void autotunePID()
     sendData(csvString);
 
     // Write data out to SD card file
-    writeToFile(fileName, csvString);
+    writeToFile(&dataFile, fileName, csvString);
 
     if (tuner.isFinished())
       endAutotune(&tuner, green);
@@ -801,7 +801,7 @@ void sendData(String csvString)
 }
 
 // Write all the relevant data to an SD card file
-void writeToFile(String fileName, String csvString)
+void writeToFile(File *dataFile, String fileName, String csvString)
 {
   unsigned long writeStartTime, writeEndTime; //! DEBUG
 
@@ -811,8 +811,8 @@ void writeToFile(String fileName, String csvString)
   if (dataFile)
   {
     Serial.print("Writing to " + fileName + " ...");
-    dataFile.println(csvString);
-    dataFile.flush();
+    dataFile->println(csvString);
+    dataFile->flush();
     Serial.println("done.");
   }
   else
@@ -884,7 +884,7 @@ void controlLoop()
     sendData(csvString);
 
     // Write data to SD card file
-    writeToFile(fileName, csvString);
+    writeToFile(&dataFile, fileName, csvString);
 
     // Check loop exit conditions
     if (targetTemp == endTemp)
