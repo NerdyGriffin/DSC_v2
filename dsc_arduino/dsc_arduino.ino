@@ -882,11 +882,11 @@ void controlLoop()
   refPID.reset();
   sampPID.reset();
 
-  startCounter = endCounter = 0;
   unsigned long startTime = rampUpStartTime = holdStartTime = microseconds = micros();
   bool emergencyStop = false;
   for (int cycleCounter = 0; cycleCounter < numParams; cycleCounter++)
   {
+    startCounter = endCounter = 0;
     bool controlLoopState = true;
     while (controlLoopState && !emergencyStop)
     {
