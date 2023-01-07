@@ -37,7 +37,6 @@ const int chipSelect = 10; // GPIO pin for SD card chip select on featherwing ad
 
 // Declare a global file for logging DSC data
 File dataFile;
-#define TIMESTAMP_FORMAT "YYYY-MM-DD-hhmmss"
 
 // NeoPixel parameters
 #define LED_PIN 8
@@ -385,9 +384,16 @@ void autotunePID()
   // Send the char 'a' to indicate the start of autotune
   Serial.println('a');
 
-  char timestampFormat[] = TIMESTAMP_FORMAT;
-  String fileTimestamp = rtc.now().toString(timestampFormat);
-  String fileName = "Autotune" + fileTimestamp + ".csv";
+  char fileName[15];
+  strcpy(fileName, "/TUNE00.CSV");
+  for (uint8_t i = 0; i < 100; i++) {
+    fileName[5] = '0' + i/10;
+    fileName[6] = '0' + i%10;
+    // create if does not exist, do not open existing, write, sync after write
+    if (! SD.exists(fileName)) {
+      break;
+    }
+  }
 
   // Open a file for the data
   dataFile = SD.open(fileName, FILE_WRITE);
@@ -866,9 +872,16 @@ void controlLoop()
   // Send the char 's' to indicate the start of control loop
   Serial.println('s');
 
-  char timestampFormat[] = TIMESTAMP_FORMAT;
-  String fileTimestamp = rtc.now().toString(timestampFormat);
-  String fileName = "ScanData" + fileTimestamp + ".csv";
+  char fileName[15];
+  strcpy(fileName, "/DATA00.CSV");
+  for (uint8_t i = 0; i < 100; i++) {
+    fileName[5] = '0' + i/10;
+    fileName[6] = '0' + i%10;
+    // create if does not exist, do not open existing, write, sync after write
+    if (! SD.exists(fileName)) {
+      break;
+    }
+  }
 
   // Open a file for the data
   dataFile = SD.open(fileName, FILE_WRITE);
