@@ -37,7 +37,6 @@ const int chipSelect = 10; // GPIO pin for SD card chip select on featherwing ad
 
 // Declare a global file for logging DSC data
 File dataFile;
-#define TIMESTAMP_FORMAT "YYYY-MM-DD-hhmmss"
 
 // NeoPixel parameters
 #define LED_PIN 8
@@ -89,9 +88,9 @@ const unsigned long STANDBY_LOOP_INTERVAL = 500UL; // milliseconds
 
 /**
  * Loop interval in microseconds.
- * 500,000 microseconds = 0.5 seconds
+ * 250,000 microseconds = 0.25 seconds
  */
-#define LOOP_INTERVAL 500000UL
+#define LOOP_INTERVAL 250000UL
 
 // The max voltage of analog input readings
 #define ANALOG_REF_VOLTAGE 3.3
@@ -107,9 +106,10 @@ unsigned long sensorValues[2];
 // PID settings and gains
 const unsigned int OUTPUT_MIN = 0;
 const unsigned int OUTPUT_MAX = pow(2, ANALOG_RESOLUTION) - 1;
-double Kp = 20.0000;
-double Ki = 2.0000;
-double Kd = 3.0000;
+// These placeholder values are overwritten during the setup() function
+double Kp = 1.0000;
+double Ki = 0.0000;
+double Kd = 0.0000;
 
 /**
  * When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
@@ -138,12 +138,16 @@ double Kd = 3.0000;
 // that are required before the program considers the target to be satisfied
 #define TARGET_COUNTER_THRESHOLD 100 // Default: 100
 
+// The maximum number of sets of temp control parameters that may be saved
+#define MAX_PARAMETERS 8
+
 // target temperature and temp control parameters
 double targetTemp;
-double startTemp;
-double endTemp;
-double rampUpRate;
-double holdTime;
+double startTemp[MAX_PARAMETERS] = {};
+double endTemp[MAX_PARAMETERS] = {};
+double rampUpRate[MAX_PARAMETERS] = {};
+double holdTime[MAX_PARAMETERS] = {};
+int numParams;
 
 #define MIN_TO_MICROS 60000000UL
 #define SEC_TO_MICROS 1000000.0
@@ -380,9 +384,16 @@ void autotunePID()
   // Send the char 'a' to indicate the start of autotune
   Serial.println('a');
 
-  char timestampFormat[] = TIMESTAMP_FORMAT;
-  String fileTimestamp = rtc.now().toString(timestampFormat);
-  String fileName = "Autotune" + fileTimestamp + ".csv";
+  char fileName[15];
+  strcpy(fileName, "/TUNE00.CSV");
+  for (uint8_t i = 0; i < 100; i++) {
+    fileName[5] = '0' + i/10;
+    fileName[6] = '0' + i%10;
+    // create if does not exist, do not open existing, write, sync after write
+    if (! SD.exists(fileName)) {
+      break;
+    }
+  }
 
   // Open a file for the data
   dataFile = SD.open(fileName, FILE_WRITE);
@@ -399,7 +410,7 @@ void autotunePID()
   sampPID.stop();
 
   // Set the target temperature for PID tuning
-  targetTemp = 45;
+  targetTemp = 120;
 
   PIDAutotuner tuner = PIDAutotuner();
 
@@ -514,6 +525,25 @@ void autotunePID()
 }
 
 /**
+ * Reset the temperature control parameters to the default values
+ */
+void resetControlParameters()
+{
+  startTemp[0] = 30;
+  endTemp[0] = 35;
+  rampUpRate[0] = 5;
+  holdTime[0] = 180;
+  for (int i = 1; i < MAX_PARAMETERS; i++)
+  {
+    startTemp[i] = 0;
+    endTemp[i] = 0;
+    rampUpRate[i] = 0;
+    holdTime[i] = 0;
+  }
+  numParams = 0;
+}
+
+/**
  * Send the temperature control parameters via the serial bus
  */
 void sendControlParameters()
@@ -523,14 +553,17 @@ void sendControlParameters()
 
   Serial.println("StartTemp(C),EndTemp(C),RampUpRate(C/min),HoldTime(sec)");
 
-  // Send each value in the expected order, separated by newlines
-  Serial.print(startTemp);
-  Serial.print(",");
-  Serial.print(endTemp);
-  Serial.print(",");
-  Serial.print(rampUpRate);
-  Serial.print(",");
-  Serial.println(holdTime);
+  for (int i = 0; i < numParams; i++)
+  {
+    // Send each value in the expected order, separated by newlines
+    Serial.print(startTemp[i]);
+    Serial.print(",");
+    Serial.print(endTemp[i]);
+    Serial.print(",");
+    Serial.print(rampUpRate[i]);
+    Serial.print(",");
+    Serial.println(holdTime[i]);
+  }
 }
 
 /**
@@ -541,17 +574,22 @@ void parseControlParameters()
 {
   char *strtokIndx; // this is used by strtok() as an index
 
-  strtokIndx = strtok(tempChars, ","); // get the first part - startTemp
-  startTemp = atof(strtokIndx);        // copy it to the global variable
+  strtokIndx = strtok(tempChars, ",");     // get the first part - startTemp
+  startTemp[numParams] = atof(strtokIndx); // copy it to the global variable
 
   strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
-  endTemp = atof(strtokIndx);
+  endTemp[numParams] = atof(strtokIndx);
 
   strtokIndx = strtok(NULL, ",");
-  rampUpRate = atof(strtokIndx);
+  rampUpRate[numParams] = atof(strtokIndx);
 
   strtokIndx = strtok(NULL, ",");
-  holdTime = atof(strtokIndx);
+  holdTime[numParams] = atof(strtokIndx);
+
+  if (numParams < MAX_PARAMETERS)
+  {
+    numParams++;
+  }
 }
 
 /**
@@ -672,11 +710,11 @@ void calculateHeatFlow()
 /**
  * Calcutate the target temperature
  */
-void updateTargetTemperature()
+void updateTargetTemperature(int cycleCounter)
 {
   if (startCounter < TARGET_COUNTER_THRESHOLD)
   {
-    targetTemp = startTemp;
+    targetTemp = startTemp[cycleCounter];
     if ((refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
         (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
     {
@@ -697,25 +735,25 @@ void updateTargetTemperature()
   }
   else
   {
-    if (endTemp > startTemp)
+    if (endTemp[cycleCounter] > startTemp[cycleCounter])
     {
-      targetTemp = startTemp + (microseconds - rampUpStartTime) * rampUpRate / MIN_TO_MICROS;
-      if (targetTemp > endTemp)
+      targetTemp = startTemp[cycleCounter] + (microseconds - rampUpStartTime) * rampUpRate[cycleCounter] / MIN_TO_MICROS;
+      if (targetTemp > endTemp[cycleCounter])
       {
-        targetTemp = endTemp;
+        targetTemp = endTemp[cycleCounter];
       }
     }
-    else if (endTemp < startTemp)
+    else if (endTemp[cycleCounter] < startTemp[cycleCounter])
     {
-      targetTemp = startTemp - (microseconds - rampUpStartTime) * rampUpRate / MIN_TO_MICROS;
-      if (targetTemp < endTemp)
+      targetTemp = startTemp[cycleCounter] - (microseconds - rampUpStartTime) * rampUpRate[cycleCounter] / MIN_TO_MICROS;
+      if (targetTemp < endTemp[cycleCounter])
       {
-        targetTemp = endTemp;
+        targetTemp = endTemp[cycleCounter];
       }
     }
     else
     {
-      targetTemp = endTemp;
+      targetTemp = endTemp[cycleCounter];
     }
   }
 
@@ -834,9 +872,16 @@ void controlLoop()
   // Send the char 's' to indicate the start of control loop
   Serial.println('s');
 
-  char timestampFormat[] = TIMESTAMP_FORMAT;
-  String fileTimestamp = rtc.now().toString(timestampFormat);
-  String fileName = "ScanData" + fileTimestamp + ".csv";
+  char fileName[15];
+  strcpy(fileName, "/DATA00.CSV");
+  for (uint8_t i = 0; i < 100; i++) {
+    fileName[5] = '0' + i/10;
+    fileName[6] = '0' + i%10;
+    // create if does not exist, do not open existing, write, sync after write
+    if (! SD.exists(fileName)) {
+      break;
+    }
+  }
 
   // Open a file for the data
   dataFile = SD.open(fileName, FILE_WRITE);
@@ -851,111 +896,115 @@ void controlLoop()
   refPID.reset();
   sampPID.reset();
 
-  startCounter = endCounter = 0;
   unsigned long startTime = rampUpStartTime = holdStartTime = microseconds = micros();
-  bool controlLoopState = true;
-  while (controlLoopState)
+  bool emergencyStop = false;
+  for (int cycleCounter = 0; cycleCounter < numParams; cycleCounter++)
   {
-    digitalWrite(13, LOW);
-
-    neopixel.fill(blue);
-    neopixel.show();
-
-    // Take an rtc time measurement
-    DateTime now = rtc.now();
-    rtcStamp = now.secondstime();
-
-    // Record the time (convert to seconds)
-    elapsedTime = (microseconds - startTime) / SEC_TO_MICROS;
-
-    // Read the measurements from the sensors
-    updateSensorData();
-
-    // Calcutate the heat flow
-    calculateHeatFlow();
-
-    // Calculate the new target temperature
-    updateTargetTemperature();
-
-    // Generate a CSV string of all the experiment data
-    String csvString = generateCSVString();
-
-    // Send data out via Serial bus
-    sendData(csvString);
-
-    // Write data to SD card file
-    writeToFile(&dataFile, fileName, csvString);
-
-    // Check loop exit conditions
-    if (targetTemp == endTemp)
+    startCounter = endCounter = 0;
+    bool controlLoopState = true;
+    while (controlLoopState && !emergencyStop)
     {
-      if (endCounter < TARGET_COUNTER_THRESHOLD)
+      digitalWrite(13, LOW);
+
+      neopixel.fill(blue);
+      neopixel.show();
+
+      // Take an rtc time measurement
+      DateTime now = rtc.now();
+      rtcStamp = now.secondstime();
+
+      // Record the time (convert to seconds)
+      elapsedTime = (microseconds - startTime) / SEC_TO_MICROS;
+
+      // Read the measurements from the sensors
+      updateSensorData();
+
+      // Calcutate the heat flow
+      calculateHeatFlow();
+
+      // Calculate the new target temperature
+      updateTargetTemperature(cycleCounter);
+
+      // Generate a CSV string of all the experiment data
+      String csvString = generateCSVString();
+
+      // Send data out via Serial bus
+      sendData(csvString);
+
+      // Write data to SD card file
+      writeToFile(&dataFile, fileName, csvString);
+
+      // Check loop exit conditions
+      if (targetTemp == endTemp[cycleCounter])
       {
-        // if (endCounter == 0)
-        // {
-        //   // Reset the PID when transitioning from ramp-up heating to constant
-        //   // target temperature
-        //   refPID.reset();
-        //   sampPID.reset();
-        // }
-        if ((refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
-            (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
+        if (endCounter < TARGET_COUNTER_THRESHOLD)
         {
-          endCounter++;
+          // if (endCounter == 0)
+          // {
+          //   // Reset the PID when transitioning from ramp-up heating to constant
+          //   // target temperature
+          //   refPID.reset();
+          //   sampPID.reset();
+          // }
+          if ((refPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)) &&
+              (sampPID.atSetPoint(MINIMUM_ACCEPTABLE_ERROR)))
+          {
+            endCounter++;
+          }
+          else
+          {
+            endCounter = 1;
+          }
+          holdStartTime = microseconds;
         }
-        else
+        else if ((microseconds - holdStartTime) > (holdTime[cycleCounter] * SEC_TO_MICROS))
         {
-          endCounter = 1;
+          stopPID(green);
+          controlLoopState = false;
         }
-        holdStartTime = microseconds;
       }
-      else if ((microseconds - holdStartTime) > (holdTime * SEC_TO_MICROS))
+
+      if (checkSafetyLimits())
       {
-        stopPID(green);
-        controlLoopState = false;
+        stopPID(yellow);
+        emergencyStop = true;
       }
-    }
 
-    if (checkSafetyLimits())
-    {
-      stopPID(yellow);
-      controlLoopState = false;
-    }
-
-    // Check for interupts from the UI
-    if (Serial.available())
-    {
-      digitalWrite(13, HIGH);
-
-      // Read the incoming data as a char
-      int inByte = Serial.read();
-
-      switch (inByte)
+      // Check for interupts from the UI
+      if (Serial.available())
       {
-      case 'x':
-        // Received stop command
+        digitalWrite(13, HIGH);
+
+        // Read the incoming data as a char
+        int inByte = Serial.read();
+
+        switch (inByte)
+        {
+        case 'x':
+          // Received stop command
+          stopPID(red);
+          emergencyStop = true;
+          break;
+        default:
+          break;
+        }
+      }
+
+      while ((micros() - microseconds) < LOOP_INTERVAL)
+      {
+        // Refresh the PID calculations and PWM output
+        refreshPID();
+      } // busy wait
+
+      unsigned long prevMicroseconds = microseconds;
+      microseconds += LOOP_INTERVAL;
+
+      if ((microseconds - startTime) < (prevMicroseconds - startTime))
+      {
+        // Time overflow error, experiment exceeded 70 minutes
         stopPID(red);
-        controlLoopState = false;
-        break;
-      default:
-        break;
+        emergencyStop = true;
       }
-    }
-
-    while ((micros() - microseconds) < LOOP_INTERVAL)
-    {
-      // Refresh the PID calculations and PWM output
-      refreshPID();
-    } // busy wait
-
-    unsigned long prevMicroseconds = microseconds;
-    microseconds += LOOP_INTERVAL;
-
-    if ((microseconds - startTime) < (prevMicroseconds - startTime))
-    {
-      // Time overflow error, experiment exceeded 70 minutes
-      stopPID(red);
-      controlLoopState = false;
     }
   }
 
@@ -1090,21 +1139,18 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 20.0000;
-  Ki = 2.0000;
-  Kd = 3.0000;
+  Kp = 350.0000;
+  Ki = 4.0000;
+  Kd = 5.0000;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
   sampPID.setGains(Kp, Ki, Kd);
 
   // Set temperature control parameters to default values
-  startTemp = 30;
-  endTemp = 35;
-  rampUpRate = 5;
-  holdTime = 180;
+  resetControlParameters();
 
-  targetTemp = startTemp;
+  targetTemp = startTemp[0];
 
   standbyCounter = 0;
 
@@ -1145,6 +1191,8 @@ void loop()
       // Received initialization command
       neopixel.fill(cyan);
       neopixel.show();
+      // Reset the parameters to the default values
+      resetControlParameters();
       // Send the PID gain constants via the serial bus
       sendPIDGains();
       // Send the temperature control parameters via the serial bus
