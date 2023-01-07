@@ -410,7 +410,7 @@ void autotunePID()
   sampPID.stop();
 
   // Set the target temperature for PID tuning
-  targetTemp = 45;
+  targetTemp = 120;
 
   PIDAutotuner tuner = PIDAutotuner();
 
