@@ -107,9 +107,10 @@ unsigned long sensorValues[2];
 // PID settings and gains
 const unsigned int OUTPUT_MIN = 0;
 const unsigned int OUTPUT_MAX = pow(2, ANALOG_RESOLUTION) - 1;
-double Kp = 20.0000;
-double Ki = 2.0000;
-double Kd = 3.0000;
+// These placeholder values are overwritten during the setup() function
+double Kp = 1.0000;
+double Ki = 0.0000;
+double Kd = 0.0000;
 
 /**
  * When the temperature is less than {TargetTemp - BANG_RANGE}, the PID control
@@ -1125,9 +1126,9 @@ void setup()
   neopixel.show(); // Initialize all pixels to 'off'
 
   // Set PID gain constants to default values
-  Kp = 20.0000;
-  Ki = 2.0000;
-  Kd = 3.0000;
+  Kp = 350.0000;
+  Ki = 4.0000;
+  Kd = 5.0000;
 
   // Update the PID gains
   refPID.setGains(Kp, Ki, Kd);
