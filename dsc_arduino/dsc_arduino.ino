@@ -89,9 +89,9 @@ const unsigned long STANDBY_LOOP_INTERVAL = 500UL; // milliseconds
 
 /**
  * Loop interval in microseconds.
- * 500,000 microseconds = 0.5 seconds
+ * 250,000 microseconds = 0.25 seconds
  */
-#define LOOP_INTERVAL 500000UL
+#define LOOP_INTERVAL 250000UL
 
 // The max voltage of analog input readings
 #define ANALOG_REF_VOLTAGE 3.3
